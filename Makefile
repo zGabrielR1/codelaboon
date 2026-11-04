@@ -22,7 +22,7 @@ check:
 		providers/__init__.py providers/base.py \
 		providers/chatgpt/chatgpt_provider.py providers/nvidia/nvidia_provider.py \
 		providers/openrouter/openrouter_provider.py providers/luna/luna_provider.py \
-		providers/ourfree/ourfree_provider.py \
+		providers/ourfree/ourfree_provider.py providers/kilo/kilo_provider.py \
 		config/providers.py README.md LICENSE pyproject.toml MANIFEST.in \
 		docs/AGENTS.md docs/ARCHITECTURE.md docs/PROGRESS.md docs/CURRENTTASK; do \
 		if [ ! -f "$$file" ]; then \

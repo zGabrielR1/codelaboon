@@ -1,7 +1,7 @@
 # CURRENTTASK
 
-**ACTIVE**: Textual TUI shipped as `codelaboon tui` (optional `[tui]` extra);
-next: use it in a real session and keep the harness dependency-light.
+**ACTIVE**: Kilo AI's keyless free pool shipped as the `kilo` provider; next:
+validate against the live gateway and keep growing the free catalogue.
 
 ## Baseline established
 
@@ -57,6 +57,17 @@ The original v0.1.0 release task is complete:
 - `textual` moved to an optional `[tui]` extra; the CLI prints install
   instructions and exits 2 when it is missing
 - Headless pilot tests for mount, selection and chat; CI installs the extra
+
+### v0.6.0 — 2026-11-04
+
+- `kilo` provider: Kilo AI's public gateway free pool, completely keyless
+- Live discovery filters the gateway listing to its `isFree` slice;
+  `kilo-auto/free` and `openrouter/free` are the offline fallbacks
+- Chat requests the stream wire and parses by shape (SSE frames folded,
+  keepalive comments skipped, single JSON documents accepted); `reasoning`
+  levels (`off`/`low`/`medium`/`high`) map onto the gateway's parameter
+- Keyless providers are a first-class concept: `providers list` shows
+  "Free (no key needed)" and `configure kilo` only offers a base URL override
 
 ## Success criteria
 

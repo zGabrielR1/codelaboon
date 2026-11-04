@@ -53,6 +53,10 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
                 "jev-1.13-free",
             ],
         },
+        "kilo": {
+            "api_key": "",
+            "models": ["kilo-auto/free", "openrouter/free"],
+        },
     }
 
 
@@ -175,6 +179,7 @@ def get_default_models(provider_name: str) -> list:
             "deepseek-v4.1-flash-free",
             "deepseek-v4-flash-free",
         ],
+        "kilo": ["kilo-auto/free", "openrouter/free"],
     }
 
     return defaults.get(provider_name, [])

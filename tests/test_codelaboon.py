@@ -33,6 +33,10 @@ from codelaboon.decision import (  # noqa: E402
     questions_from_data,
 )
 from providers.chatgpt.chatgpt_provider import ChatGPTProvider  # noqa: E402
+from providers.kilo.kilo_provider import (  # noqa: E402
+    DEFAULT_BASE_URL as DEFAULT_KILO_BASE_URL,
+    KiloProvider,
+)
 from providers.luna.luna_provider import LunaProvider  # noqa: E402
 from providers.nvidia.nvidia_provider import NVIDIAProvider  # noqa: E402
 from providers.openrouter.openrouter_provider import OpenRouterProvider  # noqa: E402
@@ -76,7 +80,8 @@ class ConfigTests(unittest.TestCase):
         config = get_providers_config()
 
         self.assertEqual(
-            set(config), {"chatgpt", "nvidia", "openrouter", "luna", "ourfree"}
+            set(config),
+            {"chatgpt", "nvidia", "openrouter", "luna", "ourfree", "kilo"},
         )
         self.assertTrue((config_dir / "providers.toml").is_file())
         if os.name == "posix":
@@ -103,7 +108,8 @@ class DoctorTests(unittest.TestCase):
 class ProviderTests(unittest.TestCase):
     def test_default_model_lists_are_non_empty(self):
         for provider_class in (
-            ChatGPTProvider, NVIDIAProvider, OpenRouterProvider, LunaProvider, OurFreeModelProvider
+            ChatGPTProvider, NVIDIAProvider, OpenRouterProvider, LunaProvider,
+            OurFreeModelProvider, KiloProvider
         ):
             with self.subTest(provider=provider_class.__name__):
                 provider = provider_class(api_key="", models=[])
@@ -221,6 +227,180 @@ class OurFreeModelTests(unittest.TestCase):
 
         provider = cli.providers["ourfree"]
         self.assertEqual(provider.base_url, DEFAULT_BASE_URL)
+
+
+class KiloTests(unittest.TestCase):
+    """Tests for the keyless Kilo AI free-pool provider."""
+
+    LISTING = {
+        "data": [
+            {"id": "kilo-auto/free", "name": "Kilo Auto (free)", "isFree": True},
+            {"id": "nvidia/nemotron-3-ultra:free", "name": "NVIDIA: Nemotron 3 Ultra (free)", "isFree": True},
+            {"id": "z-ai/glm-5.3", "name": "GLM 5.3", "isFree": False},
+            {"id": "openrouter/free", "name": "OpenRouter Auto (free)", "isFree": True},
+            {"isFree": True},  # A row without an id is not a model.
+        ]
+    }
+
+    def test_is_keyless(self):
+        provider = KiloProvider(api_key="", models=[])
+        self.assertTrue(provider.keyless)
+        self.assertTrue(provider.validate_api_key())
+
+    def test_list_models_filters_the_free_slice(self):
+        with mock.patch("requests.get", return_value=FakeResponse(self.LISTING)) as get:
+            provider = KiloProvider(api_key="", models=[])
+            models = provider.list_models()
+
+        self.assertEqual(
+            models, ["kilo-auto/free", "nvidia/nemotron-3-ultra:free", "openrouter/free"]
+        )
+        self.assertEqual(get.call_args.args[0], f"{DEFAULT_KILO_BASE_URL}/models")
+        self.assertNotIn("Authorization", get.call_args.kwargs["headers"])
+
+    def test_list_models_tolerates_bare_list_envelope(self):
+        rows = [
+            {"id": "cohere/x", "isFree": True},
+            {"id": "paid/y", "isFree": False},
+        ]
+        with mock.patch("requests.get", return_value=FakeResponse(rows)):
+            provider = KiloProvider(api_key="", models=["pinned"])
+            models = provider.list_models()
+
+        self.assertEqual(models, ["cohere/x"])
+
+    def test_list_models_falls_back_when_the_gateway_is_down(self):
+        with mock.patch(
+            "requests.get", side_effect=requests.ConnectionError("no route")
+        ):
+            provider = KiloProvider(api_key="", models=["pinned-model"])
+            models = provider.list_models()
+
+        self.assertEqual(models, ["pinned-model"])
+
+    def test_chat_requires_no_key(self):
+        document = json.dumps({"choices": [{"message": {"content": "free answer"}}]})
+
+        class JsonStreamResponse(FakeResponse):
+            def __init__(self, text):
+                self._text = text
+                self.status_code = 200
+
+            def iter_content(self, chunk_size=None, decode_unicode=False):
+                yield self._text
+
+        with mock.patch("requests.post", return_value=JsonStreamResponse(document)):
+            provider = KiloProvider(api_key="", models=["kilo-auto/free"])
+            answer = provider.chat("kilo-auto/free", [{"role": "user", "content": "hi"}])
+
+        self.assertEqual(answer, "free answer")
+
+    def test_chat_parses_an_sse_stream_with_keepalives(self):
+        sse = (
+            ': KILO PROCESSING\n\n'
+            'data: {"choices": [{"delta": {"content": "Hel"}}]}\n\n'
+            ': KILO PROCESSING\n\n'
+            'data: {"choices": [{"delta": {"content": "lo"}}]}\n\n'
+            'data: {"choices": [{"delta": {}}]}\n\n'
+            'data: [DONE]\n\n'
+        )
+
+        class StreamResponse(FakeResponse):
+            def __init__(self, text):
+                self._text = text
+                self.status_code = 200
+
+            def iter_content(self, chunk_size=None, decode_unicode=False):
+                yield self._text
+
+        with mock.patch("requests.post", return_value=StreamResponse(sse)) as request:
+            provider = KiloProvider(api_key="", models=["m"])
+            answer = provider.chat("m", [{"role": "user", "content": "hi"}])
+
+        self.assertEqual(answer, "Hello")
+        self.assertEqual(
+            request.call_args.args[0], f"{DEFAULT_KILO_BASE_URL}/chat/completions"
+        )
+        self.assertTrue(request.call_args.kwargs["json"]["stream"])
+
+    def test_chat_parses_a_single_json_document_over_a_stream_request(self):
+        document = json.dumps(
+            {"choices": [{"message": {"content": "one document"}}]}
+        )
+
+        class JsonStreamResponse(FakeResponse):
+            def __init__(self, text):
+                self._text = text
+                self.status_code = 200
+
+            def iter_content(self, chunk_size=None, decode_unicode=False):
+                yield self._text
+
+        with mock.patch("requests.post", return_value=JsonStreamResponse(document)):
+            provider = KiloProvider(api_key="", models=["m"])
+            answer = provider.chat("m", [{"role": "user", "content": "hi"}])
+
+        self.assertEqual(answer, "one document")
+
+    def test_chat_surfaces_an_error_frame_inside_the_stream(self):
+        sse = 'data: {"error": {"message": "moderation: flagged"}}\n\n'
+
+        class StreamResponse(FakeResponse):
+            def __init__(self, text):
+                self._text = text
+                self.status_code = 200
+
+            def iter_content(self, chunk_size=None, decode_unicode=False):
+                yield self._text
+
+        with mock.patch("requests.post", return_value=StreamResponse(sse)):
+            provider = KiloProvider(api_key="", models=["m"])
+            with self.assertRaises(Exception) as raised:
+                provider.chat("m", [{"role": "user", "content": "hi"}])
+
+        self.assertIn("flagged", str(raised.exception))
+
+    def test_chat_shapes_the_reasoning_parameter(self):
+        payloads = []
+
+        class RecordingResponse(FakeResponse):
+            def __init__(self):
+                self.status_code = 200
+                self.text = "{}"
+
+            def iter_content(self, chunk_size=None, decode_unicode=False):
+                yield json.dumps({"choices": [{"message": {"content": "ok"}}]})
+
+        def record(url, **kwargs):
+            payloads.append(kwargs["json"])
+            return RecordingResponse()
+
+        provider = KiloProvider(api_key="", models=["m"])
+        with mock.patch("requests.post", side_effect=record):
+            provider.chat("m", [{"role": "user", "content": "hi"}])
+            provider.chat("m", [{"role": "user", "content": "hi"}], reasoning="high")
+            provider.chat("m", [{"role": "user", "content": "hi"}], reasoning="off")
+        with self.assertRaises(ValueError):
+            provider.chat("m", [{"role": "user", "content": "hi"}], reasoning="ultra")
+
+        self.assertNotIn("reasoning", payloads[0])
+        self.assertEqual(payloads[1]["reasoning"], {"effort": "high"})
+        self.assertEqual(payloads[2]["reasoning"], {"enabled": False})
+
+    def test_base_url_override_is_honored(self):
+        provider = KiloProvider(api_key="", base_url="https://kilo.example/api/gateway/")
+        self.assertEqual(provider.base_url, "https://kilo.example/api/gateway")
+
+    def test_cli_shows_keyless_status(self):
+        cli = CodelaboonCLI()
+        with mock.patch(
+            "config.providers.get_providers_config",
+            return_value={"kilo": {"api_key": "", "models": []}},
+        ):
+            cli.load_providers()
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            cli.list_providers()
+        self.assertIn("Free (no key needed)", out.getvalue())
 
 
 class DecisionModelTests(unittest.TestCase):
@@ -390,7 +570,7 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
         app = CodelaboonTuiApp()
         async with app.run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(len(app._provider_names), 5)
+            self.assertEqual(len(app._provider_names), 6)
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()

@@ -71,6 +71,7 @@ class CodelaboonCLI:
             "openrouter": "providers.openrouter.openrouter_provider.OpenRouterProvider",
             "luna": "providers.luna.luna_provider.LunaProvider",
             "ourfree": "providers.ourfree.ourfree_provider.OurFreeModelProvider",
+            "kilo": "providers.kilo.kilo_provider.KiloProvider",
         }
 
         if provider_name not in provider_mapping:
@@ -126,7 +127,7 @@ class CodelaboonCLI:
         except ImportError:
             check("requests installed", False, "install python3-requests or requests")
 
-        for provider_name in ("chatgpt", "nvidia", "openrouter", "luna", "ourfree"):
+        for provider_name in ("chatgpt", "nvidia", "openrouter", "luna", "ourfree", "kilo"):
             try:
                 self._get_provider_class(provider_name)
                 check(f"provider {provider_name} importable", True)
@@ -191,7 +192,10 @@ class CodelaboonCLI:
         for provider_name in sorted(self.providers):
             provider = self.providers[provider_name]
             print(f"\n{provider_name.upper()}:")
-            print(f"  Status: {'✓ Configured' if provider.api_key else '✗ Not configured'}")
+            if provider.keyless:
+                print("  Status: ✓ Free (no key needed)")
+            else:
+                print(f"  Status: {'✓ Configured' if provider.api_key else '✗ Not configured'}")
 
             try:
                 models = provider.list_models()
@@ -293,10 +297,46 @@ class CodelaboonCLI:
             print(format_answers(answers))
         return True
 
+    @staticmethod
+    def _current_provider_config(provider_name: str) -> Dict[str, Any]:
+        """The provider's stored configuration with sane defaults."""
+        from config.providers import get_providers_config
+
+        config = get_providers_config().get(provider_name)
+        if not isinstance(config, dict):
+            config = {}
+        config.setdefault("api_key", "")
+        config.setdefault("models", [])
+        return config
+
     def configure_provider(self, provider_name: str) -> None:
         """Configure a provider interactively."""
         print(f"\nConfiguring {provider_name}:")
         print("-" * 40)
+
+        try:
+            provider_class = self._get_provider_class(provider_name)
+        except (ImportError, AttributeError, ValueError):
+            provider_class = None
+
+        if provider_class is not None and getattr(provider_class, "keyless", False):
+            # Keyless pools need no credential; only a base URL override if
+            # the gateway is reachable somewhere else.
+            print(f"{provider_name} is keyless — no API key needed.")
+            base_url = input("Enter a base URL override (enter to skip): ").strip()
+            if not base_url:
+                print("Using existing configuration.")
+                return
+            from config.providers import save_provider_config
+
+            existing = self._current_provider_config(provider_name)
+            existing["base_url"] = base_url
+            if save_provider_config(provider_name, existing):
+                print(f"✓ {provider_name} configured successfully")
+                self.load_providers()
+            else:
+                print(f"✗ Failed to configure {provider_name}")
+            return
 
         api_key = input(f"Enter API key for {provider_name}: ").strip()
 
@@ -317,13 +357,12 @@ class CodelaboonCLI:
             ).strip()
             if base_url:
                 config["base_url"] = base_url
+            else:
+                existing = self._current_provider_config(provider_name)
+                if str(existing.get("base_url") or "").strip():
+                    config["base_url"] = str(existing["base_url"]).strip()
 
-        from config.providers import get_providers_config, save_provider_config
-
-        if provider_name == "ourfree" and "base_url" not in config:
-            existing = get_providers_config().get(provider_name, {})
-            if isinstance(existing.get("base_url"), str) and existing["base_url"].strip():
-                config["base_url"] = existing["base_url"].strip()
+        from config.providers import save_provider_config
 
         success = save_provider_config(provider_name, config)
 

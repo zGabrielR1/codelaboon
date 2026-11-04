@@ -42,11 +42,19 @@ Done / in progress / blocked tracking; objective continuity across sessions.
   inline doctor; optional `[tui]` extra; headless pilot tests
 - **Release**: `v0.5.0`
 
+### Session 2026-11-04 — Kilo free pool
+
+- **Objective**: Add KiloCode's keyless free models as a provider
+- **Progress**: `kilo` provider against Kilo AI's public gateway — live
+  `isFree` discovery, keyless chat with SSE/JSON shape parsing, reasoning
+  levels, keyless-aware CLI/TUI status
+- **Release**: `v0.6.0`
+
 ## Current Objective
 
 **ACTIVE**
 
-Validate the TUI against a real session and ship `v0.5.0`.
+Validate the `kilo` lane against the live gateway and ship `v0.6.0`.
 
 ## Shipped Features
 
@@ -54,9 +62,12 @@ Validate the TUI against a real session and ship `v0.5.0`.
   `configure`, `doctor`, `tui`
 - Optional Textual TUI: provider browser, live model catalogue, multi-turn
   chat, inline doctor (`ctrl+d`)
-- Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna, Our Free Model
+- Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna, Our Free Model, Kilo
 - Free model catalogue: every model on the dsh free lane (DeepSeek V4.1 Flash
-  leads), discovered live from the gateway with an offline fallback list
+  leads) plus Kilo's keyless `isFree` pool, both discovered live with
+  offline fallback lists
+- Keyless providers: `kilo` needs no credential at all; status and configure
+  flows reflect that
 - Typed decision questions with OpenAI `/decisions` and System One `/systemone`
 - TOML config in `~/.config/codelaboon/providers.toml` (`0700` / `0600`),
   with a `base_url` override honored by every provider

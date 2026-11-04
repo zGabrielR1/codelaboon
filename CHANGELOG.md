@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
+### Added
+
+- `kilo` provider: Kilo AI's public gateway free pool as a keyless model
+  catalogue input — no account, no API key, no fingerprint gate.
+- Live discovery: `models list kilo` keeps only the listing's `isFree` slice;
+  the auto-routers `kilo-auto/free` and `openrouter/free` are the offline
+  fallback roster.
+- Stream-shaped parsing: chat asks for SSE and folds `data:` deltas by shape,
+  skipping `: KILO PROCESSING` keepalives, and accepts a single JSON document
+  when the gateway answers non-streamed; error frames surface as API errors.
+- `reasoning` levels (`off`, `low`, `medium`, `high`) mapped onto the
+  gateway's `reasoning` field (`{"enabled": false}` for off).
+- Keyless providers: `BaseProvider.keyless`; `providers list` reports
+  "Free (no key needed)" and `configure kilo` offers only a base URL override.
+
 ## [0.5.0] - 2026-11-04
 
 ### Added

@@ -16,6 +16,10 @@ class BaseProvider(ABC):
     # "openai" or "systemone"; None means the provider has no decision route.
     decision_protocol: Optional[str] = None
 
+    # Free pools that answer without any credential set this; they validate
+    # regardless of the configured api_key.
+    keyless: bool = False
+
     def __init__(self, api_key: str, models: List[str] = None, base_url: Optional[str] = None):
         """
         Initialize provider with API key and optional model list.
@@ -64,6 +68,8 @@ class BaseProvider(ABC):
         Returns:
             True if API key is valid, False otherwise
         """
+        if self.keyless:
+            return True
         # Default implementation - subclasses should override
         # for provider-specific validation
         return bool(self.api_key and len(self.api_key.strip()) > 0)

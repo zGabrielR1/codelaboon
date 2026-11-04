@@ -80,7 +80,7 @@ class CodelaboonTuiApp(App[None]):
             [ListItem(Label(self._provider_label(name))) for name in self._provider_names]
         )
         self._log("codelaboon TUI — pick a provider (ctrl+p), a model (ctrl+m), then type.")
-        self._log("all ourfree models are free; other providers need their own API key.")
+        self._log("ourfree and kilo models are free; other providers need their own API key.")
         if self._provider_names:
             self._select_provider(self._provider_names[0])
 

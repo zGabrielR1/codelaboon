@@ -21,7 +21,8 @@ codelaboon/
 │   ├── nvidia/           # NVIDIA Nemotron provider
 │   ├── openrouter/       # OpenRouter provider
 │   ├── luna/             # Luna provider
-│   └── ourfree/          # dsh-our-free-model local gateway provider
+│   ├── ourfree/          # dsh-our-free-model local gateway provider
+│   └── kilo/             # Kilo AI keyless free-pool provider
 ├── config/                # Configuration management
 │   ├── __init__.py
 │   └── providers.py      # Provider configuration

@@ -135,6 +135,7 @@ Keys: `ctrl+p` providers · `ctrl+m` models · `ctrl+r` refresh models ·
 - **Our Free Model** (`ourfree`) — the local forward gateway of the
   [dsh-our-free-model](https://github.com/Ebony-Vinyl/dsh-our-free-model)
   plugin for DeepSeek Harness
+- **Kilo** (`kilo`) — Kilo AI's public gateway free pool, completely keyless
 
 Each provider implements the shared contract in [`providers/base.py`](providers/base.py).
 API keys, base URLs, default models and request payloads are provider-specific;
@@ -180,6 +181,41 @@ Setup:
 [ourfree]
 api_key = "ofm-..."
 base_url = "http://127.0.0.1:18899/v1"
+```
+
+### Kilo (keyless free pool)
+
+The `kilo` provider talks directly to [Kilo AI's](https://kilo.ai) public
+gateway — the same keyless free pool the dsh-our-free-model plugin exposes as
+its Kilo channel. No account, no API key, no fingerprint gate: it works the
+moment codelaboon is installed.
+
+- **Discovery is live**: `models list kilo` fetches the gateway's listing and
+  keeps only its `isFree` slice — everything else on that gateway is a paid
+  id that would answer 401 keyless.
+- **Auto-routers** `kilo-auto/free` and `openrouter/free` are the pool's
+  stable entry points and the offline fallback roster.
+- **Reasoning** — models that declare the parameter accept an effort level
+  (`off`, `low`, `medium`, `high`); the provider maps it onto the gateway's
+  `reasoning` field when a caller passes one.
+- **Privacy**: the gateway's own model cards state that free-pool prompts may
+  be logged upstream and used to improve its services. Keep secrets off this
+  lane.
+
+No configuration is required; `providers.toml` only needs a `[kilo]` table if
+you want to pin models or override the base URL:
+
+```toml
+[kilo]
+api_key = ""
+models = ["kilo-auto/free", "openrouter/free"]
+```
+
+Then:
+
+```bash
+python3 -m codelaboon models list kilo
+python3 -m codelaboon chat kilo kilo-auto/free "Hello"
 ```
 
 ## Configuration
@@ -239,7 +275,8 @@ codelaboon/
 │   ├── nvidia/
 │   ├── openrouter/
 │   ├── luna/
-│   └── ourfree/           # dsh-our-free-model local gateway
+│   ├── ourfree/           # dsh-our-free-model local gateway
+│   └── kilo/              # Kilo AI keyless free pool
 ├── examples/
 │   └── questions.json     # Decision question example
 ├── config/
