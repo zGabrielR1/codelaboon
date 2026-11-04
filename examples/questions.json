@@ -1,0 +1,26 @@
+[
+  {
+    "name": "refund",
+    "type": "predicate",
+    "instructions": "Is the customer asking for a refund?"
+  },
+  {
+    "name": "department",
+    "type": "choice",
+    "instructions": "Which team should handle this?",
+    "choices": [
+      {"value": "billing", "description": "Payments and refunds"},
+      {"value": "technical"}
+    ]
+  },
+  {
+    "name": "urgency",
+    "type": "score",
+    "instructions": "How urgent is this?",
+    "levels": [
+      {"label": "Can wait"},
+      {"label": "Needs prompt attention"},
+      {"label": "Blocking revenue"}
+    ]
+  }
+]

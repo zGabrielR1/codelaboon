@@ -12,6 +12,8 @@ from providers.base import BaseProvider
 
 class OpenRouterProvider(BaseProvider):
     """Provider for OpenRouter models (aggregator)."""
+
+    decision_protocol = "systemone"
     
     def __init__(self, api_key: str, models: List[str] = None):
         """
@@ -30,6 +32,13 @@ class OpenRouterProvider(BaseProvider):
             "google/palm-2-chat-bison",
             "meta-llama/llama-2-70b-chat"
         ]
+
+    def decision_headers(self):
+        """Add OpenRouter attribution headers to decision requests."""
+        headers = super().decision_headers()
+        headers["HTTP-Referer"] = "https://github.com/zGabrielR1/codelaboon"
+        headers["X-Title"] = "codelaboon"
+        return headers
     
     def list_models(self) -> List[str]:
         """

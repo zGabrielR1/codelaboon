@@ -12,6 +12,8 @@ from providers.base import BaseProvider
 
 class ChatGPTProvider(BaseProvider):
     """Provider for OpenAI's ChatGPT models."""
+
+    decision_protocol = "openai"
     
     def __init__(self, api_key: str, models: List[str] = None):
         """

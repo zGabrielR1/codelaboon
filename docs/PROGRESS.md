@@ -19,8 +19,14 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 ### Session 2026-11-03 — diagnostics and CI
 
 - **Objective**: Add runtime diagnostics and release automation
-- **Progress**: `codelaboon doctor` and GitHub Actions workflow complete locally
-- **Release**: `v0.2.0` pending tag
+- **Progress**: `codelaboon doctor` and GitHub Actions workflow complete
+- **Release**: `v0.2.0`
+
+### Session 2026-11-03 — decision models
+
+- **Objective**: Add typed decision modeling derived from the AI decision API
+- **Progress**: predicate/choice/score questions, OpenAI and System One routes
+- **Release**: `v0.3.0` pending tag
 
 ## Current Objective
 
@@ -30,8 +36,10 @@ Stabilise codelaboon for routine use and publish `v0.2.0`.
 
 ## Shipped Features
 
-- Provider-agnostic CLI: `providers list`, `models list`, `chat`, `configure`, `doctor`
+- Provider-agnostic CLI: `providers list`, `models list`, `chat`, `decision`,
+  `configure`, `doctor`
 - Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna
+- Typed decision questions with OpenAI `/decisions` and System One `/systemone`
 - TOML config in `~/.config/codelaboon/providers.toml` (`0700` / `0600`)
 - Source-tree and optional pip install (`pyproject.toml`, console script)
 - Structural verification and offline tests

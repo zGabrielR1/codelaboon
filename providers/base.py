@@ -5,12 +5,17 @@ All providers must implement this interface to work with the codelaboon harness.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+
+import requests
 
 
 class BaseProvider(ABC):
     """Abstract base class for all AI model providers."""
-    
+
+    # "openai" or "systemone"; None means the provider has no decision route.
+    decision_protocol: Optional[str] = None
+
     def __init__(self, api_key: str, models: List[str] = None):
         """
         Initialize provider with API key and optional model list.
@@ -58,6 +63,59 @@ class BaseProvider(ABC):
         # Default implementation - subclasses should override
         # for provider-specific validation
         return bool(self.api_key and len(self.api_key.strip()) > 0)
+
+    def supports_decisions(self) -> bool:
+        """Whether this provider exposes a typed decision route."""
+        return self.decision_protocol in ("openai", "systemone")
+
+    def decision_headers(self) -> Dict[str, str]:
+        """Headers used for decision requests. Providers may extend this."""
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+    def decision(
+        self,
+        model: str,
+        input_text: str,
+        questions: List[Any],
+        **kwargs,
+    ) -> List[Any]:
+        """Ask typed decision questions about ``input_text``.
+
+        Args:
+            model: Decision model name.
+            input_text: Text input to evaluate.
+            questions: Typed questions from :mod:`codelaboon.decision`.
+            **kwargs: ``timeout`` in seconds (default 60).
+
+        Returns:
+            Answers in the same order as ``questions``.
+        """
+        if not self.supports_decisions():
+            raise NotImplementedError(
+                f"{type(self).__name__} does not support decision models"
+            )
+        if not self.validate_api_key():
+            raise ValueError("Invalid or missing API key")
+
+        from codelaboon.decision import build_body, parse_response
+
+        path = "decisions" if self.decision_protocol == "openai" else "systemone"
+        url = f"{self.base_url.rstrip('/')}/{path}"
+        body = build_body(self.decision_protocol, model, input_text, questions)
+        response = requests.post(
+            url,
+            headers=self.decision_headers(),
+            json=body,
+            timeout=kwargs.get("timeout", 60),
+        )
+        if response.status_code != 200:
+            raise Exception(
+                f"Decision request failed: {response.status_code} - {response.text}"
+            )
+        return parse_response(self.decision_protocol, response.json(), questions)
     
     def _make_request(self, model: str, messages: List[Dict[str, str]], **kwargs) -> str:
         """

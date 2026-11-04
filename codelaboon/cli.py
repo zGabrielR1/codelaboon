@@ -6,6 +6,7 @@ Declarative, provider-agnostic interface for accessing free AI models.
 """
 
 import argparse
+import json
 import os
 import stat
 import sys
@@ -220,11 +221,11 @@ class CodelaboonCLI:
         prompt: str,
         system: str = "",
         **kwargs,
-    ) -> None:
-        """Send a chat completion request."""
+    ) -> bool:
+        """Send a chat completion request. Returns True on success."""
         provider = self._require_provider(provider_name)
         if provider is None:
-            return
+            return False
 
         print(f"\nSending request to {provider_name}/{model}:")
         print("-" * 40)
@@ -240,8 +241,44 @@ class CodelaboonCLI:
             print("\nResponse:")
             print("-" * 40)
             print(response)
+            return True
         except Exception as e:
             print(f"Error: {e}")
+            return False
+
+    def decide(
+        self,
+        provider_name: str,
+        model: str,
+        input_text: str,
+        questions: List[Any],
+        as_json: bool = False,
+    ) -> bool:
+        """Send a typed decision request. Returns True on success."""
+        provider = self._require_provider(provider_name)
+        if provider is None:
+            return False
+
+        if not provider.supports_decisions():
+            print(f"Error: provider '{provider_name}' has no decision route")
+            print("Providers with decisions: chatgpt, openrouter")
+            return False
+
+        try:
+            answers = provider.decision(model, input_text, questions)
+        except Exception as e:
+            print(f"Error: {e}")
+            return False
+
+        if as_json:
+            from codelaboon.decision import answer_to_dict
+
+            print(json.dumps([answer_to_dict(answer) for answer in answers], indent=2))
+        else:
+            from codelaboon.decision import format_answers
+
+            print(format_answers(answers))
+        return True
 
     def configure_provider(self, provider_name: str) -> None:
         """Configure a provider interactively."""
@@ -299,6 +336,41 @@ class CodelaboonCLI:
         chat_parser.add_argument("--temperature", type=float, default=0.7, help="Temperature (0-1)")
         chat_parser.add_argument("--max-tokens", type=int, default=1000, help="Max tokens")
 
+        # Decision command
+        decision_parser = subparsers.add_parser(
+            "decision", help="Ask typed predicate/choice/score questions"
+        )
+        decision_parser.add_argument("provider", help="Provider name")
+        decision_parser.add_argument("model", help="Decision model name")
+        decision_parser.add_argument("input", help="Input text to evaluate")
+        decision_parser.add_argument(
+            "--questions", help="JSON file containing a list of questions"
+        )
+        decision_parser.add_argument(
+            "--predicate",
+            action="append",
+            default=[],
+            metavar="NAME=INSTRUCTIONS",
+            help="Inline predicate question (repeatable)",
+        )
+        decision_parser.add_argument(
+            "--choice",
+            action="append",
+            default=[],
+            metavar="NAME=INSTRUCTIONS|VALUE1,VALUE2",
+            help="Inline choice question (repeatable)",
+        )
+        decision_parser.add_argument(
+            "--score",
+            action="append",
+            default=[],
+            metavar="NAME=INSTRUCTIONS|LABEL1,LABEL2",
+            help="Inline score question (repeatable)",
+        )
+        decision_parser.add_argument(
+            "--json", action="store_true", help="Print answers as JSON"
+        )
+
         # Configure command
         configure_parser = subparsers.add_parser("configure", help="Configure provider")
         configure_parser.add_argument("provider", help="Provider name")
@@ -330,14 +402,53 @@ class CodelaboonCLI:
                 models_parser.print_help()
 
         elif args.command == "chat":
-            self.chat(
+            if not self.chat(
                 args.provider,
                 args.model,
                 args.prompt,
                 system=args.system,
                 temperature=args.temperature,
                 max_tokens=args.max_tokens,
+            ):
+                sys.exit(1)
+
+        elif args.command == "decision":
+            from codelaboon.decision import (
+                DecisionError,
+                parse_question_spec,
+                questions_from_json,
             )
+
+            try:
+                inline = (
+                    [("predicate", spec) for spec in args.predicate]
+                    + [("choice", spec) for spec in args.choice]
+                    + [("score", spec) for spec in args.score]
+                )
+                if args.questions:
+                    questions = questions_from_json(args.questions)
+                else:
+                    questions = []
+                questions.extend(parse_question_spec(kind, spec) for kind, spec in inline)
+                if not questions:
+                    raise DecisionError(
+                        "provide --questions or at least one --predicate/--choice/--score"
+                    )
+                names = [question.name for question in questions]
+                if len(set(names)) != len(names):
+                    raise DecisionError("question names must be unique")
+            except (DecisionError, OSError) as e:
+                print(f"Error: {e}")
+                sys.exit(2)
+
+            if not self.decide(
+                args.provider,
+                args.model,
+                args.input,
+                questions,
+                as_json=args.json,
+            ):
+                sys.exit(1)
 
         elif args.command == "configure":
             self.configure_provider(args.provider)

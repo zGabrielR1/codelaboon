@@ -27,11 +27,18 @@ The original v0.1.0 release task is complete:
 - `CODELABOON_CONFIG_DIR` honored by the CLI and config module
 - Structural verification extended to the test runner
 
-### Unreleased — v0.2.0 (in progress)
+### v0.2.0 — 2026-11-03
 
 - `codelaboon doctor` diagnoses Python, dependencies, providers, and config
 - GitHub Actions workflow runs tests and verification on Python 3.11–3.13
 - Release docs updated to current reality
+
+### Unreleased — v0.3.0 (in progress)
+
+- Typed decision models: predicate, choice and score questions
+- OpenAI `/decisions` and System One `/systemone` protocols
+- `--json` output and JSON/inline question definitions
+- Non-zero exit codes for failed chat and decision requests
 
 ## Success criteria
 

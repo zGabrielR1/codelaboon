@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-03
+
+### Added
+
+- Typed decision models: `codelaboon decision <provider> <model> <input>` asks
+  `predicate`, `choice` and `score` questions and prints probability-bearing
+  answers as text or `--json`.
+- Two decision wire protocols:
+  - OpenAI `/v1/decisions` (ChatGPT provider)
+  - System One `/systemone` (OpenRouter provider)
+- Inline question syntax and JSON question files (`--questions`), with
+  validation for unique names, choice values and score levels.
+- `docs/DECISIONS.md` and `examples/questions.json`.
+
+### Fixed
+
+- `chat` and `decision` now exit non-zero when the provider is missing,
+  unsupported, unconfigured or the request fails.
+
 ## [0.2.0] - 2026-11-03
 
 ### Added

@@ -71,10 +71,25 @@ harness. Running from the source checkout works without installing.
 | `providers list` | List providers and whether they are configured |
 | `models list <provider>` | List models for a provider |
 | `chat <provider> <model> <prompt>` | Send a chat completion request |
+| `decision <provider> <model> <input>` | Ask typed predicate/choice/score questions |
 | `configure <provider>` | Interactively write an API key to the config |
 | `doctor` | Diagnose Python, dependencies, providers and config |
 
-Common options for `chat`: `--system`, `--temperature`, `--max-tokens`.
+common options for `chat`: `--system`, `--temperature`, `--max-tokens`.
+
+Decision models return probabilities for typed questions:
+
+```bash
+python3 -m codelaboon decision openrouter my/decision-model \
+  "I was charged twice" \
+  --predicate 'refund=Is the customer asking for a refund?' \
+  --choice 'department=Which team?|billing,technical' \
+  --score 'urgency=How urgent?|Low,High' \
+  --json
+```
+
+See [docs/DECISIONS.md](docs/DECISIONS.md) and
+[`examples/questions.json`](examples/questions.json).
 
 ```bash
 python3 -m codelaboon chat openrouter my-model "Hello" --temperature 0.2 --max-tokens 200
@@ -134,13 +149,16 @@ codelaboon/
 ├── codelaboon/            # CLI package
 │   ├── __init__.py
 │   ├── __main__.py        # `python -m codelaboon`
-│   └── cli.py
+│   ├── cli.py
+│   └── decision.py        # Typed decision protocols
 ├── providers/             # Provider implementations
 │   ├── base.py            # Shared provider contract
 │   ├── chatgpt/
 │   ├── nvidia/
 │   ├── openrouter/
 │   └── luna/
+├── examples/
+│   └── questions.json     # Decision question example
 ├── config/
 │   ├── providers.py       # Config load/save (user config dir)
 │   └── providers.toml.example
