@@ -1,0 +1,21 @@
+# Provider configuration template for codelaboon.
+#
+# Copy this file to ~/.config/codelaboon/providers.toml (created with
+# restrictive permissions on first run) and fill in your API keys.
+# Never commit a file containing real API keys.
+
+[chatgpt]
+api_key = ""
+models = ["gpt-3.5-turbo"]
+
+[nvidia]
+api_key = ""
+models = ["nemotron-3"]
+
+[openrouter]
+api_key = ""
+models = ["openai/gpt-3.5-turbo"]
+
+[luna]
+api_key = ""
+models = ["luna-2"]

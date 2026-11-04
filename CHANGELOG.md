@@ -1,0 +1,42 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-11-03
+
+### Added
+
+- Initial public source release of the codelaboon CLI harness.
+- Provider-agnostic command structure: `providers list`, `models list`, `chat`,
+  and interactive `configure`.
+- Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter and Luna, built on a shared
+  `BaseProvider` contract in `providers/base.py`.
+- TOML-based configuration in `~/.config/codelaboon/providers.toml`, created
+  with restrictive permissions (`0700` dir / `0600` file) on first run.
+- `config/providers.toml.example` as a safe template; real keys are never
+  committed.
+- `scripts/verify.sh` and Makefile verification targets for structure, syntax,
+  and imports.
+- Project documentation under `docs/` (architecture, agents, workflow).
+
+### Fixed
+
+- Replaced the unmaintained `toml` dependency with the standard-library
+  `tomllib` reader plus a small TOML writer.
+- Fixed the `chat` command joining message dicts instead of sending the
+  prompt text, and wired the `--system` flag through correctly.
+- Fixed the Makefile syntax error that prevented `make check` from parsing,
+  including the broken `docs/PROGRESS.md` test and the `test-providers`
+  recipe.
+- Removed the unused `sys.path` hack in `codelaboon/cli.py` and made imports
+  work both from a source checkout and when installed.
+
+### Security
+
+- Configuration directory and file are created with owner-only permissions.
+- `config/providers.toml` and `config/api_keys.toml` are gitignored; only the
+  example template is tracked.

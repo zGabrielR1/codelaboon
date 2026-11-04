@@ -1,0 +1,82 @@
+# CURRENT TASK
+
+**ACTIVE**: Create a comprehensive, documentation-only CLI harness for accessing free AI models across multiple providers (ChatGPT, NVIDIA Nemotron, OpenRouter, Luna) based on the PI harness principles.
+
+## Task Description
+
+Create codelaboon - a CLI-driven harness for accessing AI models via API keys, similar to Freebuff but based on PI harness principles.
+
+### Requirements
+
+1. **CLI Interface** (Completed)
+   - Cross-platform CLI (`windows`, `macos`, `linux`)
+   - Provider-agnostic command structure
+   - Consistent help and error messages
+
+2. **Provider Support** (Completed)
+   - ChatGPT/OpenAI provider
+   - NVIDIA Nemotron provider
+   - OpenRouter provider
+   - Luna provider
+   - Base provider interface for extensibility
+
+3. **Configuration Management** (Completed)
+   - TOML-based configuration
+   - API key storage and validation
+   - Model discovery and validation
+
+4. **Documentation** (70% Complete)
+   - Project README
+   - Agents documentation
+   - Architecture documentation
+   - Progress tracking
+   - UniversalMasterPromptDSL.md (⧖)
+   - verifierAgentforUniversalMasterPromptAgent.md (⧖)
+   - Utility functions (⧖)
+
+5. **Verification** (20% Complete)
+   - Makefile with verification commands
+   - Verification script
+
+### Implementation Status
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| CLI Interface | ✅ Complete | Full implementation with provider-agnostic commands |
+| Provider Framework | ✅ Complete | Base class and 4 provider implementations |
+| Configuration | ✅ Complete | TOML-based with validation |
+| Documentation | ⏳ In Progress | 70% complete, missing key docs |
+| Verification | ⏳ In Progress | Basic framework in place |
+
+### Remaining Work
+
+1. **Operator Prompt (`UniversalMasterPromptDSL.md`)**: Complete AI model access workflow documentation
+2. **Verifier Agent (`verifierAgentforUniversalMasterPromptAgent.md`)**: Specify verification criteria for model access
+3. **Utility Functions (`docs/utils/`)**: Complete continuous improvement workflow
+4. **Verification Setup**: Implement full verification commands and scripts
+5. **Testing**: Test CLI functionality with sample configurations
+
+### Success Criteria
+
+- [ ] Complete documentation for all major components
+- [ ] Implement working verification commands
+- [ ] Create utility scripts for maintenance
+- [ ] Test with sample API keys (mock or real)
+- [ ] Ensure cross-platform compatibility
+- [ ] Document all provider-specific behaviors
+- [ ] Complete user-facing documentation
+
+### Dependencies
+
+- Python 3.7+
+- `requests` library
+- `toml` library
+- `markdownlint-cli2` (optional)
+
+### Next Steps
+
+1. Complete missing documentation files following PI harness patterns
+2. Implement verification commands and scripts
+3. Test the CLI with sample configurations
+4. Review and validate against user requirements
+5. Prepare for user testing and feedback

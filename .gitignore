@@ -1,0 +1,29 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local configuration
+*.local
+config/api_keys.toml
+config/providers.toml
+.env
+
+# Reference clones (not part of this project)
+forks/
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*~
+.claude/
