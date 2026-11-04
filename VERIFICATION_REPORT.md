@@ -62,7 +62,7 @@ codelaboon is a CLI-only, cross-platform harness for accessing AI models via API
 
 #### Minimal Dependencies
 - **Status**: ✅ Complete
-- **Details**: Only essential dependencies (requests, toml)
+- **Details**: Only essential dependencies (requests)
 - **Evidence**: `Makefile` and `README.md` specify requirements
 
 ### Implementation Verification
@@ -197,9 +197,9 @@ codelaboon/
 ## Dependencies
 
 ### Required Dependencies
-- Python 3.7+
+- Python 3.11+
 - `requests` library
-- `toml` library
+- `requests` library
 
 ### Optional Dependencies
 - `markdownlint-cli2` (for documentation linting)

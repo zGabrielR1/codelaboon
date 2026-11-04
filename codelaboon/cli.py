@@ -6,6 +6,7 @@ Declarative, provider-agnostic interface for accessing free AI models.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -21,7 +22,9 @@ class CodelaboonCLI:
     """Main CLI harness for free AI model access."""
 
     def __init__(self):
-        self.config_dir = Path.home() / ".config" / "codelaboon"
+        self.config_dir = Path(
+            os.environ.get("CODELABOON_CONFIG_DIR", str(Path.home() / ".config" / "codelaboon"))
+        )
         self.config_dir.mkdir(parents=True, exist_ok=True)
         try:
             self.config_dir.chmod(0o700)

@@ -72,9 +72,9 @@ Create a comprehensive, documentation-only CLI harness for accessing free AI mod
 
 ## Dependencies
 
-- Python 3.7+
+- Python 3.11+
 - `requests` library
-- `toml` library
+- `requests` library
 - `markdownlint-cli2` (for documentation linting)
 
 ## Notes

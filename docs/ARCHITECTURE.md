@@ -111,7 +111,7 @@ The harness is designed for cross-platform operation:
 
 The harness follows strict dependency management principles:
 
-- **No external build systems**: Only Python standard library + `requests` + `toml`
+- **No external build systems**: Only Python standard library + `requests`
 - **Self-contained**: Everything needed is in the repo
 - **No runtime drift**: Same behavior across environments
 - **Minimal dependencies**: Each provider only depends on what's needed

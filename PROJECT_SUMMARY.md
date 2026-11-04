@@ -181,9 +181,9 @@ The project follows the PI harness principles:
 
 ### Prerequisites
 
-- Python 3.7+
+- Python 3.11+
 - `requests` library
-- `toml` library
+- `requests` library
 - `markdownlint-cli2` (optional)
 
 ### Installation
@@ -285,7 +285,7 @@ The project includes comprehensive verification:
 - **Documentation**: 90% Complete
 - **Verification**: Complete
 - **Testing**: Basic verification implemented
-- **Dependencies**: Minimal (requests, toml)
+- **Dependencies**: Minimal (requests)
 
 ## License
 

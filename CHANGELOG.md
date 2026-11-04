@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-03
+
+### Added
+
+- Offline unit and smoke tests in `tests/test_codelaboon.py`, plus
+  `scripts/test.sh` and a `make test` target.
+- `scripts/verify.sh` now checks that the test runner and test file exist.
+
+### Changed
+
+- `CODELABOON_CONFIG_DIR` is now honoured by the CLI as well as the
+  configuration module, so tests and alternate setups no longer write to the
+  real home configuration directory.
+- Updated stale dependency/requirements statements in the summary and
+  architecture docs to match the stdlib `tomllib` implementation.
+
 ## [0.1.0] - 2026-11-03
 
 ### Added

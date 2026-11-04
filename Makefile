@@ -1,6 +1,6 @@
 # codelaboon Makefile - verification commands
 
-.PHONY: help check lint all clean configure verify
+.PHONY: help check lint all clean configure verify test
 
 help:
 	@echo "codelaboon Makefile - Available commands:"
@@ -10,6 +10,7 @@ help:
 	@echo "  make lint       - Lint Markdown documentation (optional)"
 	@echo "  make all        - Full verification"
 	@echo "  make verify     - Run scripts/verify.sh"
+	@echo "  make test       - Run offline unit tests"
 	@echo ""
 	@echo "Development commands:"
 	@echo "  make clean      - Remove build artifacts"
@@ -46,6 +47,8 @@ all: check lint
 	@echo "Full verification completed."
 verify:
 	@scripts/verify.sh
+test:
+	@scripts/test.sh
 clean:
 	@echo "Cleaning build artifacts..."
 	@find . -type d \( -name __pycache__ -o -name .pytest_cache \) -prune -exec rm -rf {} +

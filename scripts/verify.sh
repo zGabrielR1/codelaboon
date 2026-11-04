@@ -33,6 +33,8 @@ required_files=(
     "docs/ARCHITECTURE.md"
     "docs/PROGRESS.md"
     "scripts/verify.sh"
+    "scripts/test.sh"
+    "tests/test_codelaboon.py"
 )
 
 echo "Checking required files..."
