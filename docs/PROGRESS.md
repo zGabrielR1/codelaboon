@@ -4,88 +4,60 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
-### Session 2026-11-03
-- **Status**: In Progress
-- **Objective**: Create codelaboon CLI harness for free AI model access
-- **Progress**: 75% complete
-- **Remaining**: Documentation completion and verification
+### Session 2026-11-03 — initial release
+
+- **Objective**: Create codelaboon CLI harness for AI model access
+- **Progress**: v0.1.0 shipped
+- **Release**: `v0.1.0`
+
+### Session 2026-11-03 — release stabilisation
+
+- **Objective**: Verify from clean clones, add offline tests, prepare next tag
+- **Progress**: v0.1.1 shipped
+- **Release**: `v0.1.1`
+
+### Session 2026-11-03 — diagnostics and CI
+
+- **Objective**: Add runtime diagnostics and release automation
+- **Progress**: `codelaboon doctor` and GitHub Actions workflow complete locally
+- **Release**: `v0.2.0` pending tag
 
 ## Current Objective
 
 **ACTIVE**
 
-Create a comprehensive, documentation-only CLI harness for accessing free AI models across multiple providers (ChatGPT, NVIDIA Nemotron, OpenRouter, Luna) based on the PI harness principles.
+Stabilise codelaboon for routine use and publish `v0.2.0`.
 
-## Current Work
+## Shipped Features
 
-1. **Core Infrastructure**
-   - ✅ CLI interface implementation (`codelaboon/cli.py`)
-   - ✅ Base provider interface (`providers/base.py`)
-   - ✅ Provider implementations (ChatGPT, NVIDIA, OpenRouter, Luna)
-   - ✅ Configuration management (`config/providers.py`)
-   - ✅ Documentation structure
+- Provider-agnostic CLI: `providers list`, `models list`, `chat`, `configure`, `doctor`
+- Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna
+- TOML config in `~/.config/codelaboon/providers.toml` (`0700` / `0600`)
+- Source-tree and optional pip install (`pyproject.toml`, console script)
+- Structural verification and offline tests
 
-2. **Documentation**
-   - ✅ Project README (`README.md`)
-   - ✅ Agents documentation (`docs/AGENTS.md`)
-   - ✅ Architecture documentation (`docs/ARCHITECTURE.md`)
-   - ✅ Progress tracking (this file)
-   - ⏳ Operator prompt (`docs/UniversalMasterPromptDSL.md`)
-   - ⏳ Verifier agent (`docs/verifierAgentforUniversalMasterPromptAgent.md`)
-   - ⏳ Utility functions (`docs/utils/`)
+## Verification
 
-3. **Verification**
-   - ⏳ Makefile with verification commands
-   - ⏳ Verification script (`scripts/verify.sh`)
+- `scripts/verify.sh` — structure, syntax, imports, no tracked secrets
+- `scripts/test.sh` — mocked provider and config tests, no network
+- GitHub Actions — Python 3.11, 3.12, 3.13
 
-## Completed Tasks
+## Blocked / Not Done
 
-1. **2026-11-03 15:30**: Initial project structure creation
-2. **2026-11-03 16:15**: CLI interface implementation
-3. **2026-11-03 17:00**: Base provider framework
-4. **2026-11-03 17:45**: Provider implementations
-5. **2026-11-03 18:30**: Configuration management
-6. **2026-11-03 19:15**: Documentation structure
-
-## Blocked Tasks
-
-1. **Operator prompt (`UniversalMasterPromptDSL.md`)**: Awaiting completion of AI model access workflow documentation
-2. **Verifier agent (`verifierAgentforUniversalMasterPromptAgent.md`)**: Awaiting specification of verification criteria
-3. **Utility functions (`docs/utils/`)**: Awaiting completion of continuous improvement workflow
-4. **Verification setup**: Awaiting specification of verification requirements
-
-## Next Steps
-
-1. Complete missing documentation files
-2. Implement verification commands
-3. Add scripts for structural verification
-4. Complete documentation following PI harness principles
-5. Test CLI functionality with sample providers
-6. Prepare for initial user testing
+- Production API keys have not been supplied for live endpoint validation
+- GitHub Release notes may be absent unless published manually or via `gh`
+- macOS/Windows CI matrix is not automated yet
 
 ## Metrics
 
-- **Documentation completeness**: 60%
-- **Code completeness**: 100%
-- **Verification completeness**: 20%
-- **Testing completeness**: 0%
+- **Documentation completeness**: complete for current scope
+- **Code completeness**: core features complete
+- **Verification completeness**: structural and offline CI complete
+- **Testing completeness**: unit/smoke coverage present; no live-network tests
 
 ## Dependencies
 
 - Python 3.11+
-- `requests` library
-- `requests` library
-- `markdownlint-cli2` (for documentation linting)
-
-## Notes
-
-This project is currently in the documentation and infrastructure phase. All code is implemented, but comprehensive documentation is still needed. The project follows the PI harness principles:
-
-- Declarative design
-- Modular architecture
-- Provider-agnostic approach
-- Cross-platform compatibility
-- Self-documenting structure
-- Minimal dependencies
-
-The harness is designed to be a CLI-only tool for accessing free AI models across multiple providers, similar to Freebuff but with a more structured approach inspired by the PI harness.
+- `requests`
+- GitHub Actions (CI)
+- `markdownlint-cli2` (optional linting)

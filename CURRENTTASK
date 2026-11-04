@@ -1,82 +1,59 @@
-# CURRENT TASK
+# CURRENTTASK
 
-**ACTIVE**: Create a comprehensive, documentation-only CLI harness for accessing free AI models across multiple providers (ChatGPT, NVIDIA Nemotron, OpenRouter, Luna) based on the PI harness principles.
+**ACTIVE**: Release and stabilize the codelaboon CLI harness.
 
-## Task Description
+## Baseline established
 
-Create codelaboon - a CLI-driven harness for accessing AI models via API keys, similar to Freebuff but based on PI harness principles.
+The original v0.1.0 release task is complete:
 
-### Requirements
+- Cross-platform CLI harness exists
+- Four providers implemented: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna
+- TOML-based configuration with restrictive file permissions
+- README, architecture, agents, progress and workflow docs present
+- Working verification: `scripts/verify.sh`, `scripts/test.sh`, `make check`
 
-1. **CLI Interface** (Completed)
-   - Cross-platform CLI (`windows`, `macos`, `linux`)
-   - Provider-agnostic command structure
-   - Consistent help and error messages
+## What shipped
 
-2. **Provider Support** (Completed)
-   - ChatGPT/OpenAI provider
-   - NVIDIA Nemotron provider
-   - OpenRouter provider
-   - Luna provider
-   - Base provider interface for extensibility
+### v0.1.0 — 2026-11-03
 
-3. **Configuration Management** (Completed)
-   - TOML-based configuration
-   - API key storage and validation
-   - Model discovery and validation
+- Initial release
+- MIT license and changelog
+- Minimal packaging with `pyproject.toml`
+- `forks/` excluded from the release
 
-4. **Documentation** (70% Complete)
-   - Project README
-   - Agents documentation
-   - Architecture documentation
-   - Progress tracking
-   - UniversalMasterPromptDSL.md (⧖)
-   - verifierAgentforUniversalMasterPromptAgent.md (⧖)
-   - Utility functions (⧖)
+### v0.1.1 — 2026-11-03
 
-5. **Verification** (20% Complete)
-   - Makefile with verification commands
-   - Verification script
+- Offline unit tests
+- `CODELABOON_CONFIG_DIR` honored by the CLI and config module
+- Structural verification extended to the test runner
 
-### Implementation Status
+### Unreleased — v0.2.0 (in progress)
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| CLI Interface | ✅ Complete | Full implementation with provider-agnostic commands |
-| Provider Framework | ✅ Complete | Base class and 4 provider implementations |
-| Configuration | ✅ Complete | TOML-based with validation |
-| Documentation | ⏳ In Progress | 70% complete, missing key docs |
-| Verification | ⏳ In Progress | Basic framework in place |
+- `codelaboon doctor` diagnoses Python, dependencies, providers, and config
+- GitHub Actions workflow runs tests and verification on Python 3.11–3.13
+- Release docs updated to current reality
 
-### Remaining Work
+## Success criteria
 
-1. **Operator Prompt (`UniversalMasterPromptDSL.md`)**: Complete AI model access workflow documentation
-2. **Verifier Agent (`verifierAgentforUniversalMasterPromptAgent.md`)**: Specify verification criteria for model access
-3. **Utility Functions (`docs/utils/`)**: Complete continuous improvement workflow
-4. **Verification Setup**: Implement full verification commands and scripts
-5. **Testing**: Test CLI functionality with sample configurations
+- [x] CLI exists and works from a clean checkout
+- [x] Providers implemented behind a shared interface
+- [x] Configuration is writable, validated, and private
+- [x] Structural verification and offline tests pass
+- [x] Documentation for all major components is present
+- [ ] Real API keys validated against production provider endpoints
+- [ ] Public GitHub release notes (requires GitHub release/`gh` or manual publish)
+- [ ] Cross-platform CI matrix beyond Linux (macOS/Windows job)
 
-### Success Criteria
-
-- [ ] Complete documentation for all major components
-- [ ] Implement working verification commands
-- [ ] Create utility scripts for maintenance
-- [ ] Test with sample API keys (mock or real)
-- [ ] Ensure cross-platform compatibility
-- [ ] Document all provider-specific behaviors
-- [ ] Complete user-facing documentation
-
-### Dependencies
+## Dependencies
 
 - Python 3.11+
-- `requests` library
-- `requests` library
-- `markdownlint-cli2` (optional)
+- `requests`
+- `markdownlint-cli2` (optional, for linting)
+- GitHub Actions runner (for CI)
 
-### Next Steps
+## Next steps
 
-1. Complete missing documentation files following PI harness patterns
-2. Implement verification commands and scripts
-3. Test the CLI with sample configurations
-4. Review and validate against user requirements
-5. Prepare for user testing and feedback
+1. Validate each provider against a real API key in an isolated config
+2. Publish GitHub Release notes for `v0.2.0` after the tag is pushed
+3. Add macOS and Windows CI jobs if release claims grow beyond Linux
+4. Keep `docs/` treated as source when behavior changes

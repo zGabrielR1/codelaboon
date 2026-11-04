@@ -7,7 +7,9 @@ Declarative, provider-agnostic interface for accessing free AI models.
 
 import argparse
 import os
+import stat
 import sys
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -69,6 +71,103 @@ class CodelaboonCLI:
         module_name, class_name = provider_mapping[provider_name].rsplit(".", 1)
         module = __import__(module_name, fromlist=[class_name])
         return getattr(module, class_name)
+
+    @staticmethod
+    def _tracked_secret_files() -> List[str]:
+        """Return any tracked real configuration files, if this is a git repo."""
+        expected = ("config/providers.toml", "config/api_keys.toml")
+        try:
+            result = subprocess.run(
+                ["git", "ls-files"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=5,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return []
+
+        tracked = set(result.stdout.splitlines())
+        return [path for path in expected if path in tracked]
+
+    def doctor(self) -> bool:
+        """Diagnose local installation and configuration."""
+        failures = 0
+
+        def check(name: str, condition: bool, detail: str = "") -> None:
+            nonlocal failures
+            if condition:
+                print(f"  ✓ {name}")
+            else:
+                failures += 1
+                suffix = f" — {detail}" if detail else ""
+                print(f"  ✗ {name}{suffix}")
+
+        print("codelaboon doctor")
+        print("-" * 40)
+
+        version = sys.version_info
+        check(
+            f"Python >= 3.11 ({version.major}.{version.minor}.{version.micro})",
+            (version.major, version.minor) >= (3, 11),
+        )
+
+        try:
+            import requests  # noqa: F401
+            check("requests installed", True)
+        except ImportError:
+            check("requests installed", False, "install python3-requests or requests")
+
+        for provider_name in ("chatgpt", "nvidia", "openrouter", "luna"):
+            try:
+                self._get_provider_class(provider_name)
+                check(f"provider {provider_name} importable", True)
+            except Exception as e:
+                check(f"provider {provider_name} importable", False, str(e))
+
+        config_file = self.config_dir / "providers.toml"
+        try:
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+            self.config_dir.chmod(0o700)
+            check("config directory is writable and private",
+                  stat.S_IMODE(self.config_dir.stat().st_mode) & 0o077 == 0)
+        except OSError as e:
+            check("config directory is writable and private", False, str(e))
+
+        from config.providers import get_providers_config
+
+        config = get_providers_config()
+        check("configuration loads", isinstance(config, dict))
+        try:
+            mode = stat.S_IMODE(config_file.stat().st_mode) if config_file.exists() else None
+            check("configuration file is private", mode == 0o600,
+                  f"expected 600, got {oct(mode) if mode is not None else 'missing'}")
+        except OSError as e:
+            check("configuration file is private", False, str(e))
+
+        configured = sorted(
+            name for name, values in config.items()
+            if isinstance(values, dict) and str(values.get("api_key") or "").strip()
+        )
+        print(f"  ℹ providers configured: {', '.join(configured) or 'none yet'}")
+
+        tracked_secrets = self._tracked_secret_files()
+        check("no real credentials are tracked by git", not tracked_secrets,
+              "tracked: " + ", ".join(tracked_secrets))
+
+        docs = Path(__file__).resolve().parent.parent / "docs"
+        if docs.is_dir():
+            for name in ("AGENTS.md", "ARCHITECTURE.md", "PROGRESS.md"):
+                check(f"docs/{name} present", (docs / name).is_file())
+        else:
+            print("  ℹ source documentation not present (installed package)")
+
+        print("-" * 40)
+        if failures:
+            print(f"Doctor found {failures} problem(s).")
+            return False
+        print("Doctor passed.")
+        return True
 
     def list_providers(self) -> None:
         """List all available providers."""
@@ -204,6 +303,9 @@ class CodelaboonCLI:
         configure_parser = subparsers.add_parser("configure", help="Configure provider")
         configure_parser.add_argument("provider", help="Provider name")
 
+        # Doctor command
+        subparsers.add_parser("doctor", help="Diagnose installation and configuration")
+
         # Parse arguments
         args = parser.parse_args()
 
@@ -239,6 +341,10 @@ class CodelaboonCLI:
 
         elif args.command == "configure":
             self.configure_provider(args.provider)
+
+        elif args.command == "doctor":
+            if not self.doctor():
+                sys.exit(1)
 
 
 def main() -> None:

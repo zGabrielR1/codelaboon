@@ -1,5 +1,11 @@
 # codelaboon - Verification Report
 
+> **Historical snapshot.** Some claims in this document predate the v0.1.1
+> release and the v0.2.0 diagnostics work. See `docs/PROGRESS.md` and
+> `CHANGELOG.md` for the current state, and do not treat the
+> "Ready for Production Deployment" line as a current guarantee.
+
+
 ## Project Status
 
 This report documents the verification and testing of the codelaboon project, a CLI harness for accessing free AI model access across multiple providers.

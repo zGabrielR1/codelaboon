@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-03
+
+### Added
+
+- `codelaboon doctor` diagnoses Python version, dependencies, provider imports,
+  configuration path/permissions, tracked credential files and source docs.
+- `scripts/test.sh` offline unit and smoke tests, including a doctor check.
+- GitHub Actions workflow (`.github/workflows/verify.yml`) running tests and
+  structural verification on Python 3.11, 3.12 and 3.13.
+
+### Changed
+
+- Release tracking (`CURRENTTASK`, `docs/PROGRESS.md`) now reflects shipped
+  releases through v0.2.0.
+- Historical verification report is marked as such.
+
 ## [0.1.1] - 2026-11-03
 
 ### Added

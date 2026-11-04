@@ -72,6 +72,7 @@ harness. Running from the source checkout works without installing.
 | `models list <provider>` | List models for a provider |
 | `chat <provider> <model> <prompt>` | Send a chat completion request |
 | `configure <provider>` | Interactively write an API key to the config |
+| `doctor` | Diagnose Python, dependencies, providers and config |
 
 Common options for `chat`: `--system`, `--temperature`, `--max-tokens`.
 
@@ -113,6 +114,8 @@ Permissions are set to owner-only automatically.
 
 ```bash
 scripts/verify.sh        # structural, syntax, import and secret-file checks
+scripts/test.sh          # offline unit tests
+python3 -m codelaboon doctor
 make check               # same core checks (requires make)
 make all                 # checks plus optional markdown linting
 ```

@@ -1,5 +1,6 @@
 """Offline smoke and unit tests for the codelaboon harness."""
 
+import io
 import json
 import os
 import tempfile
@@ -12,6 +13,7 @@ _TMPDIR = tempfile.TemporaryDirectory()
 os.environ["CODELABOON_CONFIG_DIR"] = _TMPDIR.name
 
 from config.providers import get_providers_config, save_provider_config  # noqa: E402
+from codelaboon.cli import CodelaboonCLI  # noqa: E402
 from providers.chatgpt.chatgpt_provider import ChatGPTProvider  # noqa: E402
 from providers.luna.luna_provider import LunaProvider  # noqa: E402
 from providers.nvidia.nvidia_provider import NVIDIAProvider  # noqa: E402
@@ -53,6 +55,13 @@ class ConfigTests(unittest.TestCase):
         reloaded = get_providers_config()
         self.assertEqual(reloaded["openrouter"]["api_key"], "test-key")
         self.assertEqual(reloaded["openrouter"]["models"], ["a/b"])
+
+
+class DoctorTests(unittest.TestCase):
+    def test_doctor_passes_on_a_clean_checkout(self):
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertTrue(CodelaboonCLI().doctor())
+        self.assertIn("Doctor passed.", out.getvalue())
 
 
 class ProviderTests(unittest.TestCase):
