@@ -10,7 +10,7 @@ optionally be installed as a `codelaboon` command.
 
 codelaboon follows PI harness principles:
 
-- **CLI-first**: no web UI, no interactive prompts required
+- **CLI-first**: no web UI; an optional interactive TUI is available
 - **Provider-agnostic**: one command structure for supported providers
 - **Declarative, self-documenting**: behavior is described by files in this repo
 - **Minimal dependencies**: Python 3.11+ and `requests`; configuration uses the
@@ -67,7 +67,8 @@ codelaboon providers list
 ```
 
 This installs a `codelaboon` console script and the Python packages used by the
-harness. Running from the source checkout works without installing.
+harness. Running from the source checkout works without installing. The
+terminal UI is an optional extra: `python3 -m pip install --user '.[tui]'`.
 
 ## Commands
 
@@ -79,6 +80,7 @@ harness. Running from the source checkout works without installing.
 | `decision <provider> <model> <input>` | Ask typed predicate/choice/score questions |
 | `configure <provider>` | Interactively write an API key to the config |
 | `doctor` | Diagnose Python, dependencies, providers and config |
+| `tui` | Interactive terminal UI (needs the optional `textual` extra) |
 
 common options for `chat`: `--system`, `--temperature`, `--max-tokens`.
 
@@ -99,6 +101,30 @@ See [docs/DECISIONS.md](docs/DECISIONS.md) and
 ```bash
 python3 -m codelaboon chat openrouter my-model "Hello" --temperature 0.2 --max-tokens 200
 ```
+
+## Terminal UI (optional)
+
+`codelaboon tui` opens an interactive terminal interface built on
+[Textual](https://github.com/Textualize/textual). It is an optional extra to
+keep the core harness dependency-light:
+
+```bash
+python3 -m pip install 'codelaboon[tui]'
+python3 -m codelaboon tui
+```
+
+The TUI offers:
+
+- **Provider browser** — all configured providers with their configured status
+- **Model catalogue** — the selected provider's models, refreshed live
+  (the `ourfree` catalogue is discovered from the gateway on every pick)
+- **Multi-turn chat** — type in the prompt box, `Enter` to send; the
+  conversation context is kept until you switch provider or model
+- **Diagnostics** — `ctrl+d` runs the same checks as `codelaboon doctor`
+  inline
+
+Keys: `ctrl+p` providers · `ctrl+m` models · `ctrl+r` refresh models ·
+`ctrl+d` doctor · `ctrl+q` quit.
 
 ## Supported providers
 
@@ -205,7 +231,8 @@ codelaboon/
 │   ├── __init__.py
 │   ├── __main__.py        # `python -m codelaboon`
 │   ├── cli.py
-│   └── decision.py        # Typed decision protocols
+│   ├── decision.py        # Typed decision protocols
+│   └── tui.py             # Optional Textual terminal UI
 ├── providers/             # Provider implementations
 │   ├── base.py            # Shared provider contract
 │   ├── chatgpt/

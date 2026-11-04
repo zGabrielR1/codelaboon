@@ -9,7 +9,6 @@ from pathlib import Path
 from unittest import mock
 
 import requests
-
 _ORIGINAL_CONFIG_DIR = os.environ.get("CODELABOON_CONFIG_DIR")
 _TMPDIR = tempfile.TemporaryDirectory()
 os.environ["CODELABOON_CONFIG_DIR"] = _TMPDIR.name
@@ -41,6 +40,15 @@ from providers.ourfree.ourfree_provider import (  # noqa: E402
     DEFAULT_BASE_URL,
     OurFreeModelProvider,
 )
+from providers.base import BaseProvider  # noqa: E402
+
+try:  # The TUI is an optional extra; tests skip cleanly without it.
+    from codelaboon.tui import CodelaboonTuiApp
+
+    TEXTUAL_AVAILABLE = True
+except ImportError:
+    CodelaboonTuiApp = None
+    TEXTUAL_AVAILABLE = False
 
 
 def tearDownModule():
@@ -363,6 +371,74 @@ class DecisionModelTests(unittest.TestCase):
         self.assertFalse(provider.supports_decisions())
         with self.assertRaises(NotImplementedError):
             provider.decision("m", "hello", [self.questions[0]])
+
+
+class TuiTests(unittest.IsolatedAsyncioTestCase):
+    """Headless tests for the Textual TUI."""
+
+    def test_tui_command_without_the_extra_exits_with_a_hint(self):
+        with mock.patch.dict("sys.modules", {"codelaboon.tui": None}):
+            with mock.patch("sys.argv", ["codelaboon", "tui"]):
+                with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+                    with self.assertRaises(SystemExit) as exited:
+                        CodelaboonCLI().run()
+        self.assertEqual(exited.exception.code, 2)
+        self.assertIn("textual", out.getvalue())
+
+    @unittest.skipUnless(TEXTUAL_AVAILABLE, "textual is not installed")
+    async def test_mount_lists_providers_and_models(self):
+        app = CodelaboonTuiApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            self.assertEqual(len(app._provider_names), 5)
+            if app._models_worker is not None:
+                await app._models_worker.wait()
+            await pilot.pause()
+            self.assertTrue(app._model_names)
+            self.assertIn(app._selected_provider(), app.cli.providers)
+
+    @unittest.skipUnless(TEXTUAL_AVAILABLE, "textual is not installed")
+    async def test_send_without_configuration_warns(self):
+        app = CodelaboonTuiApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            if app._models_worker is not None:
+                await app._models_worker.wait()
+            await pilot.pause()
+            lines: list = []
+            app._log = lines.append
+            app._send("hello")
+            await pilot.pause()
+        self.assertTrue(any("not configured" in line for line in lines))
+
+    @unittest.skipUnless(TEXTUAL_AVAILABLE, "textual is not installed")
+    async def test_chat_roundtrip_against_a_fake_provider(self):
+        class FakeTuiProvider(BaseProvider):
+            def __init__(self):
+                super().__init__(api_key="test-key", models=["fake-1"])
+
+            def list_models(self):
+                return ["fake-1"]
+
+            def chat(self, model, messages, **kwargs):
+                return f"echo:{messages[-1]['content']}"
+
+        app = CodelaboonTuiApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            app.cli.providers["fake"] = FakeTuiProvider()
+            app._provider_names.append("fake")
+            app._select_provider("fake")
+            if app._models_worker is not None:
+                await app._models_worker.wait()
+            await pilot.pause()
+            self.assertEqual(app._selected_model(), "fake-1")
+
+            app._send("hi")
+            if app._chat_worker is not None:
+                await app._chat_worker.wait()
+            await pilot.pause()
+        self.assertEqual(app.history[-1], {"role": "assistant", "content": "echo:hi"})
 
 
 if __name__ == "__main__":

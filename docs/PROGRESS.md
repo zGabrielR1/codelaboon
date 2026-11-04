@@ -35,25 +35,35 @@ Done / in progress / blocked tracking; objective continuity across sessions.
   first), live discovery from `GET /v1/models`, `base_url` config support
 - **Release**: `v0.4.0`
 
+### Session 2026-11-04 — terminal UI
+
+- **Objective**: Add an interactive TUI on top of the harness
+- **Progress**: Textual app with provider/model browser, multi-turn chat and
+  inline doctor; optional `[tui]` extra; headless pilot tests
+- **Release**: `v0.5.0`
+
 ## Current Objective
 
 **ACTIVE**
 
-Use the `ourfree` provider against a running dsh-our-free-model gateway and
-ship `v0.4.0`.
+Validate the TUI against a real session and ship `v0.5.0`.
 
 ## Shipped Features
 
 - Provider-agnostic CLI: `providers list`, `models list`, `chat`, `decision`,
-  `configure`, `doctor`
+  `configure`, `doctor`, `tui`
+- Optional Textual TUI: provider browser, live model catalogue, multi-turn
+  chat, inline doctor (`ctrl+d`)
 - Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna, Our Free Model
 - Free model catalogue: every model on the dsh free lane (DeepSeek V4.1 Flash
   leads), discovered live from the gateway with an offline fallback list
 - Typed decision questions with OpenAI `/decisions` and System One `/systemone`
 - TOML config in `~/.config/codelaboon/providers.toml` (`0700` / `0600`),
   with a `base_url` override honored by every provider
-- Source-tree and optional pip install (`pyproject.toml`, console script)
-- Structural verification and offline tests
+- Source-tree and optional pip install (`pyproject.toml`, console script,
+  `[tui]` extra)
+- Structural verification and offline tests (TUI tests skip cleanly when the
+  extra is absent)
 
 ## Verification
 

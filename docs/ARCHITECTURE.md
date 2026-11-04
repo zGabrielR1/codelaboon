@@ -11,7 +11,9 @@ codelaboon/
 ├── README.md              # This documentation
 ├── codelaboon/            # Main CLI interface
 │   ├── __init__.py       # Package initialization
-│   └── cli.py            # Core CLI logic
+│   ├── cli.py            # Core CLI logic
+│   ├── decision.py       # Typed decision protocols
+│   └── tui.py            # Optional Textual terminal UI
 ├── providers/             # Model provider implementations
 │   ├── __init__.py
 │   ├── base.py           # Base provider interface

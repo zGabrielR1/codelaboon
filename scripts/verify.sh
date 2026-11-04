@@ -22,6 +22,7 @@ required_files=(
     "codelaboon/__init__.py"
     "codelaboon/__main__.py"
     "codelaboon/decision.py"
+    "codelaboon/tui.py"
     "providers/__init__.py"
     "providers/base.py"
     "providers/chatgpt/chatgpt_provider.py"

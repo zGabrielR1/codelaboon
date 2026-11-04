@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-04
+
+### Added
+
+- `codelaboon tui`: an interactive terminal UI built on Textual — provider
+  browser with configured status, model catalogue (refreshed live, so the
+  `ourfree` roster tracks the gateway), multi-turn chat with context reset on
+  provider/model switch, and `ctrl+d` inline diagnostics.
+- `tui` optional extra: `pip install 'codelaboon[tui]'`; the core harness
+  stays `requests`-only and the command prints install instructions (exit 2)
+  when the extra is absent.
+
+### Changed
+
+- CI now installs `textual` so the headless TUI pilot tests run on the
+  Python 3.11–3.13 matrix; tests skip cleanly when the extra is missing.
+
 ## [0.4.0] - 2026-11-04
 
 ### Added

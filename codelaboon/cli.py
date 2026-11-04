@@ -404,6 +404,9 @@ class CodelaboonCLI:
         # Doctor command
         subparsers.add_parser("doctor", help="Diagnose installation and configuration")
 
+        # TUI command
+        subparsers.add_parser("tui", help="Interactive terminal UI (needs the textual extra)")
+
         # Parse arguments
         args = parser.parse_args()
 
@@ -482,6 +485,21 @@ class CodelaboonCLI:
         elif args.command == "doctor":
             if not self.doctor():
                 sys.exit(1)
+
+        elif args.command == "tui":
+            run_tui()
+
+
+def run_tui() -> None:
+    """Launch the terminal UI, with a hint when its extra is missing."""
+    try:
+        from codelaboon.tui import run_app
+    except ImportError:
+        print("The TUI needs the 'textual' package, which is an optional extra.")
+        print("Install it with:  python3 -m pip install 'codelaboon[tui]'")
+        print("or directly:       python3 -m pip install textual")
+        sys.exit(2)
+    run_app()
 
 
 def main() -> None:

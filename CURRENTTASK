@@ -1,7 +1,7 @@
 # CURRENTTASK
 
-**ACTIVE**: `ourfree` provider shipped (dsh-our-free-model gateway as a model
-catalogue input); next: validate against a running gateway and use it.
+**ACTIVE**: Textual TUI shipped as `codelaboon tui` (optional `[tui]` extra);
+next: use it in a real session and keep the harness dependency-light.
 
 ## Baseline established
 
@@ -49,6 +49,14 @@ The original v0.1.0 release task is complete:
 - Live discovery from `GET /v1/models`; configured models as offline fallback
 - `base_url` config key honored by every provider
 - `configure ourfree` asks for the gateway base URL
+
+### v0.5.0 — 2026-11-04
+
+- `codelaboon tui`: optional Textual terminal UI — provider browser, live
+  model catalogue, multi-turn chat, inline doctor
+- `textual` moved to an optional `[tui]` extra; the CLI prints install
+  instructions and exits 2 when it is missing
+- Headless pilot tests for mount, selection and chat; CI installs the extra
 
 ## Success criteria
 
