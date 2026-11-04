@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import requests
+
 _ORIGINAL_CONFIG_DIR = os.environ.get("CODELABOON_CONFIG_DIR")
 _TMPDIR = tempfile.TemporaryDirectory()
 os.environ["CODELABOON_CONFIG_DIR"] = _TMPDIR.name
@@ -35,6 +37,10 @@ from providers.chatgpt.chatgpt_provider import ChatGPTProvider  # noqa: E402
 from providers.luna.luna_provider import LunaProvider  # noqa: E402
 from providers.nvidia.nvidia_provider import NVIDIAProvider  # noqa: E402
 from providers.openrouter.openrouter_provider import OpenRouterProvider  # noqa: E402
+from providers.ourfree.ourfree_provider import (  # noqa: E402
+    DEFAULT_BASE_URL,
+    OurFreeModelProvider,
+)
 
 
 def tearDownModule():
@@ -61,9 +67,14 @@ class ConfigTests(unittest.TestCase):
 
         config = get_providers_config()
 
-        self.assertEqual(set(config), {"chatgpt", "nvidia", "openrouter", "luna"})
+        self.assertEqual(
+            set(config), {"chatgpt", "nvidia", "openrouter", "luna", "ourfree"}
+        )
         self.assertTrue((config_dir / "providers.toml").is_file())
-        self.assertEqual((config_dir / "providers.toml").stat().st_mode & 0o777, 0o600)
+        if os.name == "posix":
+            self.assertEqual(
+                (config_dir / "providers.toml").stat().st_mode & 0o777, 0o600
+            )
 
     def test_save_provider_config_roundtrips(self):
         self.assertTrue(
@@ -83,7 +94,9 @@ class DoctorTests(unittest.TestCase):
 
 class ProviderTests(unittest.TestCase):
     def test_default_model_lists_are_non_empty(self):
-        for provider_class in (ChatGPTProvider, NVIDIAProvider, OpenRouterProvider, LunaProvider):
+        for provider_class in (
+            ChatGPTProvider, NVIDIAProvider, OpenRouterProvider, LunaProvider, OurFreeModelProvider
+        ):
             with self.subTest(provider=provider_class.__name__):
                 provider = provider_class(api_key="", models=[])
                 models = provider.list_models()
@@ -111,6 +124,95 @@ class ProviderTests(unittest.TestCase):
             provider = NVIDIAProvider(api_key="test-key", models=["model"])
             with self.assertRaises(Exception):
                 provider.chat("model", [{"role": "user", "content": "hi"}])
+
+
+class OurFreeModelTests(unittest.TestCase):
+    """Tests for the dsh-our-free-model forward gateway provider."""
+
+    def test_list_models_discovers_from_the_gateway(self):
+        payload = {
+            "object": "list",
+            "data": [
+                {"id": "deepseek-v4.1-flash-free", "object": "model", "owned_by": "our-free-model"},
+                {"id": "kimi-k3", "object": "model", "owned_by": "our-free-model"},
+            ],
+        }
+        with mock.patch("requests.get", return_value=FakeResponse(payload)) as get:
+            provider = OurFreeModelProvider(api_key="ofm-test", models=["pinned"])
+            models = provider.list_models()
+
+        self.assertEqual(models, ["deepseek-v4.1-flash-free", "kimi-k3"])
+        self.assertEqual(get.call_args.args[0], f"{DEFAULT_BASE_URL}/models")
+        self.assertEqual(get.call_args.kwargs["headers"]["Authorization"], "Bearer ofm-test")
+
+    def test_list_models_falls_back_to_configured_when_gateway_is_down(self):
+        with mock.patch(
+            "requests.get", side_effect=requests.ConnectionError("connection refused")
+        ):
+            provider = OurFreeModelProvider(api_key="ofm-test", models=["pinned-model"])
+            models = provider.list_models()
+
+        self.assertEqual(models, ["pinned-model"])
+
+    def test_list_models_falls_back_to_defaults_without_a_key(self):
+        with mock.patch("requests.get") as get:
+            provider = OurFreeModelProvider(api_key="", models=[])
+            models = provider.list_models()
+
+        get.assert_not_called()
+        self.assertEqual(models, provider.default_models)
+
+    def test_base_url_override_is_honored(self):
+        provider = OurFreeModelProvider(api_key="ofm-test", base_url="http://127.0.0.1:18900/v1/")
+        self.assertEqual(provider.base_url, "http://127.0.0.1:18900/v1")
+
+    def test_chat_posts_to_the_gateway(self):
+        payload = {"choices": [{"message": {"content": "hello from the gateway"}}]}
+        with mock.patch("requests.post", return_value=FakeResponse(payload)) as request:
+            provider = OurFreeModelProvider(api_key="ofm-test", models=["m"])
+            answer = provider.chat("m", [{"role": "user", "content": "hi"}])
+
+        self.assertEqual(answer, "hello from the gateway")
+        self.assertEqual(
+            request.call_args.args[0], f"{DEFAULT_BASE_URL}/chat/completions"
+        )
+        self.assertEqual(request.call_args.kwargs["headers"]["Authorization"], "Bearer ofm-test")
+        self.assertEqual(request.call_args.kwargs["json"]["model"], "m")
+
+    def test_chat_requires_a_key(self):
+        provider = OurFreeModelProvider(api_key="", models=["m"])
+        with self.assertRaises(ValueError):
+            provider.chat("m", [{"role": "user", "content": "hi"}])
+
+    def test_cli_passes_base_url_from_config_through(self):
+        cli = CodelaboonCLI()
+        with mock.patch(
+            "config.providers.get_providers_config",
+            return_value={
+                "ourfree": {
+                    "api_key": "ofm-test",
+                    "base_url": "http://127.0.0.1:18900/v1",
+                    "models": ["m"],
+                }
+            },
+        ):
+            cli.load_providers()
+
+        provider = cli.providers["ourfree"]
+        self.assertEqual(provider.base_url, "http://127.0.0.1:18900/v1")
+
+    def test_cli_ignores_blank_base_url(self):
+        cli = CodelaboonCLI()
+        with mock.patch(
+            "config.providers.get_providers_config",
+            return_value={
+                "ourfree": {"api_key": "ofm-test", "base_url": "  ", "models": ["m"]}
+            },
+        ):
+            cli.load_providers()
+
+        provider = cli.providers["ourfree"]
+        self.assertEqual(provider.base_url, DEFAULT_BASE_URL)
 
 
 class DecisionModelTests(unittest.TestCase):

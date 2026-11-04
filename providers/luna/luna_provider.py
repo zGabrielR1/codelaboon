@@ -6,23 +6,24 @@ Implements the BaseProvider interface for Luna AI models.
 
 import os
 import requests
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from providers.base import BaseProvider
 
 
 class LunaProvider(BaseProvider):
     """Provider for Luna AI models."""
     
-    def __init__(self, api_key: str, models: List[str] = None):
+    def __init__(self, api_key: str, models: List[str] = None, base_url: Optional[str] = None):
         """
         Initialize Luna provider.
         
         Args:
             api_key: Luna API key
             models: Optional list of models (defaults to available models)
+            base_url: Optional base URL override
         """
-        super().__init__(api_key, models)
         self.base_url = "https://api.luna.ai/v1"
+        super().__init__(api_key, models, base_url)
         self.default_models = ["luna-2", "luna-chat", "luna-vision"]
     
     def list_models(self) -> List[str]:

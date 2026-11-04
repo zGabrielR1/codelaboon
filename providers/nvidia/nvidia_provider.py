@@ -7,23 +7,24 @@ Implements the BaseProvider interface for NVIDIA's Nemotron models.
 import os
 import requests
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from providers.base import BaseProvider
 
 
 class NVIDIAProvider(BaseProvider):
     """Provider for NVIDIA Nemotron models."""
     
-    def __init__(self, api_key: str, models: List[str] = None):
+    def __init__(self, api_key: str, models: List[str] = None, base_url: Optional[str] = None):
         """
         Initialize NVIDIA provider.
         
         Args:
             api_key: NVIDIA API key
             models: Optional list of models (defaults to available models)
+            base_url: Optional base URL override
         """
-        super().__init__(api_key, models)
         self.base_url = "https://integrate.api.nvidia.com/v1"
+        super().__init__(api_key, models, base_url)
         self.default_models = ["nemotron-3", "nemotron-4"]
     
     def list_models(self) -> List[str]:

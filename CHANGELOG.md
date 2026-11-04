@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-04
+
+### Added
+
+- `ourfree` provider: the dsh-our-free-model local forward gateway is now an
+  input to the model catalogue. Its models are all free (DeepSeek V4.1 Flash
+  and V4 Flash lead the list, then GLM 5.3 Flash, MiMo, Nemotron, Ling,
+  Space Bunny, Union Alpha, Muse Spark and Jev).
+- Live model discovery: `models list ourfree` fetches the roster from the
+  gateway's `GET /v1/models`, so the catalogue follows the upstream refresh;
+  configured models are the offline fallback.
+- `base_url` key in `providers.toml` (honored for every provider) to point at
+  a forward gateway that moved off its default port.
+- `codelaboon configure ourfree` now asks for the gateway base URL, defaulting
+  to `http://127.0.0.1:18899/v1` and preserving an existing value.
+
 ## [0.3.0] - 2026-11-03
 
 ### Added

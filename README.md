@@ -41,6 +41,10 @@ models = ["gpt-3.5-turbo"]
 [openrouter]
 api_key = "sk-or-..."
 models = ["openai/gpt-3.5-turbo"]
+
+[ourfree]
+api_key = "ofm-..."
+base_url = "http://127.0.0.1:18899/v1"
 ```
 
 A safe template is available in [`config/providers.toml.example`](config/providers.toml.example).
@@ -52,6 +56,7 @@ Then:
 python3 -m codelaboon providers list
 python3 -m codelaboon models list chatgpt
 python3 -m codelaboon chat openrouter openai/gpt-3.5-turbo "Hello"
+python3 -m codelaboon chat ourfree deepseek-v4.1-flash-free "Hello"
 ```
 
 ## Installation (optional)
@@ -101,10 +106,55 @@ python3 -m codelaboon chat openrouter my-model "Hello" --temperature 0.2 --max-t
 - **NVIDIA Nemotron** (`nvidia`) — NVIDIA hosted endpoints
 - **OpenRouter** (`openrouter`) — multi-provider aggregator
 - **Luna** (`luna`) — Luna AI endpoints
+- **Our Free Model** (`ourfree`) — the local forward gateway of the
+  [dsh-our-free-model](https://github.com/Ebony-Vinyl/dsh-our-free-model)
+  plugin for DeepSeek Harness
 
 Each provider implements the shared contract in [`providers/base.py`](providers/base.py).
 API keys, base URLs, default models and request payloads are provider-specific;
 check the provider module you are using.
+
+### Our Free Model (free lane)
+
+The `ourfree` provider turns the dsh-our-free-model local gateway into an input
+for the model catalogue. Its models are **all free, with no usage cap** — the
+list leads with DeepSeek:
+
+| Model | ID |
+|-------|----|
+| DeepSeek V4.1 Flash | `deepseek-v4.1-flash-free` |
+| DeepSeek V4 Flash | `deepseek-v4-flash-free` |
+| GLM 5.3 Flash | `glm-5.3-flash-free` |
+| MiMo V2.6 Flash | `mimo-v2.6-flash-free` |
+| MiMo V2.5 | `mimo-v2.5-free` |
+| Nemotron 3 Ultra | `nemotron-3-ultra-free` |
+| Nemotron 3.5 Lightning | `nemotron-3.5-lightning-free` |
+| Ling 3.0 Flash Fin | `ling-3.0-flash-fin-free` |
+| Space Bunny | `space-bunny-free` |
+| Union Alpha | `union-alpha` |
+| Muse Spark 1.3 | `muse-spark-1.3-contributor-free` |
+| Muse Spark 1.2 | `muse-spark-1.2-contributor-free` |
+| Jev 1.13 | `jev-1.13-free` |
+
+The catalogue follows the upstream refresh: `models list ourfree` discovers the
+live roster from the gateway's `GET /v1/models`, so newly added free models
+appear without touching this repo. The list above is the offline fallback used
+when the gateway is unreachable.
+
+Setup:
+
+1. In the plugin, enable the forward listener (Settings → Our Free Model →
+   Local Forwarding). It binds `127.0.0.1:18899` by default; if that port is
+   taken the listener moves and the settings page shows the actual one.
+2. Copy the base URL and generate the API key (`ofm-...`).
+3. Run `python3 -m codelaboon configure ourfree`, or write both into
+   `providers.toml`:
+
+```toml
+[ourfree]
+api_key = "ofm-..."
+base_url = "http://127.0.0.1:18899/v1"
+```
 
 ## Configuration
 
@@ -121,6 +171,11 @@ set. Keys:
 [provider_name]
 api_key = "your-key"
 models = ["model-a", "model-b"]
+
+[ourfree]
+api_key = "ofm-..."
+base_url = "http://127.0.0.1:18899/v1"
+models = ["deepseek-v4.1-flash-free"]
 ```
 
 Permissions are set to owner-only automatically.
@@ -156,7 +211,8 @@ codelaboon/
 │   ├── chatgpt/
 │   ├── nvidia/
 │   ├── openrouter/
-│   └── luna/
+│   ├── luna/
+│   └── ourfree/           # dsh-our-free-model local gateway
 ├── examples/
 │   └── questions.json     # Decision question example
 ├── config/

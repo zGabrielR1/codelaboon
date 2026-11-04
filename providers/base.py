@@ -16,17 +16,21 @@ class BaseProvider(ABC):
     # "openai" or "systemone"; None means the provider has no decision route.
     decision_protocol: Optional[str] = None
 
-    def __init__(self, api_key: str, models: List[str] = None):
+    def __init__(self, api_key: str, models: List[str] = None, base_url: Optional[str] = None):
         """
         Initialize provider with API key and optional model list.
         
         Args:
             api_key: API key for the provider
             models: Optional list of models to use (empty list = auto-discover)
+            base_url: Optional base URL override; providers keep their own
+                default when omitted
         """
         self.api_key = api_key
         self.models = models or []
         self._validated = False
+        if base_url:
+            self.base_url = base_url
     
     @abstractmethod
     def list_models(self) -> List[str]:

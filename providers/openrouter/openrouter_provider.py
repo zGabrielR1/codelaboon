@@ -6,7 +6,7 @@ Implements the BaseProvider interface for OpenRouter models (aggregator of multi
 
 import os
 import requests
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from providers.base import BaseProvider
 
 
@@ -15,16 +15,17 @@ class OpenRouterProvider(BaseProvider):
 
     decision_protocol = "systemone"
     
-    def __init__(self, api_key: str, models: List[str] = None):
+    def __init__(self, api_key: str, models: List[str] = None, base_url: Optional[str] = None):
         """
         Initialize OpenRouter provider.
         
         Args:
             api_key: OpenRouter API key
             models: Optional list of models (defaults to available models)
+            base_url: Optional base URL override
         """
-        super().__init__(api_key, models)
         self.base_url = "https://openrouter.ai/api/v1"
+        super().__init__(api_key, models, base_url)
         self.default_models = [
             "openai/gpt-3.5-turbo",
             "openai/gpt-4",

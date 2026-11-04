@@ -26,21 +26,32 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 - **Objective**: Add typed decision modeling derived from the AI decision API
 - **Progress**: predicate/choice/score questions, OpenAI and System One routes
-- **Release**: `v0.3.0` pending tag
+- **Release**: `v0.3.0`
+
+### Session 2026-11-04 — free model catalogue input
+
+- **Objective**: Add the dsh-our-free-model local gateway as a model provider
+- **Progress**: `ourfree` provider with the full free lane roster (DeepSeek
+  first), live discovery from `GET /v1/models`, `base_url` config support
+- **Release**: `v0.4.0`
 
 ## Current Objective
 
 **ACTIVE**
 
-Stabilise codelaboon for routine use and publish `v0.2.0`.
+Use the `ourfree` provider against a running dsh-our-free-model gateway and
+ship `v0.4.0`.
 
 ## Shipped Features
 
 - Provider-agnostic CLI: `providers list`, `models list`, `chat`, `decision`,
   `configure`, `doctor`
-- Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna
+- Providers: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna, Our Free Model
+- Free model catalogue: every model on the dsh free lane (DeepSeek V4.1 Flash
+  leads), discovered live from the gateway with an offline fallback list
 - Typed decision questions with OpenAI `/decisions` and System One `/systemone`
-- TOML config in `~/.config/codelaboon/providers.toml` (`0700` / `0600`)
+- TOML config in `~/.config/codelaboon/providers.toml` (`0700` / `0600`),
+  with a `base_url` override honored by every provider
 - Source-tree and optional pip install (`pyproject.toml`, console script)
 - Structural verification and offline tests
 

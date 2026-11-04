@@ -6,7 +6,7 @@ Implements the BaseProvider interface for OpenAI's ChatGPT models.
 
 import os
 import requests
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from providers.base import BaseProvider
 
 
@@ -15,16 +15,17 @@ class ChatGPTProvider(BaseProvider):
 
     decision_protocol = "openai"
     
-    def __init__(self, api_key: str, models: List[str] = None):
+    def __init__(self, api_key: str, models: List[str] = None, base_url: Optional[str] = None):
         """
         Initialize ChatGPT provider.
         
         Args:
             api_key: OpenAI API key
             models: Optional list of models (defaults to available free models)
+            base_url: Optional base URL override
         """
-        super().__init__(api_key, models)
         self.base_url = "https://api.openai.com/v1"
+        super().__init__(api_key, models, base_url)
         self.default_models = ["gpt-3.5-turbo", "gpt-4"]
     
     def list_models(self) -> List[str]:

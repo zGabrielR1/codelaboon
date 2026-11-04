@@ -52,9 +52,15 @@ class CodelaboonCLI:
                 print(f"Warning: Ignoring malformed configuration for {provider_name}")
                 continue
 
+            kwargs: Dict[str, Any] = {}
+            base_url = provider_config.get("base_url")
+            if isinstance(base_url, str) and base_url.strip():
+                kwargs["base_url"] = base_url.strip()
+
             self.providers[provider_name] = provider_class(
                 api_key=str(provider_config.get("api_key") or ""),
                 models=provider_config.get("models") if isinstance(provider_config.get("models"), list) else [],
+                **kwargs,
             )
 
     def _get_provider_class(self, provider_name: str):
@@ -64,6 +70,7 @@ class CodelaboonCLI:
             "nvidia": "providers.nvidia.nvidia_provider.NVIDIAProvider",
             "openrouter": "providers.openrouter.openrouter_provider.OpenRouterProvider",
             "luna": "providers.luna.luna_provider.LunaProvider",
+            "ourfree": "providers.ourfree.ourfree_provider.OurFreeModelProvider",
         }
 
         if provider_name not in provider_mapping:
@@ -119,7 +126,7 @@ class CodelaboonCLI:
         except ImportError:
             check("requests installed", False, "install python3-requests or requests")
 
-        for provider_name in ("chatgpt", "nvidia", "openrouter", "luna"):
+        for provider_name in ("chatgpt", "nvidia", "openrouter", "luna", "ourfree"):
             try:
                 self._get_provider_class(provider_name)
                 check(f"provider {provider_name} importable", True)
@@ -127,24 +134,30 @@ class CodelaboonCLI:
                 check(f"provider {provider_name} importable", False, str(e))
 
         config_file = self.config_dir / "providers.toml"
-        try:
-            self.config_dir.mkdir(parents=True, exist_ok=True)
-            self.config_dir.chmod(0o700)
-            check("config directory is writable and private",
-                  stat.S_IMODE(self.config_dir.stat().st_mode) & 0o077 == 0)
-        except OSError as e:
-            check("config directory is writable and private", False, str(e))
+        if os.name == "posix":
+            try:
+                self.config_dir.mkdir(parents=True, exist_ok=True)
+                self.config_dir.chmod(0o700)
+                check("config directory is writable and private",
+                      stat.S_IMODE(self.config_dir.stat().st_mode) & 0o077 == 0)
+            except OSError as e:
+                check("config directory is writable and private", False, str(e))
+        else:
+            print("  ℹ config directory permissions: not applicable on this platform")
 
         from config.providers import get_providers_config
 
         config = get_providers_config()
         check("configuration loads", isinstance(config, dict))
-        try:
-            mode = stat.S_IMODE(config_file.stat().st_mode) if config_file.exists() else None
-            check("configuration file is private", mode == 0o600,
-                  f"expected 600, got {oct(mode) if mode is not None else 'missing'}")
-        except OSError as e:
-            check("configuration file is private", False, str(e))
+        if os.name == "posix":
+            try:
+                mode = stat.S_IMODE(config_file.stat().st_mode) if config_file.exists() else None
+                check("configuration file is private", mode == 0o600,
+                      f"expected 600, got {oct(mode) if mode is not None else 'missing'}")
+            except OSError as e:
+                check("configuration file is private", False, str(e))
+        else:
+            print("  ℹ configuration file permissions: not applicable on this platform")
 
         configured = sorted(
             name for name, values in config.items()
@@ -291,15 +304,28 @@ class CodelaboonCLI:
             print("No API key provided. Using existing configuration.")
             return
 
-        from config.providers import save_provider_config
+        config: Dict[str, Any] = {
+            "api_key": api_key,
+            "models": [],  # Will be populated automatically
+        }
 
-        success = save_provider_config(
-            provider_name,
-            {
-                "api_key": api_key,
-                "models": [],  # Will be populated automatically
-            },
-        )
+        if provider_name == "ourfree":
+            # The forward gateway can move off port 18899 when it is taken;
+            # the settings page shows the port it actually listens on.
+            base_url = input(
+                "Enter the gateway base URL (enter for http://127.0.0.1:18899/v1): "
+            ).strip()
+            if base_url:
+                config["base_url"] = base_url
+
+        from config.providers import get_providers_config, save_provider_config
+
+        if provider_name == "ourfree" and "base_url" not in config:
+            existing = get_providers_config().get(provider_name, {})
+            if isinstance(existing.get("base_url"), str) and existing["base_url"].strip():
+                config["base_url"] = existing["base_url"].strip()
+
+        success = save_provider_config(provider_name, config)
 
         if success:
             print(f"✓ {provider_name} configured successfully")
@@ -460,6 +486,14 @@ class CodelaboonCLI:
 
 def main() -> None:
     """Main entry point."""
+    # Piped/redirected streams on Windows default to a legacy code page that
+    # cannot encode the status marks; degrade instead of crashing.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(errors="replace")
+            except (OSError, ValueError):
+                pass
     cli = CodelaboonCLI()
     cli.run()
 

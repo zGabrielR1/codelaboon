@@ -34,6 +34,25 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
             "api_key": "",
             "models": ["luna-2"],
         },
+        "ourfree": {
+            "api_key": "",
+            "base_url": "http://127.0.0.1:18899/v1",
+            "models": [
+                "deepseek-v4.1-flash-free",
+                "deepseek-v4-flash-free",
+                "glm-5.3-flash-free",
+                "mimo-v2.6-flash-free",
+                "mimo-v2.5-free",
+                "nemotron-3-ultra-free",
+                "nemotron-3.5-lightning-free",
+                "ling-3.0-flash-fin-free",
+                "space-bunny-free",
+                "union-alpha",
+                "muse-spark-1.3-contributor-free",
+                "muse-spark-1.2-contributor-free",
+                "jev-1.13-free",
+            ],
+        },
     }
 
 
@@ -152,6 +171,10 @@ def get_default_models(provider_name: str) -> list:
         "nvidia": ["nemotron-3"],
         "openrouter": ["openai/gpt-3.5-turbo"],
         "luna": ["luna-2"],
+        "ourfree": [
+            "deepseek-v4.1-flash-free",
+            "deepseek-v4-flash-free",
+        ],
     }
 
     return defaults.get(provider_name, [])

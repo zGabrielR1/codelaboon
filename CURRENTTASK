@@ -1,13 +1,15 @@
 # CURRENTTASK
 
-**ACTIVE**: Release and stabilize the codelaboon CLI harness.
+**ACTIVE**: `ourfree` provider shipped (dsh-our-free-model gateway as a model
+catalogue input); next: validate against a running gateway and use it.
 
 ## Baseline established
 
 The original v0.1.0 release task is complete:
 
 - Cross-platform CLI harness exists
-- Four providers implemented: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna
+- Five providers implemented: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna,
+  Our Free Model
 - TOML-based configuration with restrictive file permissions
 - README, architecture, agents, progress and workflow docs present
 - Working verification: `scripts/verify.sh`, `scripts/test.sh`, `make check`
@@ -33,12 +35,20 @@ The original v0.1.0 release task is complete:
 - GitHub Actions workflow runs tests and verification on Python 3.11–3.13
 - Release docs updated to current reality
 
-### Unreleased — v0.3.0 (in progress)
+### v0.3.0 — 2026-11-03
 
 - Typed decision models: predicate, choice and score questions
 - OpenAI `/decisions` and System One `/systemone` protocols
 - `--json` output and JSON/inline question definitions
 - Non-zero exit codes for failed chat and decision requests
+
+### v0.4.0 — 2026-11-04
+
+- `ourfree` provider: dsh-our-free-model local gateway as a model catalogue
+  input; every model on the lane is free, DeepSeek first
+- Live discovery from `GET /v1/models`; configured models as offline fallback
+- `base_url` config key honored by every provider
+- `configure ourfree` asks for the gateway base URL
 
 ## Success criteria
 
@@ -50,6 +60,7 @@ The original v0.1.0 release task is complete:
 - [ ] Real API keys validated against production provider endpoints
 - [ ] Public GitHub release notes (requires GitHub release/`gh` or manual publish)
 - [ ] Cross-platform CI matrix beyond Linux (macOS/Windows job)
+- [ ] Live chat validated against a running dsh-our-free-model gateway
 
 ## Dependencies
 
@@ -61,6 +72,7 @@ The original v0.1.0 release task is complete:
 ## Next steps
 
 1. Validate each provider against a real API key in an isolated config
-2. Publish GitHub Release notes for `v0.2.0` after the tag is pushed
-3. Add macOS and Windows CI jobs if release claims grow beyond Linux
-4. Keep `docs/` treated as source when behavior changes
+2. Validate `ourfree` against a running dsh-our-free-model forward gateway
+3. Publish GitHub Release notes for the pushed tag
+4. Add macOS and Windows CI jobs if release claims grow beyond Linux
+5. Keep `docs/` treated as source when behavior changes

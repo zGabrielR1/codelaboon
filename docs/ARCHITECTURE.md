@@ -18,7 +18,8 @@ codelaboon/
 │   ├── chatgpt/          # ChatGPT/OpenAI provider
 │   ├── nvidia/           # NVIDIA Nemotron provider
 │   ├── openrouter/       # OpenRouter provider
-│   └── luna/             # Luna provider
+│   ├── luna/             # Luna provider
+│   └── ourfree/          # dsh-our-free-model local gateway provider
 ├── config/                # Configuration management
 │   ├── __init__.py
 │   └── providers.py      # Provider configuration
