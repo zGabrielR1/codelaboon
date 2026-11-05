@@ -13,11 +13,16 @@ codelaboon/
 │   ├── __init__.py       # Package initialization
 │   ├── cli.py            # Core CLI logic
 │   ├── decision.py       # Typed decision protocols
+│   ├── chatgpt_auth.py   # ChatGPT account sign-in
+│   ├── claude_auth.py    # Claude account sign-in
+│   ├── gemini_auth.py    # Gemini/Google account sign-in
 │   └── tui.py            # Optional Textual terminal UI
 ├── providers/             # Model provider implementations
 │   ├── __init__.py
 │   ├── base.py           # Base provider interface
 │   ├── chatgpt/          # ChatGPT/OpenAI provider
+│   ├── claude/           # Anthropic Claude provider
+│   ├── gemini/           # Google Gemini provider
 │   ├── nvidia/           # NVIDIA Nemotron provider
 │   ├── openrouter/       # OpenRouter provider
 │   ├── luna/             # Luna provider

@@ -17,6 +17,14 @@ codelaboon follows PI harness principles:
   standard-library `tomllib`
 - **Cross-platform**: Linux, macOS, and Windows
 
+## Free account lane first
+
+The priority lane is genuinely free access. `codelaboon login gemini` signs in
+with a normal Google account and onboards Google's free Code Assist tier with no
+billing account and no API key; `ourfree` and `kilo` are keyless free pools.
+Free tiers impose their own data policies, and provider terms decide what each
+tier includes. Use throwaway prompts on lanes that may log them.
+
 ## ChatGPT sign-in and current models
 
 Run `codelaboon login chatgpt`, or click **Continue with ChatGPT** in the web
@@ -37,6 +45,36 @@ guarantee inference quota. API usage has its own billing.
 
 References: [sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)
 and [models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference).
+
+## Claude and Gemini account sign-in
+
+`codelaboon login claude` (or **Continue with Claude** in the web workspace)
+uses Anthropic's public Claude Code OAuth flow with PKCE. Pro, Max, Ultra, Team
+and Enterprise claude.ai accounts receive inference through their plan. A free
+claude.ai account can complete the same sign-in, but Anthropic does not
+currently include Claude Code or API inference with the free plan; when the
+account has no allowance the provider reports Anthropic's own plan error. An
+explicit `ANTHROPIC_API_KEY` or configured key takes precedence.
+
+`codelaboon login gemini` (or **Continue with Gemini**) signs in with a normal
+Google account, then onboards the account to Google's free Code Assist tier. It
+needs no billing account and no API key. This is the project's free-as-in-beer
+account lane. Google's terms for the free tier apply: prompts may be processed,
+logged or retained by the provider according to that tier's data policy. Use it
+for throwaway work, not secrets. An explicit `GEMINI_API_KEY` /
+`GOOGLE_API_KEY` uses the paid AI Studio API instead.
+
+Account sign-in needs an OAuth client (the app identity, not an account
+credential). Create a free **Desktop app** OAuth client in Google Cloud Console,
+then run `codelaboon configure gemini` and import the downloaded JSON (or set
+`CODELABOON_GEMINI_CLIENT_ID` and `CODELABOON_GEMINI_CLIENT_SECRET`). The client
+is stored privately in `gemini-oauth.json`; no OAuth client credentials are
+embedded in this repository.
+
+Credentials live in `claude-session.json` and `gemini-session.json` inside the
+config directory with owner-only permissions and refresh automatically. Do not
+share these files. Sign-in tokens are only ever sent to the provider's official
+endpoint; a custom `base_url` is refused for account sessions.
 
 ## Local interfaces
 
@@ -115,7 +153,8 @@ terminal UI is an optional extra: `python3 -m pip install --user '.[tui]'`.
 | `models list <provider>` | List models for a provider |
 | `chat <provider> <model> <prompt>` | Send a chat completion request |
 | `decision <provider> <model> <input>` | Ask typed predicate/choice/score questions |
-| `configure <provider>` | Interactively write an API key to the config |
+| `login <chatgpt\|claude\|gemini>` | Sign in with an account (plan or free tier) |
+| `configure <provider>` | Interactively write an API key or start account sign-in |
 | `doctor` | Diagnose Python, dependencies, providers and config |
 | `tui` | Interactive terminal UI (needs the optional `textual` extra) |
 
@@ -165,7 +204,11 @@ Keys: `ctrl+p` providers · `ctrl+m` models · `ctrl+r` refresh models ·
 
 ## Supported providers
 
-- **ChatGPT / OpenAI** (`chatgpt`) — OpenAI-compatible chat completions
+- **ChatGPT / OpenAI** (`chatgpt`) — OpenAI-compatible chat completions or a
+  ChatGPT account plan
+- **Claude** (`claude`) — Anthropic Messages API or a claude.ai account plan
+- **Gemini** (`gemini`) — Google AI Studio API key or a Google account on the
+  free Code Assist tier
 - **NVIDIA Nemotron** (`nvidia`) — NVIDIA hosted endpoints
 - **OpenRouter** (`openrouter`) — multi-provider aggregator
 - **Luna** (`luna`) — Luna AI endpoints
@@ -352,9 +395,10 @@ MIT — see [LICENSE](LICENSE).
 ### Terminal workspace flow
 
 The TUI opens on a centered composer. Ctrl+P opens a searchable provider
-picker and Ctrl+M opens a searchable model picker. Selecting ChatGPT without
-credentials offers Continue with ChatGPT inside the TUI; complete browser
-authorization and the model catalogue refreshes automatically. Later or Escape
+picker and Ctrl+M opens a searchable model picker. Selecting ChatGPT, Claude or
+Gemini without credentials offers the matching account sign-in inside the TUI;
+complete browser authorization and the model catalogue refreshes automatically.
+Later or Escape
 closes the dialog. An authorization already started continues in the background
 until completion or timeout.
 

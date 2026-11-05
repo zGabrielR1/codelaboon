@@ -81,7 +81,10 @@ class ConfigTests(unittest.TestCase):
 
         self.assertEqual(
             set(config),
-            {"chatgpt", "nvidia", "openrouter", "luna", "ourfree", "kilo"},
+            {
+                "chatgpt", "claude", "gemini", "nvidia", "openrouter", "luna",
+                "ourfree", "kilo",
+            },
         )
         self.assertTrue((config_dir / "providers.toml").is_file())
         if os.name == "posix":
@@ -573,7 +576,7 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
         app = CodelaboonTuiApp()
         async with app.run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(len(app._provider_names), 6)
+            self.assertEqual(len(app._provider_names), 8)
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()

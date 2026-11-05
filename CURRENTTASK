@@ -1,10 +1,11 @@
-RC2 local candidate: session continuity and request recovery implemented.
-Next: live authorization/provider validation and GitHub publication when credentials are available.
+RC4 tagged candidate: Claude and Gemini account sign-in shipped and published as v1.0.0-rc.4.
+Next: live authorization/provider validation with real accounts.
 
 # CURRENTTASK
 
-**ACTIVE**: Kilo AI's keyless free pool shipped as the `kilo` provider; next:
-validate against the live gateway and keep growing the free catalogue.
+**ACTIVE**: Claude (claude.ai plan) and Gemini (Google free tier) account
+sign-in shipped alongside ChatGPT. Next: validate the live OAuth flows and
+inference with real accounts, and keep growing the free catalogue.
 
 ## Baseline established
 

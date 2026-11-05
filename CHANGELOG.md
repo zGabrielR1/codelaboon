@@ -1,3 +1,26 @@
+## 1.0.0rc4 - 2026-11-05
+
+- Added `claude`: Anthropic Messages API with an API key, or a claude.ai account
+  signed in through the public Claude Code OAuth PKCE flow. Pro/Max/Ultra/Team/
+  Enterprise plan entitlement carries over; free accounts can connect but
+  Anthropic does not currently grant inference on the free plan.
+- Added `gemini`: Google AI Studio API key, or a Google account signed in with a
+  user-supplied Desktop OAuth client. The account lane onboards to the free Code
+  Assist tier automatically, with no billing account or API key. The OAuth
+  client is stored privately, not embedded in the repository. Free-tier data
+  policy applies; use it for throwaway work.
+- `codelaboon login` accepts `chatgpt`, `claude` and `gemini`; `configure` offers
+  account sign-in for Claude and Gemini when no key is entered.
+- TUI login dialog and web action menu cover all three account providers.
+- Session files (`claude-session.json`, `gemini-session.json`) are atomic,
+  owner-only and refresh automatically. Account tokens are refused for custom
+  `base_url` endpoints.
+- Added a tag-triggered release workflow: tests, builds the wheel/source
+  archive, writes SHA256SUMS and publishes a prerelease with downloadable
+  artifacts.
+- 86 offline tests pass; live account authorization and inference remain
+  unverified without real accounts.
+
 ## 1.0.0rc3 ? 2026-11-05
 
 - Latest build includes the taste framework visual rework: navigation rail, conversation library, starter rows, mobile action menu, and matching TUI palette.

@@ -22,6 +22,14 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
             "api_key": "",
             "models": [],
         },
+        "claude": {
+            "api_key": "",
+            "models": [],
+        },
+        "gemini": {
+            "api_key": "",
+            "models": [],
+        },
         "nvidia": {
             "api_key": "",
             "models": ["nemotron-3"],
@@ -172,6 +180,18 @@ def get_default_models(provider_name: str) -> list:
     """Get default models for a provider."""
     defaults = {
         "chatgpt": [],
+        "claude": [
+            "claude-sonnet-5-5",
+            "claude-opus-5-5",
+            "claude-haiku-5-5",
+            "claude-fable-5-1",
+        ],
+        "gemini": [
+            "gemini-4-argon",
+            "gemini-3.8-flash",
+            "gemini-3.1-pro-preview",
+            "gemini-3.5-flash-lite",
+        ],
         "nvidia": ["nemotron-3"],
         "openrouter": ["openai/gpt-3.5-turbo"],
         "luna": ["luna-2"],

@@ -11,6 +11,8 @@ fail() {
 }
 
 required_files=(
+    ".github/workflows/verify.yml"
+    ".github/workflows/release.yml"
     "README.md"
     "LICENSE"
     "CHANGELOG.md"
@@ -23,9 +25,13 @@ required_files=(
     "codelaboon/__main__.py"
     "codelaboon/decision.py"
     "codelaboon/tui.py"
+    "codelaboon/claude_auth.py"
+    "codelaboon/gemini_auth.py"
     "providers/__init__.py"
     "providers/base.py"
     "providers/chatgpt/chatgpt_provider.py"
+    "providers/claude/claude_provider.py"
+    "providers/gemini/gemini_provider.py"
     "providers/nvidia/nvidia_provider.py"
     "providers/openrouter/openrouter_provider.py"
     "providers/luna/luna_provider.py"
@@ -42,6 +48,8 @@ required_files=(
     "scripts/verify.sh"
     "scripts/test.sh"
     "tests/test_codelaboon.py"
+    "tests/test_claude.py"
+    "tests/test_gemini.py"
 )
 
 echo "Checking required files..."
@@ -56,6 +64,8 @@ required_dirs=(
     "codelaboon"
     "providers"
     "providers/chatgpt"
+    "providers/claude"
+    "providers/gemini"
     "providers/nvidia"
     "providers/openrouter"
     "providers/luna"

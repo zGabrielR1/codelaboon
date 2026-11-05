@@ -16,16 +16,24 @@ def create_server(port=8765, cli=None):
     cli = cli or CodelaboonCLI()
     cli.load_providers()
     token = secrets.token_urlsafe(32)
-    auth_state = {"status": "idle"}
+    auth_providers = ("chatgpt", "claude", "gemini")
+    auth_states = {name: {"status": "idle"} for name in auth_providers}
     auth_lock = threading.Lock()
 
-    def login_job():
-        from codelaboon.chatgpt_auth import login
+    def login_job(provider):
+        import importlib
+
+        module = importlib.import_module(f"codelaboon.{provider}_auth")
         try:
-            login()
-            auth_state.update(status="connected")
+            module.login()
         except Exception:
-            auth_state.update(status="failed")
+            auth_states[provider].update(status="failed")
+            return
+        auth_states[provider].update(status="connected")
+        try:
+            cli.load_providers()
+        except Exception:
+            pass
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -54,7 +62,10 @@ def create_server(port=8765, cli=None):
                 return self.respond(403, {"error": "Use the printed loopback URL"})
             url = urlsplit(self.path)
             if url.path == "/api/auth/status":
-                return self.respond(200, auth_state)
+                provider = parse_qs(url.query).get("provider", ["chatgpt"])[0]
+                if provider not in auth_providers:
+                    return self.respond(404, {"error": "Unknown sign-in provider"})
+                return self.respond(200, auth_states[provider])
             if url.path == "/api/providers":
                 return self.respond(200, {"token": token, "providers": [{"name": n, "configured": p.validate_api_key(), "keyless": p.keyless} for n, p in sorted(cli.providers.items())]})
             if url.path == "/api/models":
@@ -76,12 +87,18 @@ def create_server(port=8765, cli=None):
         def do_POST(self):
             if not self.trusted() or self.headers.get("X-Codelaboon-Token") != token:
                 return self.respond(403, {"error": "Reload this workspace and retry"})
-            if self.path == "/api/auth/chatgpt":
+            if self.path.startswith("/api/auth/"):
+                provider = self.path[len("/api/auth/") :]
+                if provider not in auth_providers:
+                    return self.respond(404, {"error": "Unknown sign-in provider"})
                 with auth_lock:
-                    if auth_state["status"] != "pending":
-                        auth_state.update(status="pending")
-                        threading.Thread(target=login_job, daemon=True).start()
-                return self.respond(202, auth_state)
+                    state = auth_states[provider]
+                    if state["status"] != "pending":
+                        state.update(status="pending")
+                        threading.Thread(
+                            target=login_job, args=(provider,), daemon=True
+                        ).start()
+                return self.respond(202, state)
             if self.path != "/api/chat":
                 return self.respond(404, {"error": "Not found"})
             try:

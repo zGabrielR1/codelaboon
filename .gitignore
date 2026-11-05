@@ -28,9 +28,13 @@ forks/
 *~
 .claude/
 
-# Local ChatGPT authorization records
+# Local account authorization records
 chatgpt-session.json
 chatgpt-host.json
+claude-session.json
+claude-device.json
+gemini-session.json
+gemini-oauth.json
 
 # Preserved local release artifacts
 releases/

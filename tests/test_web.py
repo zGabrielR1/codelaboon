@@ -37,6 +37,12 @@ class WebTests(unittest.TestCase):
         self.assertEqual(requests.post(self.url+'/api/chat',headers={**headers,'Origin':'https://evil.example'},json={}).status_code,403)
         self.assertEqual(requests.post(self.url+'/api/chat',headers=headers,json={}).status_code,400)
         self.assertEqual(requests.get(self.url+'/../pyproject.toml').status_code,404)
+    def test_auth_status_is_tracked_per_account_provider(self):
+        for provider in ('chatgpt','claude','gemini'):
+            self.assertEqual(requests.get(self.url+'/api/auth/status?provider='+provider).json(),{'status':'idle'})
+        self.assertEqual(requests.get(self.url+'/api/auth/status?provider=unknown').status_code,404)
+        token=requests.get(self.url+'/api/providers').json()['token']
+        self.assertEqual(requests.post(self.url+'/api/auth/unknown',headers={'X-Codelaboon-Token':token}).status_code,404)
     def test_provider_error_is_redacted(self):
         self.provider.chat.side_effect=RuntimeError('secret-api-key')
         token=requests.get(self.url+'/api/providers').json()['token']

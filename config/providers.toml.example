@@ -8,6 +8,23 @@
 api_key = ""
 models = ["gpt-3.5-turbo"]
 
+# Claude: leave api_key empty and run `codelaboon login claude` to use a
+# claude.ai plan (Pro/Max/Ultra/Team/Enterprise). Free claude.ai accounts can
+# connect, but Anthropic currently grants no Claude Code/API inference on the
+# free plan. An ANTHROPIC_API_KEY or a key here takes precedence.
+[claude]
+api_key = ""
+models = []
+
+# Gemini: leave api_key empty and run `codelaboon configure gemini` once to
+# import a free Desktop OAuth client, then `codelaboon login gemini` to sign in
+# with a Google account and onboard the free Code Assist tier (no billing
+# account, no key). Free-tier data policy applies. GEMINI_API_KEY/GOOGLE_API_KEY
+# or a key here uses the AI Studio API instead.
+[gemini]
+api_key = ""
+models = []
+
 [nvidia]
 api_key = ""
 models = ["nemotron-3"]

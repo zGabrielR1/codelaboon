@@ -140,3 +140,23 @@ TUI session persistence/resume/export; browser draft recovery, search, rename, r
 ## Taste framework rework ? 2026-11-05
 
 Data terminal direction applied to web shell, typography, starter rows, action menu and TUI palette. Browser checked 1440/768/390, source lint clean, 60 tests pass. Framework CDP inspector timed out; fallback browser evidence recorded in visual-rework.md.
+
+
+## RC4 - Claude and Gemini account sign-in - 2026-11-05
+
+- Added `claude` provider: Anthropic Messages API with an API key, plus the
+  public Claude Code OAuth PKCE flow for claude.ai plans. Free claude.ai
+  accounts can connect, but Anthropic currently grants no Claude Code/API
+  inference on the free plan; the provider surfaces the provider's own error.
+- Added `gemini` provider: Google AI Studio API key, plus Google account OAuth
+  with automatic free Code Assist onboarding. This is the explicit
+  free-as-in-beer account lane; the free-tier data policy is documented. The
+  OAuth client is user-supplied and stored privately, so no client credentials
+  are embedded in the repository.
+- CLI `login` accepts chatgpt, claude and gemini; `configure` starts account
+  sign-in when no key is entered. TUI dialog and web action menu cover all three.
+- Account sessions are atomic/private, refresh automatically, and are refused
+  for custom base URLs. Pinned fallback rosters cover discovery failures.
+- 86 offline tests pass, including new Claude/Gemini auth, provider and web
+  coverage. Live OAuth authorization and inference remain unverified without
+  real accounts; the provider decides what each plan or free tier includes.

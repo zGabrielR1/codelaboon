@@ -19,8 +19,12 @@ check:
 	@echo "Checking codelaboon structure..."
 	@for file in codelaboon/cli.py codelaboon/__init__.py codelaboon/__main__.py \
 		codelaboon/decision.py codelaboon/tui.py \
+		codelaboon/claude_auth.py codelaboon/gemini_auth.py \
 		providers/__init__.py providers/base.py \
-		providers/chatgpt/chatgpt_provider.py providers/nvidia/nvidia_provider.py \
+		providers/chatgpt/chatgpt_provider.py \
+		providers/claude/claude_provider.py \
+		providers/gemini/gemini_provider.py \
+		providers/nvidia/nvidia_provider.py \
 		providers/openrouter/openrouter_provider.py providers/luna/luna_provider.py \
 		providers/ourfree/ourfree_provider.py providers/kilo/kilo_provider.py \
 		config/providers.py README.md LICENSE pyproject.toml MANIFEST.in \

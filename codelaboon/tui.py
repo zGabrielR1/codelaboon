@@ -74,21 +74,30 @@ class Picker(ModalScreen[str]):
         self.dismiss("")
 
 
-class ChatGPTLogin(ModalScreen[bool]):
+ACCOUNT_PROVIDERS = {"chatgpt", "claude", "gemini"}
+ACCOUNT_LABELS = {"chatgpt": "ChatGPT", "claude": "Claude", "gemini": "Gemini"}
+
+
+class ProviderLogin(ModalScreen[bool]):
     BINDINGS = [("escape", "cancel_login", "Close")]
     DEFAULT_CSS = """
-    ChatGPTLogin { align: center middle; background: #00000088; }
+    ProviderLogin { align: center middle; background: #00000088; }
     #login-dialog { width: 66; max-width: 95%; height: auto; background: #131315; padding: 2 3; }
     #login-message { height: auto; margin: 1 0; }
     #login-actions { height: 3; }
     """
 
+    def __init__(self, provider: str = "chatgpt"):
+        super().__init__()
+        self.provider = provider
+        self.label = ACCOUNT_LABELS.get(provider, provider.title())
+
     def compose(self):
         with Vertical(id="login-dialog"):
-            yield Label("Connect ChatGPT", markup=False)
+            yield Label(f"Connect {self.label}", markup=False)
             yield Static("Sign in to load your account's available models.\nComplete authorization in your browser, then return here.", id="login-message")
             with Horizontal(id="login-actions"):
-                yield Button("Continue with ChatGPT", id="continue-login")
+                yield Button(f"Continue with {self.label}", id="continue-login")
                 yield Button("Later", id="later-login")
 
     def on_button_pressed(self, event):
@@ -97,10 +106,14 @@ class ChatGPTLogin(ModalScreen[bool]):
         else:
             self.query_one("#continue-login", Button).disabled = True
             self.query_one("#login-message", Static).update("Waiting for browser authorization...\nThis can take up to five minutes.")
-            self.app.start_chatgpt_login(self)
+            self.app.start_provider_login(self, self.provider)
 
     def action_cancel_login(self):
         self.dismiss(False)
+
+
+# Kept for callers that imported the ChatGPT-only dialog.
+ChatGPTLogin = ProviderLogin
 
 
 class CodelaboonTuiApp(App[None]):
@@ -180,7 +193,7 @@ class CodelaboonTuiApp(App[None]):
             [ListItem(Label(self._provider_label(name))) for name in self._provider_names]
         )
         self._log("codelaboon TUI — pick a provider (ctrl+p), a model (ctrl+m), then type.")
-        self._log("ourfree and kilo models are free; other providers need their own API key.")
+        self._log("Gemini (Google account), ourfree and kilo are free; other providers need their own key or plan.")
         if self._provider_names:
             self._select_provider(self._provider_names[0], prompt_login=False)
         self.query_one("#prompt", Input).focus()
@@ -236,8 +249,12 @@ class CodelaboonTuiApp(App[None]):
                 providers_list.index = self._provider_names.index(name)
             except (ValueError, IndexError):
                 pass
-        if name == "chatgpt" and prompt_login and not self.cli.providers[name].validate_api_key():
-            self.push_screen(ChatGPTLogin())
+        if (
+            name in ACCOUNT_PROVIDERS
+            and prompt_login
+            and not self.cli.providers[name].validate_api_key()
+        ):
+            self.push_screen(ProviderLogin(name))
         else:
             self._load_models(name)
 
@@ -451,10 +468,15 @@ class CodelaboonTuiApp(App[None]):
 
 
     def action_focus_models(self) -> None:
-        if self._current_provider == "chatgpt" and not self.cli.providers["chatgpt"].validate_api_key():
-            self.push_screen(ChatGPTLogin())
+        provider = self.cli.providers.get(self._current_provider)
+        if (
+            self._current_provider in ACCOUNT_PROVIDERS
+            and provider is not None
+            and not provider.validate_api_key()
+        ):
+            self.push_screen(ProviderLogin(self._current_provider))
             return
-        names = getattr(self.cli.providers.get(self._current_provider), "model_names", {})
+        names = getattr(provider, "model_names", {})
         self.push_screen(Picker("Select model", [(m, names.get(m, m)) for m in self._model_names]), self._pick_model)
 
     def _pick_model(self, model):
@@ -468,16 +490,25 @@ class CodelaboonTuiApp(App[None]):
             self._update_status()
             self.query_one("#prompt", Input).focus()
 
-    def start_chatgpt_login(self, dialog):
+    def start_provider_login(self, dialog, provider: str = "chatgpt"):
         if getattr(self, "_login_pending", False):
             return
         self._login_pending = True
-        self.run_worker(functools.partial(self._login_job, dialog), thread=True, group="login")
+        self.run_worker(
+            functools.partial(self._login_job, dialog, provider),
+            thread=True,
+            group="login",
+        )
 
-    def _login_job(self, dialog):
-        from codelaboon.chatgpt_auth import login
+    def start_chatgpt_login(self, dialog):
+        self.start_provider_login(dialog, getattr(dialog, "provider", "chatgpt"))
+
+    def _login_job(self, dialog, provider: str):
+        import importlib
+
+        module = importlib.import_module(f"codelaboon.{provider}_auth")
         try:
-            login(report=lambda message: self.call_from_thread(self.notify, message))
+            module.login(report=lambda message: self.call_from_thread(self.notify, message))
         except Exception:
             self.call_from_thread(self._login_done, dialog, False)
         else:
@@ -485,11 +516,17 @@ class CodelaboonTuiApp(App[None]):
 
     def _login_done(self, dialog, success):
         self._login_pending = False
+        provider = getattr(dialog, "provider", self._current_provider or "chatgpt")
+        label = ACCOUNT_LABELS.get(provider, provider.title())
         if dialog in self.screen_stack:
             dialog.dismiss(success)
-        if success and self._current_provider == "chatgpt":
-            self._load_models("chatgpt")
-        self.notify("ChatGPT connected" if success else "Sign-in did not complete. Select ChatGPT to retry.", severity="information" if success else "error")
+        if success and self._current_provider == provider:
+            self._load_models(provider)
+        self.notify(
+            f"{label} connected" if success
+            else f"Sign-in did not complete. Select {label} to retry.",
+            severity="information" if success else "error",
+        )
 
 
     def action_refresh_models(self) -> None:

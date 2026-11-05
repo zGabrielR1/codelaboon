@@ -67,6 +67,8 @@ class CodelaboonCLI:
         """Get provider class based on provider name."""
         provider_mapping = {
             "chatgpt": "providers.chatgpt.chatgpt_provider.ChatGPTProvider",
+            "claude": "providers.claude.claude_provider.ClaudeProvider",
+            "gemini": "providers.gemini.gemini_provider.GeminiProvider",
             "nvidia": "providers.nvidia.nvidia_provider.NVIDIAProvider",
             "openrouter": "providers.openrouter.openrouter_provider.OpenRouterProvider",
             "luna": "providers.luna.luna_provider.LunaProvider",
@@ -127,7 +129,10 @@ class CodelaboonCLI:
         except ImportError:
             check("requests installed", False, "install python3-requests or requests")
 
-        for provider_name in ("chatgpt", "nvidia", "openrouter", "luna", "ourfree", "kilo"):
+        for provider_name in (
+            "chatgpt", "claude", "gemini", "nvidia", "openrouter", "luna",
+            "ourfree", "kilo",
+        ):
             try:
                 self._get_provider_class(provider_name)
                 check(f"provider {provider_name} importable", True)
@@ -195,7 +200,11 @@ class CodelaboonCLI:
             if provider.keyless:
                 print("  Status: âœ“ Free (no key needed)")
             else:
-                print(f"  Status: {'âœ“ Configured' if provider.api_key else 'âœ— Not configured'}")
+                try:
+                    configured = bool(provider.api_key) or provider.validate_api_key()
+                except Exception:
+                    configured = bool(provider.api_key)
+                print(f"  Status: {'âœ“ Configured' if configured else 'âœ— Not configured'}")
 
             try:
                 models = provider.list_models()
@@ -338,7 +347,62 @@ class CodelaboonCLI:
                 print(f"âœ— Failed to configure {provider_name}")
             return
 
-        api_key = input(f"Enter API key for {provider_name}: ").strip()
+        if provider_name in ("claude", "gemini"):
+            # Subscription and free-tier accounts sign in instead of pasting
+            # a key; an explicit key still works for both providers.
+            api_key = input(
+                f"Enter an API key for {provider_name}, or leave blank to "
+                "sign in with an account: "
+            ).strip()
+            if not api_key:
+                if provider_name == "claude":
+                    from codelaboon.claude_auth import login
+
+                    try:
+                        login()
+                    except (ValueError, OSError) as error:
+                        print(f"Sign-in failed: {error}")
+                    else:
+                        self.load_providers()
+                    return
+
+                from codelaboon import gemini_auth
+
+                try:
+                    gemini_auth.client()
+                except ValueError:
+                    print(
+                        "Gemini account sign-in needs a Google OAuth client.\n"
+                        "Create a free Desktop OAuth client in Google Cloud "
+                        "Console, then import its JSON file or enter the values."
+                    )
+                    path = input(
+                        "Path to the OAuth client JSON "
+                        "(enter to type the values): "
+                    ).strip()
+                    try:
+                        if path:
+                            gemini_auth.import_oauth_client(path)
+                        else:
+                            client_id = input("OAuth client ID: ").strip()
+                            client_secret = input(
+                                "OAuth client secret: "
+                            ).strip()
+                            gemini_auth.save_oauth_client(
+                                client_id, client_secret
+                            )
+                    except (OSError, ValueError) as error:
+                        print(f"Could not save the OAuth client: {error}")
+                        return
+                try:
+                    gemini_auth.login()
+                except (ValueError, OSError) as error:
+                    print(f"Sign-in failed: {error}")
+                else:
+                    self.load_providers()
+                return
+        else:
+            api_key = input(f"Enter API key for {provider_name}: ").strip()
 
         if not api_key:
             print("No API key provided. Using existing configuration.")
@@ -436,8 +500,12 @@ class CodelaboonCLI:
             "--json", action="store_true", help="Print answers as JSON"
         )
 
-        login_parser = subparsers.add_parser("login", help="Sign in with ChatGPT for plan access")
-        login_parser.add_argument("provider", choices=["chatgpt"])
+        login_parser = subparsers.add_parser(
+            "login", help="Sign in with an account for plan or free-tier access"
+        )
+        login_parser.add_argument(
+            "provider", choices=["chatgpt", "claude", "gemini"]
+        )
 
         # Configure command
         configure_parser = subparsers.add_parser("configure", help="Configure provider")
@@ -526,7 +594,12 @@ class CodelaboonCLI:
                 sys.exit(1)
 
         elif args.command == "login":
-            from codelaboon.chatgpt_auth import login
+            if args.provider == "claude":
+                from codelaboon.claude_auth import login
+            elif args.provider == "gemini":
+                from codelaboon.gemini_auth import login
+            else:
+                from codelaboon.chatgpt_auth import login
             try:
                 login()
             except (ValueError, OSError) as error:
