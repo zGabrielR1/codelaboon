@@ -55,3 +55,35 @@ class TuiFlowTests(unittest.IsolatedAsyncioTestCase):
             app.action_new_conversation()
             self.assertTrue(app.query_one('#body').has_class('home'))
             self.assertTrue(app.query_one('#home').display)
+
+    async def test_saved_session_resume_and_stale_catalogue(self):
+        from codelaboon.sessions import list_sessions
+        app=CodelaboonTuiApp()
+        with tempfile.TemporaryDirectory() as root:
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                app.cli.config_dir=__import__('pathlib').Path(root)
+                app._current_provider='chatgpt'
+                app._current_model='saved-model'
+                app.history=[{'role':'user','content':'Remember this'},{'role':'assistant','content':'Saved answer'}]
+                app._save_conversation()
+                saved=list_sessions(root)
+                self.assertEqual(len(saved),1)
+                app.action_new_conversation()
+                app._saved_sessions={saved[0]['id']:saved[0]}
+                with patch.object(app,'_load_models'):
+                    app._resume_session(saved[0]['id'])
+                self.assertEqual(app.history[-1]['content'],'Saved answer')
+                app._discovery=12
+                app._models_result(11,'chatgpt',['stale-model'],'')
+                self.assertEqual(app._current_model,'saved-model')
+    async def test_busy_submission_preserves_draft(self):
+        from textual.widgets import Input
+        app=CodelaboonTuiApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            field=app.query_one('#prompt',Input)
+            app._busy=True
+            field.value='Keep this draft'
+            app.on_input_submitted(Input.Submitted(field,field.value))
+            self.assertEqual(field.value,'Keep this draft')

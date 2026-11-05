@@ -1,3 +1,11 @@
+## 1.0.0rc2 ? 2026-11-05
+
+- TUI conversations save automatically after completed replies. Ctrl+S opens searchable saved sessions; /export exposes the session JSON path.
+- Web conversations support search, rename, archive and restore. Drafts recover after reload and when switching saved sessions.
+- Stop waiting restores the draft and controls without accepting a late reply. Provider execution may continue.
+- Discovery sequence guards reject stale model catalogues, refresh clears invalid model selections, and busy TUI submissions preserve their prompt.
+- Atomic session files isolate malformed records and reject path traversal identifiers.
+
 ## 1.0.0rc1 ? 2026-11-05
 
 - Default terminal workspace with searchable provider/model dialogs, right session sidebar, slash commands and integrated ChatGPT sign-in.

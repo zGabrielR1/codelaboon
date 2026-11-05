@@ -1,3 +1,6 @@
+RC2 local candidate: session continuity and request recovery implemented.
+Next: live authorization/provider validation and GitHub publication when credentials are available.
+
 # CURRENTTASK
 
 **ACTIVE**: Kilo AI's keyless free pool shipped as the `kilo` provider; next:

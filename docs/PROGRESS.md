@@ -130,3 +130,8 @@ Validate the `kilo` lane against the live gateway and ship `v0.6.0`.
 - Sign-in progress uses UI notifications rather than printing over the terminal.
 - Verified 55 offline tests including login dialog dismissal, login completion refresh, provider search, sidebar shortcut, and home reset.
 - Real browser authorization and interactive visual inspection remain unverified. This is a Textual implementation of the main layout, not a complete OpenTUI feature port.
+
+
+## RC2 ? 2026-11-05
+
+TUI session persistence/resume/export; browser draft recovery, search, rename, reversible archive and stop-waiting. Discovery generations and busy-prompt preservation fixed. 60 tests pass; browser fixture checks pass at desktop/mobile sizes. See release-1.0.0rc2.md for evidence and limitations.

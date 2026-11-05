@@ -363,3 +363,17 @@ request status. Ctrl+B toggles it; narrow terminals start with it hidden.
 Use `/connect`, `/models`, `/new`, `/sidebar`, or `/help` from the composer.
 The layout follows the local OpenCode fork?s centered home, selection dialogs
 and right session rail; codelaboon retains its own brand and Python runtime.
+
+
+### RC2: keep your work between sessions
+
+Completed TUI conversations save automatically to `sessions/` in the configured
+codelaboon directory. Ctrl+S (or `/sessions`) opens searchable history. Select a
+conversation to restore its provider, model and full message context. `/export`
+shows its JSON file path. Invalid session files are skipped individually.
+
+The web sidebar supports history search and an archived view. Desktop header
+controls rename, archive or restore the selected conversation. Archiving is
+reversible. Drafts recover after reload and when switching saved conversations.
+Stop waiting restores the draft and controls; the provider may continue executing
+and billing the original request. It does not promise upstream cancellation.

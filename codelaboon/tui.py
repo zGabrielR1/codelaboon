@@ -12,6 +12,7 @@ the selected provider/model. `ctrl+d` runs the same diagnostics as
 """
 
 import functools
+import secrets
 from typing import Any, Dict, List, Optional
 
 from rich.panel import Panel
@@ -129,6 +130,7 @@ class CodelaboonTuiApp(App[None]):
     """
 
     BINDINGS = [
+        ("ctrl+s", "sessions", "Sessions"),
         ("ctrl+l", "new_conversation", "New chat"),
         ("ctrl+b", "toggle_sidebar", "Sidebar"),
         ("ctrl+p", "focus_providers", "Providers"),
@@ -151,6 +153,8 @@ class CodelaboonTuiApp(App[None]):
         self._pending: Any = None
         self._generation = 0
         self._busy = False
+        self._session_id = secrets.token_hex(16)
+        self._discovery = 0
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="body", classes="home"):
@@ -219,6 +223,8 @@ class CodelaboonTuiApp(App[None]):
     def _select_provider(self, name: str, prompt_login: bool = True) -> None:
         self._generation += 1
         self._busy = False
+        self._save_conversation()
+        self._session_id = secrets.token_hex(16)
         self._current_provider = name
         self._current_model = None
         self.history.clear()
@@ -239,26 +245,33 @@ class CodelaboonTuiApp(App[None]):
         provider = self.cli.providers.get(name)
         if provider is None:
             return
+        self._discovery += 1
         self._models_worker = self.run_worker(
-            functools.partial(self._models_job, name, provider),
+            functools.partial(self._models_job, name, provider, self._discovery),
             thread=True,
             exclusive=True,
             group="models",
         )
 
-    def _models_job(self, name: str, provider: Any) -> None:
+    def _models_job(self, name: str, provider: Any, discovery: int) -> None:
         try:
             models = provider.list_models()
         except Exception as e:  # Discovery must never take the TUI down.
-            self.call_from_thread(self._on_models, name, [], f"model discovery failed: {e}")
+            self.call_from_thread(self._models_result, discovery, name, [], f"model discovery failed: {e}")
             return
-        self.call_from_thread(self._on_models, name, models, "")
+        self.call_from_thread(self._models_result, discovery, name, models, "")
+
+    def _models_result(self, discovery, name, models, error):
+        if discovery == self._discovery:
+            self._on_models(name, models, error)
 
     def _on_models(self, name: str, models: List[str], error: str) -> None:
         if name != self._current_provider:
             return
         models_list = self.query_one("#models", ListView)
         models_list.clear()
+        previous = self._current_model
+        self._current_model = None
         self._model_names = list(models)
         if self._model_names:
             models_list.extend(
@@ -268,7 +281,7 @@ class CodelaboonTuiApp(App[None]):
                 models_list.index = 0
             except (ValueError, IndexError):
                 pass
-            self._current_model = self._model_names[0]
+            self._current_model = previous if previous in self._model_names else self._model_names[0]
         if error:
             self._log(f"error> {error}")
         self._log(f"{len(self._model_names)} model(s) available for {name}.")
@@ -277,12 +290,14 @@ class CodelaboonTuiApp(App[None]):
     # ── chat ───────────────────────────────────────────────────────────────
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
+        was_busy = self._busy
         self._send(event.value)
-        event.input.value = ""
+        if (not was_busy and self._busy) or event.value.startswith("/"):
+            event.input.value = ""
 
     def _send(self, text: str) -> None:
         text = text.strip()
-        commands = {"/models": self.action_focus_models, "/connect": self.action_focus_providers, "/new": self.action_new_conversation, "/sidebar": self.action_toggle_sidebar}
+        commands = {"/models": self.action_focus_models, "/connect": self.action_focus_providers, "/new": self.action_new_conversation, "/sidebar": self.action_toggle_sidebar, "/sessions": self.action_sessions, "/export": self.action_export}
         if text in commands:
             commands[text]()
             return
@@ -352,6 +367,7 @@ class CodelaboonTuiApp(App[None]):
             return
         self._busy = False
         self._on_reply(messages, reply)
+        self._save_conversation()
 
     def _on_reply(self, messages: List[Dict[str, str]], reply: str) -> None:
         self.history.clear()
@@ -367,6 +383,8 @@ class CodelaboonTuiApp(App[None]):
         sidebar.display = not sidebar.display
 
     def action_new_conversation(self) -> None:
+        self._save_conversation()
+        self._session_id = secrets.token_hex(16)
         self._generation += 1
         self._busy = False
         self.history.clear()
@@ -376,6 +394,53 @@ class CodelaboonTuiApp(App[None]):
         self._log("New conversation. Select a model and start writing.")
         self._update_status()
         self.query_one("#prompt", Input).focus()
+
+    def _save_conversation(self):
+        if not self.history or not self._current_provider or not self._current_model:
+            return
+        from codelaboon.sessions import save_session
+        title = next((m["content"][:60] for m in self.history if m["role"] == "user"), "Conversation")
+        try:
+            return save_session(self.cli.config_dir, {"id": self._session_id, "title": title, "provider": self._current_provider, "model": self._current_model, "messages": list(self.history)})
+        except (OSError, ValueError):
+            self.notify("Could not save conversation. Check config directory permissions.", severity="error")
+
+    def action_sessions(self):
+        from codelaboon.sessions import list_sessions
+        self._saved_sessions = {item["id"]: item for item in list_sessions(self.cli.config_dir)}
+        if not self._saved_sessions:
+            self.notify("No saved conversations yet. Completed replies are saved automatically.")
+            return
+        self.push_screen(Picker("Resume conversation", [(key, item["title"] + " / " + item["provider"]) for key, item in self._saved_sessions.items()]), self._resume_session)
+
+    def _resume_session(self, identifier):
+        if not identifier:
+            return
+        item = self._saved_sessions[identifier]
+        if item["provider"] not in self.cli.providers:
+            self.notify("This conversation's provider is unavailable.", severity="error")
+            return
+        self._save_conversation()
+        self._generation += 1
+        self._discovery += 1
+        self._busy = False
+        self._session_id = item["id"]
+        self._current_provider = item["provider"]
+        self._current_model = item["model"]
+        self.history = [dict(message) for message in item["messages"]]
+        self.query_one("#chat", RichLog).clear()
+        self.query_one("#body").remove_class("home")
+        self.query_one("#home").display = False
+        for message in self.history:
+            self._log(("you> " if message["role"] == "user" else "assistant> ") + message["content"])
+        self._update_status()
+        self.query_one("#prompt", Input).focus()
+        self._load_models(self._current_provider)
+
+    def action_export(self):
+        path = self._save_conversation()
+        if path:
+            self.notify(f"Conversation JSON: {path}", timeout=10)
 
     def action_focus_providers(self) -> None:
         self.push_screen(Picker("Connect a provider", [(name, self._provider_label(name)) for name in self._provider_names]), self._pick_provider)
@@ -394,6 +459,8 @@ class CodelaboonTuiApp(App[None]):
 
     def _pick_model(self, model):
         if model:
+            self._save_conversation()
+            self._session_id = secrets.token_hex(16)
             self._generation += 1
             self._busy = False
             self._current_model = model
