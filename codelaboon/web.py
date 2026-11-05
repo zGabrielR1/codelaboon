@@ -40,7 +40,10 @@ def create_server(port=8765, cli=None):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
             self.end_headers()
-            self.wfile.write(data)
+            try:
+                self.wfile.write(data)
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                pass  # The browser stopped waiting or closed the tab.
 
         def trusted(self):
             expected = f"127.0.0.1:{self.server.server_port}"
