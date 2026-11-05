@@ -1,3 +1,9 @@
+## 1.0.0rc3 ? 2026-11-05
+
+- Latest build includes the taste framework visual rework: navigation rail, conversation library, starter rows, mobile action menu, and matching TUI palette.
+- Verified 60 offline tests and browser layouts at 390/768/1440px; taste source lint clean.
+- Live provider authorization remains unverified.
+
 ## 1.0.0rc2 ? 2026-11-05
 
 - TUI conversations save automatically after completed replies. Ctrl+S opens searchable saved sessions; /export exposes the session JSON path.

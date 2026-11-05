@@ -31,3 +31,7 @@ forks/
 # Local ChatGPT authorization records
 chatgpt-session.json
 chatgpt-host.json
+
+# Preserved local release artifacts
+releases/
+.taste-skill/
