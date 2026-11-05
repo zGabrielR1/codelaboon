@@ -135,3 +135,8 @@ Validate the `kilo` lane against the live gateway and ship `v0.6.0`.
 ## RC2 ? 2026-11-05
 
 TUI session persistence/resume/export; browser draft recovery, search, rename, reversible archive and stop-waiting. Discovery generations and busy-prompt preservation fixed. 60 tests pass; browser fixture checks pass at desktop/mobile sizes. See release-1.0.0rc2.md for evidence and limitations.
+
+
+## Taste framework rework ? 2026-11-05
+
+Data terminal direction applied to web shell, typography, starter rows, action menu and TUI palette. Browser checked 1440/768/390, source lint clean, 60 tests pass. Framework CDP inspector timed out; fallback browser evidence recorded in visual-rework.md.

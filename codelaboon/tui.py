@@ -31,7 +31,7 @@ class Picker(ModalScreen[str]):
     BINDINGS = [("escape", "dismiss_picker", "Close")]
     DEFAULT_CSS = """
     Picker { align: center middle; background: #00000088; }
-    #picker-dialog { width: 70; max-width: 95%; height: 24; background: #1e1e1e; padding: 1 2; }
+    #picker-dialog { width: 70; max-width: 95%; height: 24; background: #131315; padding: 1 2; }
     #picker-title { height: 2; text-style: bold; }
     #picker-list { height: 1fr; }
     """
@@ -78,7 +78,7 @@ class ChatGPTLogin(ModalScreen[bool]):
     BINDINGS = [("escape", "cancel_login", "Close")]
     DEFAULT_CSS = """
     ChatGPTLogin { align: center middle; background: #00000088; }
-    #login-dialog { width: 66; max-width: 95%; height: auto; background: #1e1e1e; padding: 2 3; }
+    #login-dialog { width: 66; max-width: 95%; height: auto; background: #131315; padding: 2 3; }
     #login-message { height: auto; margin: 1 0; }
     #login-actions { height: 3; }
     """
@@ -110,22 +110,22 @@ class CodelaboonTuiApp(App[None]):
     SUB_TITLE = "model workspace"
 
     CSS = """
-    Screen { background: #141414; color: #eeeeee; }
+    Screen { background: #171719; color: #eeeeee; }
     #body { height: 1fr; }
-    #main { width: 1fr; padding: 1 3; }
-    #sidebar { width: 34; background: #1e1e1e; padding: 1 2; }
-    #session-info { height: auto; color: #aaaaaa; }
+    #main { width: 1fr; padding: 1 4; }
+    #sidebar { width: 32; background: #131315; padding: 2 3; border-left: solid #2b2b2e; }
+    #session-info { height: auto; color: #a3a3ac; }
     #providers, #models, .catalog-label { display: none; }
-    #status { height: 2; color: #aaaaaa; }
-    #chat { height: 1fr; background: #141414; }
-    #home { height: 1fr; content-align: center bottom; color: #eeeeee; padding-bottom: 2; }
-    #prompt { background: #1e1e1e; border: none; border-left: thick #73daca; padding: 1 2; height: 5; }
-    #prompt:focus { border-left: thick #73daca; }
-    #hint { height: 2; padding-top: 1; color: #aaaaaa; }
+    #status { height: 2; color: #a3a3ac; }
+    #chat { height: 1fr; background: #171719; }
+    #home { height: 1fr; content-align: left bottom; color: #eeeeee; padding-bottom: 3; }
+    #prompt { background: #131315; border: none; border-left: solid #73daca; padding: 1 2; height: 5; }
+    #prompt:focus { border-left: solid #73daca; }
+    #hint { height: 2; padding-top: 1; color: #a3a3ac; }
     .home #chat { display: none; }
     .home #hint { height: 1fr; }
-    Footer { background: #141414; }
-    ListView { background: #1e1e1e; }
+    Footer { background: #171719; }
+    ListView { background: #131315; }
     ListView > ListItem.--highlight { background: #333333; }
     """
 
@@ -160,7 +160,7 @@ class CodelaboonTuiApp(App[None]):
         with Horizontal(id="body", classes="home"):
             with Vertical(id="main"):
                 yield Static("", id="status", markup=False)
-                yield Static("< codelaboon >\n\nYour models. One workspace.", id="home", markup=False)
+                yield Static("codelaboon / model workspace\n\nMake room for your next idea.\nChoose a model. Follow a question.", id="home", markup=False)
                 yield RichLog(id="chat", markup=False, highlight=False, wrap=True)
                 yield Input(placeholder="Ask anything...  /help for commands", id="prompt")
                 yield Static("ctrl+p providers    ctrl+m models    ctrl+b sidebar", id="hint")
