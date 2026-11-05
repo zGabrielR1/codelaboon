@@ -1,6 +1,6 @@
 """codelaboon - Harness for free AI model access across multiple providers"""
 
-__version__ = "0.3.0"
+__version__ = "1.0.0rc1"
 
 from .cli import main
 

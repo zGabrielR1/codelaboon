@@ -106,11 +106,11 @@ class CodelaboonCLI:
         def check(name: str, condition: bool, detail: str = "") -> None:
             nonlocal failures
             if condition:
-                print(f"  ✓ {name}")
+                print(f"  âœ“ {name}")
             else:
                 failures += 1
-                suffix = f" — {detail}" if detail else ""
-                print(f"  ✗ {name}{suffix}")
+                suffix = f" â€” {detail}" if detail else ""
+                print(f"  âœ— {name}{suffix}")
 
         print("codelaboon doctor")
         print("-" * 40)
@@ -144,7 +144,7 @@ class CodelaboonCLI:
             except OSError as e:
                 check("config directory is writable and private", False, str(e))
         else:
-            print("  ℹ config directory permissions: not applicable on this platform")
+            print("  â„¹ config directory permissions: not applicable on this platform")
 
         from config.providers import get_providers_config
 
@@ -158,13 +158,13 @@ class CodelaboonCLI:
             except OSError as e:
                 check("configuration file is private", False, str(e))
         else:
-            print("  ℹ configuration file permissions: not applicable on this platform")
+            print("  â„¹ configuration file permissions: not applicable on this platform")
 
         configured = sorted(
             name for name, values in config.items()
             if isinstance(values, dict) and str(values.get("api_key") or "").strip()
         )
-        print(f"  ℹ providers configured: {', '.join(configured) or 'none yet'}")
+        print(f"  â„¹ providers configured: {', '.join(configured) or 'none yet'}")
 
         tracked_secrets = self._tracked_secret_files()
         check("no real credentials are tracked by git", not tracked_secrets,
@@ -175,7 +175,7 @@ class CodelaboonCLI:
             for name in ("AGENTS.md", "ARCHITECTURE.md", "PROGRESS.md"):
                 check(f"docs/{name} present", (docs / name).is_file())
         else:
-            print("  ℹ source documentation not present (installed package)")
+            print("  â„¹ source documentation not present (installed package)")
 
         print("-" * 40)
         if failures:
@@ -193,9 +193,9 @@ class CodelaboonCLI:
             provider = self.providers[provider_name]
             print(f"\n{provider_name.upper()}:")
             if provider.keyless:
-                print("  Status: ✓ Free (no key needed)")
+                print("  Status: âœ“ Free (no key needed)")
             else:
-                print(f"  Status: {'✓ Configured' if provider.api_key else '✗ Not configured'}")
+                print(f"  Status: {'âœ“ Configured' if provider.api_key else 'âœ— Not configured'}")
 
             try:
                 models = provider.list_models()
@@ -322,7 +322,7 @@ class CodelaboonCLI:
         if provider_class is not None and getattr(provider_class, "keyless", False):
             # Keyless pools need no credential; only a base URL override if
             # the gateway is reachable somewhere else.
-            print(f"{provider_name} is keyless — no API key needed.")
+            print(f"{provider_name} is keyless â€” no API key needed.")
             base_url = input("Enter a base URL override (enter to skip): ").strip()
             if not base_url:
                 print("Using existing configuration.")
@@ -332,10 +332,10 @@ class CodelaboonCLI:
             existing = self._current_provider_config(provider_name)
             existing["base_url"] = base_url
             if save_provider_config(provider_name, existing):
-                print(f"✓ {provider_name} configured successfully")
+                print(f"âœ“ {provider_name} configured successfully")
                 self.load_providers()
             else:
-                print(f"✗ Failed to configure {provider_name}")
+                print(f"âœ— Failed to configure {provider_name}")
             return
 
         api_key = input(f"Enter API key for {provider_name}: ").strip()
@@ -367,10 +367,10 @@ class CodelaboonCLI:
         success = save_provider_config(provider_name, config)
 
         if success:
-            print(f"✓ {provider_name} configured successfully")
+            print(f"âœ“ {provider_name} configured successfully")
             self.load_providers()
         else:
-            print(f"✗ Failed to configure {provider_name}")
+            print(f"âœ— Failed to configure {provider_name}")
 
     def run(self) -> None:
         """Main CLI entry point."""
@@ -436,6 +436,9 @@ class CodelaboonCLI:
             "--json", action="store_true", help="Print answers as JSON"
         )
 
+        login_parser = subparsers.add_parser("login", help="Sign in with ChatGPT for plan access")
+        login_parser.add_argument("provider", choices=["chatgpt"])
+
         # Configure command
         configure_parser = subparsers.add_parser("configure", help="Configure provider")
         configure_parser.add_argument("provider", help="Provider name")
@@ -446,11 +449,15 @@ class CodelaboonCLI:
         # TUI command
         subparsers.add_parser("tui", help="Interactive terminal UI (needs the textual extra)")
 
+        web_parser = subparsers.add_parser("web", help="Open the localhost web workspace")
+        web_parser.add_argument("--port", type=int, default=8765)
+        web_parser.add_argument("--no-open", action="store_true")
+
         # Parse arguments
         args = parser.parse_args()
 
         if not args.command:
-            parser.print_help()
+            run_tui()
             return
 
         # Load providers
@@ -518,12 +525,24 @@ class CodelaboonCLI:
             ):
                 sys.exit(1)
 
+        elif args.command == "login":
+            from codelaboon.chatgpt_auth import login
+            try:
+                login()
+            except (ValueError, OSError) as error:
+                print(f"Sign-in failed: {error}")
+                sys.exit(1)
+
         elif args.command == "configure":
             self.configure_provider(args.provider)
 
         elif args.command == "doctor":
             if not self.doctor():
                 sys.exit(1)
+
+        elif args.command == "web":
+            from codelaboon.web import serve
+            serve(args.port, open_browser=not args.no_open)
 
         elif args.command == "tui":
             run_tui()

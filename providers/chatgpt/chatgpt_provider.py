@@ -26,47 +26,70 @@ class ChatGPTProvider(BaseProvider):
         """
         self.base_url = "https://api.openai.com/v1"
         super().__init__(api_key, models, base_url)
-        self.default_models = ["gpt-3.5-turbo", "gpt-4"]
-    
+        self.model_names = {}
+
+    def validate_api_key(self) -> bool:
+        from codelaboon.chatgpt_auth import read_session
+        return bool(self.api_key.strip() or os.environ.get("OPENAI_API_KEY", "").strip() or read_session())
+
+    def _credential(self):
+        from codelaboon.chatgpt_auth import access_token
+        # Explicit API configuration takes precedence over a saved subscription.
+        key = self.api_key.strip() or os.environ.get("OPENAI_API_KEY", "").strip()
+        if key:
+            return key, False
+        if self.base_url.rstrip("/") != "https://api.openai.com/v1":
+            raise ValueError("ChatGPT sign-in tokens can only be sent to OpenAI.")
+        return access_token(), True
+
     def list_models(self) -> List[str]:
-        """
-        List available ChatGPT models.
-        
-        Returns:
-            List of available model names
-        """
-        # For free tier, typically available models are:
-        # - gpt-3.5-turbo (free)
-        # - gpt-4 (paid)
-        if self.models:
-            return self.models
-        
-        # If no models specified, return default free models
-        available_models = []
-        for model in self.default_models:
-            try:
-                # Quick validation by making a minimal request
-                if self._test_model_access(model):
-                    available_models.append(model)
-            except Exception:
-                # If we can't test, assume it's available
-                available_models.append(model)
-        
-        return available_models
-    
-    def _test_model_access(self, model: str) -> bool:
-        """Test if we have access to a specific model."""
-        # This is a simplified validation - in practice, you'd make an actual API call
-        # to validate model access
-        if model == "gpt-3.5-turbo":
-            # Free model - accessible
-            return True
-        elif model == "gpt-4":
-            # Paid model - check if we have sufficient quota
-            # For free tier, this would likely be False
-            return False
-        return True
-    
+        key, subscription = self._credential()
+        if not key:
+            return []
+        try:
+            response = requests.get(f"{self.base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {key}"}, timeout=20)
+            if response.status_code != 200:
+                raise ValueError("Model discovery failed. Check your OpenAI credentials and retry.")
+            data = response.json()
+            if subscription:
+                rows = data.get("models")
+                if not isinstance(rows, list):
+                    raise ValueError("Invalid ChatGPT model catalogue")
+                rows = [r for r in rows if isinstance(r, dict) and r.get("visibility") == "list" and isinstance(r.get("slug"), str)]
+                self.model_names = {r["slug"]: r.get("display_name", r["slug"]) for r in rows}
+                return list(self.model_names)
+            rows = data.get("data")
+            if not isinstance(rows, list):
+                raise ValueError("Invalid OpenAI model catalogue")
+            return sorted({r["id"] for r in rows if isinstance(r,dict) and isinstance(r.get("id"),str) and (r["id"].startswith(("gpt-", "chatgpt-", "o1", "o3", "o4"))) and not any(part in r["id"] for part in ("image", "audio", "realtime", "transcribe", "tts", "search"))}, reverse=True)
+        except requests.RequestException as error:
+            raise ValueError("Cannot reach OpenAI model discovery. Check your connection and retry.") from error
+
+    def _subscription_chat(self, token, model, messages):
+        response = requests.post("https://api.openai.com/v1/responses", headers={"Authorization":f"Bearer {token}"}, json={"model":model,"input":messages,"store":False,"stream":True}, stream=True, timeout=(15,180))
+        try:
+            if response.status_code != 200:
+                raise ValueError(f"ChatGPT request failed (HTTP {response.status_code}). Check plan access and limits.")
+            chunks = []
+            for line in response.iter_lines():
+                if not line or not line.startswith(b"data:"):
+                    continue
+                raw = line[5:].strip()
+                if raw == b"[DONE]":
+                    continue
+                import json
+                event = json.loads(raw)
+                kind = event.get("type")
+                if kind == "response.output_text.delta":
+                    chunks.append(event.get("delta", ""))
+                elif kind == "response.completed":
+                    return "".join(chunks)
+                elif kind in ("response.failed", "response.incomplete", "error"):
+                    raise ValueError("ChatGPT did not complete the response. Check plan limits and retry.")
+            raise ValueError("ChatGPT connection ended before completion. Please retry.")
+        finally:
+            response.close()
+
     def chat(self, model: str, messages: List[Dict[str, str]], **kwargs) -> str:
         """
         Send a chat completion request to ChatGPT.
@@ -82,9 +105,13 @@ class ChatGPTProvider(BaseProvider):
         if not self.validate_api_key():
             raise ValueError("Invalid or missing API key")
         
+        credential, subscription = self._credential()
+        if subscription:
+            return self._subscription_chat(credential, model, messages)
+
         # Prepare request parameters
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {credential}",
             "Content-Type": "application/json"
         }
         
@@ -102,11 +129,12 @@ class ChatGPTProvider(BaseProvider):
         response = requests.post(
             f"{self.base_url}/chat/completions",
             headers=headers,
-            json=data
+            json=data,
+            timeout=(15, 180),
         )
         
         if response.status_code != 200:
-            raise Exception(f"API request failed: {response.status_code} - {response.text}")
+            raise ValueError(f"OpenAI request failed (HTTP {response.status_code}). Check credentials, model access and limits.")
         
         # Parse response
         response_data = response.json()

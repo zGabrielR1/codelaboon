@@ -12,3 +12,5 @@ recursive-include scripts *.sh
 recursive-include tests *.py
 global-exclude __pycache__
 global-exclude *.py[cod]
+
+recursive-include codelaboon/static *.html *.css *.js *.svg

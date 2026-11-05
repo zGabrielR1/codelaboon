@@ -101,3 +101,32 @@ Validate the `kilo` lane against the live gateway and ship `v0.6.0`.
 - `requests`
 - GitHub Actions (CI)
 - `markdownlint-cli2` (optional linting)
+
+
+## Local workspace update ? 2026-11-05
+
+- Default command launches TUI; Textual is a core dependency.
+- Added loopback web workspace with provider discovery, persisted conversations, export, theme switch, and responsive layout.
+- Added original whale/code-bracket SVG logo.
+- API tests cover discovery/chat, origin/host/token rejection, input validation and error redaction.
+- Browser QA blocked by unavailable browser access host; live provider chat is not verified.
+
+
+## ChatGPT catalogue and sign-in ? 2026-11-05
+
+- Removed synthetic GPT-3.5/GPT-4 access tests and hard-coded default roster.
+- Added public OSS ChatGPT registration with PKCE, callback state, JWT signature/issuer/audience/expiry/nonce checks, atomic credential writes and refresh rotation.
+- Added CLI login and web Continue with ChatGPT, current account catalogue and display names, completed-only Responses stream handling.
+- API credentials take precedence and subscription tokens are restricted to the official endpoint.
+- Offline tests cover catalogue shape/order/visibility, stream errors, token refresh and identity validation.
+- Real OAuth authorization/account catalogue and browser UI remain unverified; user must complete sign-in.
+
+
+## Integrated terminal sign-in and OpenCode layout ? 2026-11-05
+
+- Inspected local OpenCode home and session sidebar source.
+- Replaced persistent left catalogue with searchable modal pickers and a right context sidebar.
+- Added centered home composer, slash commands, narrow-terminal sidebar behavior, and in-TUI ChatGPT sign-in with background worker.
+- Sign-in progress uses UI notifications rather than printing over the terminal.
+- Verified 55 offline tests including login dialog dismissal, login completion refresh, provider search, sidebar shortcut, and home reset.
+- Real browser authorization and interactive visual inspection remain unverified. This is a Textual implementation of the main layout, not a complete OpenTUI feature port.

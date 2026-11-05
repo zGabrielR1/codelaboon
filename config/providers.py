@@ -20,7 +20,7 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
     return {
         "chatgpt": {
             "api_key": "",
-            "models": ["gpt-3.5-turbo"],
+            "models": [],
         },
         "nvidia": {
             "api_key": "",
@@ -171,7 +171,7 @@ def save_providers_config(config: Dict[str, Dict[str, Any]]) -> bool:
 def get_default_models(provider_name: str) -> list:
     """Get default models for a provider."""
     defaults = {
-        "chatgpt": ["gpt-3.5-turbo"],
+        "chatgpt": [],
         "nvidia": ["nemotron-3"],
         "openrouter": ["openai/gpt-3.5-turbo"],
         "luna": ["luna-2"],

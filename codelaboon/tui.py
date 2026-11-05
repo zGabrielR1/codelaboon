@@ -14,31 +14,123 @@ the selected provider/model. `ctrl+d` runs the same diagnostics as
 import functools
 from typing import Any, Dict, List, Optional
 
+from rich.panel import Panel
+from rich.markdown import Markdown
+from rich.text import Text
+
+from textual.screen import ModalScreen
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Footer, Header, Input, Label, ListItem, ListView, RichLog, Static
+from textual.widgets import Button, Footer, Header, Input, Label, ListItem, ListView, RichLog, Static
 
 from codelaboon.cli import CodelaboonCLI
+
+
+class Picker(ModalScreen[str]):
+    BINDINGS = [("escape", "dismiss_picker", "Close")]
+    DEFAULT_CSS = """
+    Picker { align: center middle; background: #00000088; }
+    #picker-dialog { width: 70; max-width: 95%; height: 24; background: #1e1e1e; padding: 1 2; }
+    #picker-title { height: 2; text-style: bold; }
+    #picker-list { height: 1fr; }
+    """
+
+    def __init__(self, title, choices):
+        super().__init__()
+        self.heading, self.choices = title, choices
+        self.filtered = list(choices)
+
+    def compose(self):
+        with Vertical(id="picker-dialog"):
+            yield Label(self.heading + "  /  esc close", id="picker-title")
+            yield Input(placeholder="Search...", id="picker-search")
+            yield ListView(id="picker-list")
+
+    def on_mount(self):
+        self.fill("")
+        self.query_one(Input).focus()
+
+    def fill(self, value):
+        self.filtered = [(key, label) for key, label in self.choices if value.lower() in label.lower()]
+        view = self.query_one(ListView)
+        view.clear()
+        view.extend([ListItem(Label(label, markup=False)) for _, label in self.filtered])
+        if self.filtered:
+            view.index = 0
+
+    def on_input_changed(self, event):
+        self.fill(event.value)
+
+    def on_input_submitted(self, event):
+        if self.filtered:
+            self.dismiss(self.filtered[0][0])
+
+    def on_list_view_selected(self, event):
+        if event.control.index is not None:
+            self.dismiss(self.filtered[event.control.index][0])
+
+    def action_dismiss_picker(self):
+        self.dismiss("")
+
+
+class ChatGPTLogin(ModalScreen[bool]):
+    BINDINGS = [("escape", "cancel_login", "Close")]
+    DEFAULT_CSS = """
+    ChatGPTLogin { align: center middle; background: #00000088; }
+    #login-dialog { width: 66; max-width: 95%; height: auto; background: #1e1e1e; padding: 2 3; }
+    #login-message { height: auto; margin: 1 0; }
+    #login-actions { height: 3; }
+    """
+
+    def compose(self):
+        with Vertical(id="login-dialog"):
+            yield Label("Connect ChatGPT", markup=False)
+            yield Static("Sign in to load your account's available models.\nComplete authorization in your browser, then return here.", id="login-message")
+            with Horizontal(id="login-actions"):
+                yield Button("Continue with ChatGPT", id="continue-login")
+                yield Button("Later", id="later-login")
+
+    def on_button_pressed(self, event):
+        if event.button.id == "later-login":
+            self.dismiss(False)
+        else:
+            self.query_one("#continue-login", Button).disabled = True
+            self.query_one("#login-message", Static).update("Waiting for browser authorization...\nThis can take up to five minutes.")
+            self.app.start_chatgpt_login(self)
+
+    def action_cancel_login(self):
+        self.dismiss(False)
 
 
 class CodelaboonTuiApp(App[None]):
     """Provider browser and multi-turn chat for the codelaboon harness."""
 
     TITLE = "codelaboon"
-    SUB_TITLE = "free model harness"
+    SUB_TITLE = "model workspace"
 
     CSS = """
+    Screen { background: #141414; color: #eeeeee; }
     #body { height: 1fr; }
-    #sidebar { width: 34; border-right: solid $primary; }
-    #sidebar Label { padding: 0 1; }
-    #providers, #models { height: 1fr; }
-    #main { width: 1fr; }
-    #status { height: 1; padding: 0 1; background: $panel; }
-    #chat { height: 1fr; border-bottom: solid $primary; }
-    #prompt { border-title-align: left; }
+    #main { width: 1fr; padding: 1 3; }
+    #sidebar { width: 34; background: #1e1e1e; padding: 1 2; }
+    #session-info { height: auto; color: #aaaaaa; }
+    #providers, #models, .catalog-label { display: none; }
+    #status { height: 2; color: #aaaaaa; }
+    #chat { height: 1fr; background: #141414; }
+    #home { height: 1fr; content-align: center bottom; color: #eeeeee; padding-bottom: 2; }
+    #prompt { background: #1e1e1e; border: none; border-left: thick #73daca; padding: 1 2; height: 5; }
+    #prompt:focus { border-left: thick #73daca; }
+    #hint { height: 2; padding-top: 1; color: #aaaaaa; }
+    .home #chat { display: none; }
+    .home #hint { height: 1fr; }
+    Footer { background: #141414; }
+    ListView { background: #1e1e1e; }
+    ListView > ListItem.--highlight { background: #333333; }
     """
 
     BINDINGS = [
+        ("ctrl+l", "new_conversation", "New chat"),
+        ("ctrl+b", "toggle_sidebar", "Sidebar"),
         ("ctrl+p", "focus_providers", "Providers"),
         ("ctrl+m", "focus_models", "Models"),
         ("ctrl+r", "refresh_models", "Refresh models"),
@@ -57,19 +149,23 @@ class CodelaboonTuiApp(App[None]):
         self._models_worker: Any = None
         self._chat_worker: Any = None
         self._pending: Any = None
+        self._generation = 0
+        self._busy = False
 
     def compose(self) -> ComposeResult:
-        yield Header()
-        with Horizontal(id="body"):
-            with Vertical(id="sidebar"):
-                yield Label("Providers [dim](ctrl+p)[/]")
-                yield ListView(id="providers")
-                yield Label("Models [dim](ctrl+m)[/]")
-                yield ListView(id="models")
+        with Horizontal(id="body", classes="home"):
             with Vertical(id="main"):
-                yield Static("no provider selected", id="status")
+                yield Static("", id="status", markup=False)
+                yield Static("< codelaboon >\n\nYour models. One workspace.", id="home", markup=False)
                 yield RichLog(id="chat", markup=False, highlight=False, wrap=True)
-                yield Input(placeholder="Type a message, Enter to send…", id="prompt")
+                yield Input(placeholder="Ask anything...  /help for commands", id="prompt")
+                yield Static("ctrl+p providers    ctrl+m models    ctrl+b sidebar", id="hint")
+            with Vertical(id="sidebar"):
+                yield Static("New conversation", id="session-info", markup=False)
+                yield Label("Providers", classes="catalog-label")
+                yield ListView(id="providers")
+                yield Label("Models", classes="catalog-label")
+                yield ListView(id="models")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -82,7 +178,10 @@ class CodelaboonTuiApp(App[None]):
         self._log("codelaboon TUI — pick a provider (ctrl+p), a model (ctrl+m), then type.")
         self._log("ourfree and kilo models are free; other providers need their own API key.")
         if self._provider_names:
-            self._select_provider(self._provider_names[0])
+            self._select_provider(self._provider_names[0], prompt_login=False)
+        self.query_one("#prompt", Input).focus()
+        if self.size.width < 100:
+            self.query_one("#sidebar").display = False
 
     # ── helpers ────────────────────────────────────────────────────────────
 
@@ -92,7 +191,13 @@ class CodelaboonTuiApp(App[None]):
         return f"{'●' if configured else '○'} {name}"
 
     def _log(self, text: str) -> None:
-        self.query_one("#chat", RichLog).write(text)
+        log = self.query_one("#chat", RichLog)
+        if text.startswith("you> "):
+            log.write(Panel(Text(text[5:]), title="You", title_align="left", border_style="#344957", padding=(0, 1)))
+        elif text.startswith("assistant> "):
+            log.write(Panel(Markdown(text[11:]), title="Assistant", title_align="left", border_style="#73daca", padding=(1, 1)))
+        else:
+            log.write(Text(text, style="#d48787" if text.startswith("error>") else "#8395a7"))
 
     def _selected_provider(self) -> Optional[str]:
         return self._current_provider
@@ -104,13 +209,16 @@ class CodelaboonTuiApp(App[None]):
         provider = self._current_provider or "no provider"
         model = self._current_model or "no model"
         turns = len([m for m in self.history if m["role"] == "user"])
+        self.query_one("#session-info", Static).update(f"Conversation\n\n{provider}\n{model}\n\nContext\n{turns} turns\n\nStatus\n{'Responding...' if self._busy else 'Ready'}\n\nctrl+p  provider\nctrl+m  model\nctrl+l  new chat")
         self.query_one("#status", Static).update(
             f"{provider} · {model} · {turns} turn(s) this session"
         )
 
     # ── providers and models ───────────────────────────────────────────────
 
-    def _select_provider(self, name: str) -> None:
+    def _select_provider(self, name: str, prompt_login: bool = True) -> None:
+        self._generation += 1
+        self._busy = False
         self._current_provider = name
         self._current_model = None
         self.history.clear()
@@ -122,7 +230,10 @@ class CodelaboonTuiApp(App[None]):
                 providers_list.index = self._provider_names.index(name)
             except (ValueError, IndexError):
                 pass
-        self._load_models(name)
+        if name == "chatgpt" and prompt_login and not self.cli.providers[name].validate_api_key():
+            self.push_screen(ChatGPTLogin())
+        else:
+            self._load_models(name)
 
     def _load_models(self, name: str) -> None:
         provider = self.cli.providers.get(name)
@@ -144,12 +255,14 @@ class CodelaboonTuiApp(App[None]):
         self.call_from_thread(self._on_models, name, models, "")
 
     def _on_models(self, name: str, models: List[str], error: str) -> None:
+        if name != self._current_provider:
+            return
         models_list = self.query_one("#models", ListView)
         models_list.clear()
         self._model_names = list(models)
         if self._model_names:
             models_list.extend(
-                [ListItem(Label(model)) for model in self._model_names]
+                [ListItem(Label(getattr(self.cli.providers[name], "model_names", {}).get(model, model))) for model in self._model_names]
             )
             try:
                 models_list.index = 0
@@ -169,7 +282,17 @@ class CodelaboonTuiApp(App[None]):
 
     def _send(self, text: str) -> None:
         text = text.strip()
+        commands = {"/models": self.action_focus_models, "/connect": self.action_focus_providers, "/new": self.action_new_conversation, "/sidebar": self.action_toggle_sidebar}
+        if text in commands:
+            commands[text]()
+            return
+        if text == "/help":
+            self.notify("/connect provider / /models model / /new conversation / /sidebar toggle")
+            return
         if not text:
+            return
+        if self._busy:
+            self._log("A reply is pending. Wait before sending another message.")
             return
 
         provider_name = self._selected_provider()
@@ -191,24 +314,44 @@ class CodelaboonTuiApp(App[None]):
             self._log("error> select a model first (ctrl+m)")
             return
 
+        self.query_one("#body").remove_class("home")
+        self.query_one("#home").display = False
         self.history.append({"role": "user", "content": text})
         self._log(f"you> {text}")
         self._update_status()
         # The snapshot freezes the turn so a mid-flight selection change
         # cannot mix contexts.
         self._pending = (provider_name, provider, model, list(self.history))
+        self._busy = True
+        self._update_status()
         self._chat_worker = self.run_worker(
-            self._chat_job, thread=True, exclusive=True, group="chat"
+            functools.partial(self._chat_job, self._generation, self._pending),
+            thread=True, exclusive=True, group="chat"
         )
 
-    def _chat_job(self) -> None:
-        provider_name, provider, model, messages = self._pending
+    def _chat_job(self, generation: int, pending: Any) -> None:
+        provider_name, provider, model, messages = pending
         try:
             reply = provider.chat(model, messages, temperature=0.7, max_tokens=1000)
         except Exception as e:
-            self.call_from_thread(self._log, f"error> {e}")
+            self.call_from_thread(self._on_chat_error, generation, str(e))
             return
-        self.call_from_thread(self._on_reply, messages, reply)
+        self.call_from_thread(self._finish_reply, generation, messages, reply)
+
+    def _on_chat_error(self, generation: int, error: str) -> None:
+        if generation != self._generation:
+            return
+        self._busy = False
+        if self.history and self.history[-1]["role"] == "user":
+            self.history.pop()
+        self._log(f"error> {error}")
+        self._update_status()
+
+    def _finish_reply(self, generation: int, messages: List[Dict[str, str]], reply: str) -> None:
+        if generation != self._generation:
+            return
+        self._busy = False
+        self._on_reply(messages, reply)
 
     def _on_reply(self, messages: List[Dict[str, str]], reply: str) -> None:
         self.history.clear()
@@ -219,11 +362,68 @@ class CodelaboonTuiApp(App[None]):
 
     # ── actions ────────────────────────────────────────────────────────────
 
+    def action_toggle_sidebar(self) -> None:
+        sidebar = self.query_one("#sidebar")
+        sidebar.display = not sidebar.display
+
+    def action_new_conversation(self) -> None:
+        self._generation += 1
+        self._busy = False
+        self.history.clear()
+        self.query_one("#body").add_class("home")
+        self.query_one("#home").display = True
+        self.query_one("#chat", RichLog).clear()
+        self._log("New conversation. Select a model and start writing.")
+        self._update_status()
+        self.query_one("#prompt", Input).focus()
+
     def action_focus_providers(self) -> None:
-        self.query_one("#providers", ListView).focus()
+        self.push_screen(Picker("Connect a provider", [(name, self._provider_label(name)) for name in self._provider_names]), self._pick_provider)
+
+    def _pick_provider(self, name):
+        if name:
+            self._select_provider(name)
+
 
     def action_focus_models(self) -> None:
-        self.query_one("#models", ListView).focus()
+        if self._current_provider == "chatgpt" and not self.cli.providers["chatgpt"].validate_api_key():
+            self.push_screen(ChatGPTLogin())
+            return
+        names = getattr(self.cli.providers.get(self._current_provider), "model_names", {})
+        self.push_screen(Picker("Select model", [(m, names.get(m, m)) for m in self._model_names]), self._pick_model)
+
+    def _pick_model(self, model):
+        if model:
+            self._generation += 1
+            self._busy = False
+            self._current_model = model
+            self.history.clear()
+            self._update_status()
+            self.query_one("#prompt", Input).focus()
+
+    def start_chatgpt_login(self, dialog):
+        if getattr(self, "_login_pending", False):
+            return
+        self._login_pending = True
+        self.run_worker(functools.partial(self._login_job, dialog), thread=True, group="login")
+
+    def _login_job(self, dialog):
+        from codelaboon.chatgpt_auth import login
+        try:
+            login(report=lambda message: self.call_from_thread(self.notify, message))
+        except Exception:
+            self.call_from_thread(self._login_done, dialog, False)
+        else:
+            self.call_from_thread(self._login_done, dialog, True)
+
+    def _login_done(self, dialog, success):
+        self._login_pending = False
+        if dialog in self.screen_stack:
+            dialog.dismiss(success)
+        if success and self._current_provider == "chatgpt":
+            self._load_models("chatgpt")
+        self.notify("ChatGPT connected" if success else "Sign-in did not complete. Select ChatGPT to retry.", severity="information" if success else "error")
+
 
     def action_refresh_models(self) -> None:
         name = self._selected_provider()
@@ -248,6 +448,8 @@ class CodelaboonTuiApp(App[None]):
                 self._select_provider(self._provider_names[index])
         elif event.control.id == "models":
             if index is not None and 0 <= index < len(self._model_names):
+                self._generation += 1
+                self._busy = False
                 self._current_model = self._model_names[index]
                 self.history.clear()
                 self._log("─ model switched, context cleared ─")

@@ -114,7 +114,10 @@ class ProviderTests(unittest.TestCase):
             with self.subTest(provider=provider_class.__name__):
                 provider = provider_class(api_key="", models=[])
                 models = provider.list_models()
-                self.assertTrue(models)
+                if provider_class is ChatGPTProvider:
+                    self.assertEqual(models, [])
+                else:
+                    self.assertTrue(models)
 
     def test_chat_requires_a_key(self):
         provider = OpenRouterProvider(api_key="", models=["model"])
@@ -574,7 +577,7 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()
-            self.assertTrue(app._model_names)
+            self.assertEqual(app._model_names, [])
             self.assertIn(app._selected_provider(), app.cli.providers)
 
     @unittest.skipUnless(TEXTUAL_AVAILABLE, "textual is not installed")

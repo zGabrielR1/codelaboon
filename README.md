@@ -1,6 +1,6 @@
 # codelaboon
 
-**A CLI harness for accessing AI models from multiple providers**
+**A local workspace for accessing AI models from multiple providers**
 
 codelaboon is a cross-platform, CLI-first harness for calling AI models through
 their provider APIs. It works from source with no installation step, and can
@@ -16,6 +16,43 @@ codelaboon follows PI harness principles:
 - **Minimal dependencies**: Python 3.11+ and `requests`; configuration uses the
   standard-library `tomllib`
 - **Cross-platform**: Linux, macOS, and Windows
+
+## ChatGPT sign-in and current models
+
+Run `codelaboon login chatgpt`, or click **Continue with ChatGPT** in the web
+workspace. Finish authorization in the browser, then refresh the model picker.
+This uses OpenAI?s public Sign in with ChatGPT flow with PKCE and verified ID
+tokens. Credentials are stored in `chatgpt-session.json` inside your config
+directory and refresh automatically. Do not share this file.
+
+The picker requests the selected account?s live catalogue, respects visibility,
+and shows its display names. GPT-6 Luna appears when returned for your account;
+plan eligibility and usage limits apply. Subscription inference uses Responses
+with storage disabled. Interrupted or failed streams are reported as failures.
+
+An explicit configured API key or `OPENAI_API_KEY` takes precedence and uses
+API access instead. API discovery also requests the live model list; old
+configured GPT-3.5 rosters no longer determine the picker. Discovery does not
+guarantee inference quota. API usage has its own billing.
+
+References: [sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)
+and [models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference).
+
+## Local interfaces
+
+Run `codelaboon` (or `python -m codelaboon`) to open the terminal workspace.
+Run `codelaboon web` to start the web workspace and open your browser at
+`http://127.0.0.1:8765`. Use `--port 9000` to choose a port or `--no-open`
+to start without opening a browser. Stop the server with Ctrl+C.
+
+The web workspace includes provider/model discovery, multi-turn conversations,
+browser-local history, JSON export, code blocks, copy buttons, and light/dark themes.
+Provider credentials stay on the Python server. Messages go to the provider you select.
+Conversations are saved in this browser?s local storage; exporting creates a portable JSON copy.
+The server binds only to loopback and requires a session token for chat requests.
+
+The terminal workspace supports Ctrl+B to toggle the sidebar and Ctrl+L for a new chat.
+Textual is installed with the application so the default command works after installation.
 
 ## Quick start
 
@@ -310,3 +347,19 @@ See [CHANGELOG.md](CHANGELOG.md).
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+### Terminal workspace flow
+
+The TUI opens on a centered composer. Ctrl+P opens a searchable provider
+picker and Ctrl+M opens a searchable model picker. Selecting ChatGPT without
+credentials offers Continue with ChatGPT inside the TUI; complete browser
+authorization and the model catalogue refreshes automatically. Later or Escape
+closes the dialog. An authorization already started continues in the background
+until completion or timeout.
+
+The right sidebar shows the active provider, model, conversation turns and
+request status. Ctrl+B toggles it; narrow terminals start with it hidden.
+Use `/connect`, `/models`, `/new`, `/sidebar`, or `/help` from the composer.
+The layout follows the local OpenCode fork?s centered home, selection dialogs
+and right session rail; codelaboon retains its own brand and Python runtime.

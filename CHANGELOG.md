@@ -1,3 +1,12 @@
+## 1.0.0rc1 ? 2026-11-05
+
+- Default terminal workspace with searchable provider/model dialogs, right session sidebar, slash commands and integrated ChatGPT sign-in.
+- Loopback web workspace with local conversation persistence, model discovery, export, code blocks, responsive layout and theme selection.
+- ChatGPT public OSS authorization with PKCE, verified identity tokens, token refresh, live account catalogue and Responses inference.
+- Stale chat-result guards, error recovery, request timeouts and localhost origin/token checks.
+- Original vector whale/code logo; web assets included in wheel and source distribution.
+- Verified offline suite and browser fixture flows. Live ChatGPT authorization, subscription inference and cross-platform CI execution remain unverified.
+
 # Changelog
 
 All notable changes to this project are documented here.
