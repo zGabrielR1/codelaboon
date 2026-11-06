@@ -59,10 +59,7 @@ verify:
 test:
 	@scripts/test.sh
 clean:
-	@echo "Cleaning build artifacts..."
-	@find . -type d \( -name __pycache__ -o -name .pytest_cache \) -prune -exec rm -rf {} +
-	@rm -rf build dist *.egg-info
-	@echo "✓ Build artifacts cleaned"
+	@bash scripts/cleanup.sh
 configure:
 	@echo "Configuration is stored at ~/.config/codelaboon/providers.toml."
 	@echo "It is created automatically on first run with restrictive permissions."

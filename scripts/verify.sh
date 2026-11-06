@@ -51,6 +51,7 @@ required_files=(
     "examples/questions.json"
     "scripts/verify.sh"
     "scripts/test.sh"
+    "scripts/cleanup.sh"
     "tests/test_codelaboon.py"
     "tests/test_claude.py"
     "tests/test_gemini.py"
