@@ -46,6 +46,15 @@ POLL_INTERVAL = 1.0
 # The official client polls for five minutes.
 LOGIN_TIMEOUT = 300.0
 
+# Current Qoder limitation, shown in the CLI, TUI and web workspace so
+# nobody mistakes the qodercli-backed chat path for direct inference.
+QODER_LIMITATION = (
+    "Qoder limitation: login works natively, but chat runs through the "
+    "official qodercli binary — Qoder's inference gateway only accepts "
+    "requests signed by the official client, so codelaboon has no direct "
+    "Qoder inference yet."
+)
+
 _lock = threading.RLock()
 
 

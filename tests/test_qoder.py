@@ -216,5 +216,24 @@ class QoderAuthTests(unittest.TestCase):
         )
 
 
+class QoderAlertTests(unittest.TestCase):
+    def test_limitation_alert_is_shown_on_all_surfaces(self):
+        from codelaboon.cli import CodelaboonCLI
+
+        import io
+        from contextlib import redirect_stdout
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            CodelaboonCLI._qoder_alert()
+        self.assertIn("Qoder limitation", buffer.getvalue())
+        self.assertIn("qodercli", buffer.getvalue())
+
+        static = Path(__file__).resolve().parent.parent / "codelaboon" / "static"
+        self.assertIn("Qoder limitation", (static / "index.html").read_text(encoding="utf-8"))
+        self.assertIn("qoder-alert", (static / "app.js").read_text(encoding="utf-8"))
+        self.assertIn("#qoder-alert", (static / "style.css").read_text(encoding="utf-8"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,8 @@
-RC6 tagged candidate: TUI model picker fixed (ctrl+o, unified across
-providers) and Qoder free-plan sign-in shipped.
+RC7 tagged candidate: Qoder limitation alert on CLI/TUI/web, license
+switched to Personal Use Only. No Qoder provider changes.
 Next: live authorization/provider validation with real accounts, including
-Qoder device login and a qodercli-backed chat turn.
+Qoder device login and a qodercli-backed chat turn. A native Qoder
+inference alternative is still an open question for later.
 
 # CURRENTTASK
 

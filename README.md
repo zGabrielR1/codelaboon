@@ -454,7 +454,9 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Personal use only — see [LICENSE](LICENSE). codelaboon is a personal
+project; no redistribution or commercial use without the owner's
+permission, and each provider's own terms continue to apply.
 
 
 ### Terminal workspace flow

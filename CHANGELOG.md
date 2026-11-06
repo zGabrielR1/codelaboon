@@ -1,3 +1,17 @@
+## 1.0.0rc7 - 2026-11-05
+
+- Qoder limitation alert, shown on all three surfaces: the CLI prints it
+  for Qoder `login`/`configure`/`models list`/`chat`, the TUI logs and
+  notifies it when Qoder is selected, and the web workspace shows a
+  banner while Qoder is the selected provider. It states that login
+  works natively but chat runs through the official `qodercli` binary,
+  because Qoder's gateway only accepts signed official-client requests.
+  No Qoder provider logic changed.
+- License changed from MIT to Personal Use Only: codelaboon is a
+  personal project for the owner's own use, with no redistribution or
+  commercial use without permission. Each provider's own terms continue
+  to apply.
+
 ## 1.0.0rc6 - 2026-11-05
 
 - Fixed the TUI model picker: `ctrl+m` could never open it, because in

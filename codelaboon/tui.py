@@ -253,6 +253,13 @@ class CodelaboonTuiApp(App[None]):
         self._current_model = None
         self.history.clear()
         self._log(f"─ provider: {name} ─")
+        if name == "qoder":
+            from codelaboon.qoder_auth import QODER_LIMITATION
+
+            # Persistent, in-pane alert: chat on this lane goes through
+            # the official qodercli binary, not direct inference.
+            self._log(f"note> {QODER_LIMITATION}")
+            self.notify(QODER_LIMITATION, timeout=10)
         self._update_status()
         providers_list = self.query_one("#providers", ListView)
         if name in self._provider_names:

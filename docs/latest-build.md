@@ -1,27 +1,19 @@
-# Latest build: 1.0.0rc6
+# Latest build: 1.0.0rc7
 
-Fixes the TUI model picker and adds Qoder (free plan) account sign-in on
-top of RC5's Freebuff lane.
+Adds the Qoder limitation alert across CLI, TUI and web, and switches
+the license from MIT to Personal Use Only. No Qoder provider logic
+changed in this build.
 
-- TUI: `ctrl+m` could never open the model picker — in terminals Ctrl+M
-  is carriage return, byte-identical to Enter, so it was always consumed
-  as a message submit. The picker now lives on `ctrl+o` and is unified
-  across providers: one list spans every connected provider, picking a
-  model from another provider switches the provider too, and
-  unconnected account providers show a Connect row.
-- `codelaboon login chatgpt|claude|gemini|freebuff|qoder`, TUI login
-  dialog and web action menu cover all five account providers.
-- Qoder uses the official browser device flow (PKCE, token polled from
-  the OpenAPI host, automatic refresh) against a free-plan-capable
-  account. Chat runs through the installed `qodercli` binary in
-  tool-free print mode, because Qoder's inference gateway only accepts
-  requests signed by the official client; a Personal Access Token is
-  forwarded to the binary via `QODER_PERSONAL_ACCESS_TOKEN`. Model
-  discovery is live from `qodercli --list-models` when present, with
-  the documented tiers as the offline fallback. Free-plan data policy
-  applies; use it for throwaway work, not secrets.
-- Offline tests pass. Live Qoder authorization and inference remain
-  unverified without a real account and the `qodercli` binary.
-- Published as tag `v1.0.0-rc.6`; the tag-triggered release workflow tests,
+- Qoder limitation alert: the CLI prints it for Qoder
+  `login`/`configure`/`models list`/`chat`, the TUI logs and notifies
+  it when Qoder is selected, and the web workspace shows a banner
+  while Qoder is the selected provider. It states that login works
+  natively but chat runs through the official `qodercli` binary,
+  because Qoder's gateway only accepts signed official-client requests.
+- License: MIT replaced with a Personal Use Only license — codelaboon
+  is a personal project for the owner's own use, with no redistribution
+  or commercial use without permission. Each provider's own terms
+  continue to apply.
+- Published as tag `v1.0.0-rc.7`; the tag-triggered release workflow tests,
   builds the wheel/source archive, writes SHA256SUMS and publishes a GitHub
   prerelease with downloadable artifacts.

@@ -218,11 +218,20 @@ class CodelaboonCLI:
             except Exception as e:
                 print(f"  Models: Error - {e}")
 
+    @staticmethod
+    def _qoder_alert() -> None:
+        """Print the current Qoder limitation alert."""
+        from codelaboon.qoder_auth import QODER_LIMITATION
+
+        print(f"⚠ {QODER_LIMITATION}")
+
     def list_models(self, provider_name: str) -> None:
         """List models for a specific provider."""
         provider = self._require_provider(provider_name)
         if provider is None:
             return
+        if provider_name == "qoder":
+            self._qoder_alert()
 
         print(f"\nModels for {provider_name}:")
         print("-" * 40)
@@ -254,6 +263,8 @@ class CodelaboonCLI:
         provider = self._require_provider(provider_name)
         if provider is None:
             return False
+        if provider_name == "qoder":
+            self._qoder_alert()
 
         print(f"\nSending request to {provider_name}/{model}:")
         print("-" * 40)
@@ -322,6 +333,8 @@ class CodelaboonCLI:
 
     def configure_provider(self, provider_name: str) -> None:
         """Configure a provider interactively."""
+        if provider_name == "qoder":
+            self._qoder_alert()
         print(f"\nConfiguring {provider_name}:")
         print("-" * 40)
 
@@ -626,6 +639,8 @@ class CodelaboonCLI:
                 from codelaboon.freebuff_auth import login
             elif args.provider == "qoder":
                 from codelaboon.qoder_auth import login
+
+                self._qoder_alert()
             else:
                 from codelaboon.chatgpt_auth import login
             try:
