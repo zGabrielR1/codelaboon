@@ -16,7 +16,7 @@ def create_server(port=8765, cli=None):
     cli = cli or CodelaboonCLI()
     cli.load_providers()
     token = secrets.token_urlsafe(32)
-    auth_providers = ("chatgpt", "claude", "gemini", "freebuff")
+    auth_providers = ("chatgpt", "claude", "gemini", "freebuff", "qoder")
     auth_states = {name: {"status": "idle"} for name in auth_providers}
     auth_lock = threading.Lock()
 

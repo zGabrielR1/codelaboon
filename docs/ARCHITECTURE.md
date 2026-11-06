@@ -17,6 +17,7 @@ codelaboon/
 │   ├── claude_auth.py    # Claude account sign-in
 │   ├── gemini_auth.py    # Gemini/Google account sign-in
 │   ├── freebuff_auth.py  # Freebuff device-code sign-in
+│   ├── qoder_auth.py     # Qoder browser device sign-in
 │   └── tui.py            # Optional Textual terminal UI
 ├── providers/             # Model provider implementations
 │   ├── __init__.py
@@ -25,6 +26,7 @@ codelaboon/
 │   ├── claude/           # Anthropic Claude provider
 │   ├── gemini/           # Google Gemini provider
 │   ├── freebuff/         # Freebuff ad-funded free-tier provider
+│   ├── qoder/            # Qoder free-plan provider (official CLI print mode)
 │   ├── nvidia/           # NVIDIA Nemotron provider
 │   ├── openrouter/       # OpenRouter provider
 │   ├── luna/             # Luna provider

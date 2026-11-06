@@ -77,6 +77,35 @@ class TuiFlowTests(unittest.IsolatedAsyncioTestCase):
                 app._discovery=12
                 app._models_result(11,'chatgpt',['stale-model'],'')
                 self.assertEqual(app._current_model,'saved-model')
+    async def test_ctrl_o_opens_unified_model_picker(self):
+        # Ctrl+M is carriage return (Enter) in terminals, so the picker
+        # lives on Ctrl+O; pressing it must open the model list even
+        # while the prompt input is focused.
+        app=CodelaboonTuiApp()
+        async with app.run_test(size=(120,40)) as pilot:
+            await pilot.pause()
+            await pilot.press('ctrl+o')
+            await pilot.pause()
+            await pilot.pause()
+            self.assertIsInstance(app.screen,Picker)
+            self.assertTrue(app.screen.heading.startswith('Select model'))
+            keys=[key for key,_label in app.screen.choices]
+            self.assertTrue(any('\x00' in key and not key.startswith('__login__') for key in keys))
+            await pilot.press('escape')
+            await pilot.pause()
+            self.assertNotIsInstance(app.screen,Picker)
+    async def test_model_picker_switches_provider_and_model(self):
+        app=CodelaboonTuiApp()
+        async with app.run_test(size=(120,40)) as pilot:
+            await pilot.pause()
+            app._current_provider='nvidia'
+            app._current_model='nemotron-3'
+            app._model_names=['nemotron-3']
+            with patch.object(app.cli.providers['nvidia'],'list_models',return_value=['nemotron-3']):
+                app._pick_model_key('luna\x00luna-2')
+                await pilot.pause()
+            self.assertEqual(app._current_provider,'luna')
+            self.assertEqual(app._current_model,'luna-2')
     async def test_busy_submission_preserves_draft(self):
         from textual.widgets import Input
         app=CodelaboonTuiApp()

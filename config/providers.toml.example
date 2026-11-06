@@ -35,6 +35,18 @@ models = []
 api_key = ""
 models = []
 
+# Qoder: leave api_key empty and run `codelaboon login qoder` to sign in
+# with a Qoder account (browser device flow — the same flow the Qoder CLI
+# uses). Qoder accounts include a free plan. Chat runs through the official
+# qodercli binary when it is installed (`curl -fsSL https://qoder.com/install
+# | bash`, then `qoder login`), because Qoder's inference gateway only
+# accepts requests signed by that client. A Personal Access Token from
+# https://qoder.com/account/integrations can be pasted below or set as
+# QODER_PERSONAL_ACCESS_TOKEN instead.
+[qoder]
+api_key = ""
+models = []
+
 [nvidia]
 api_key = ""
 models = ["nemotron-3"]

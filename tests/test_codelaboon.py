@@ -82,7 +82,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(
             set(config),
             {
-                "chatgpt", "claude", "gemini", "freebuff", "nvidia",
+                "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
                 "openrouter", "luna", "ourfree", "kilo",
             },
         )
@@ -576,7 +576,7 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
         app = CodelaboonTuiApp()
         async with app.run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(len(app._provider_names), 9)
+            self.assertEqual(len(app._provider_names), 10)
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()

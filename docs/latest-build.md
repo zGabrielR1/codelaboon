@@ -1,22 +1,27 @@
-# Latest build: 1.0.0rc5
+# Latest build: 1.0.0rc6
 
-Adds Freebuff (ad-funded free tier) account sign-in on top of RC4's Claude and
-Gemini account lanes.
+Fixes the TUI model picker and adds Qoder (free plan) account sign-in on
+top of RC5's Freebuff lane.
 
-- `codelaboon login chatgpt|claude|gemini|freebuff`, TUI login dialog and web
-  action menu cover all four account providers.
-- Freebuff uses device-code login — the same flow the Freebuff CLI uses — with
-  no subscription, no credits and no API key. Free sessions are admitted per
-  model for an hour; limits and withdrawn-model rejections are explained in
-  plain language. The provider speaks the compiled catalog by plain wire model
-  ids, so no catalog handles or device signing are needed; models that exist
-  only in the server-driven catalog are not listed. Free-tier data policy
+- TUI: `ctrl+m` could never open the model picker — in terminals Ctrl+M
+  is carriage return, byte-identical to Enter, so it was always consumed
+  as a message submit. The picker now lives on `ctrl+o` and is unified
+  across providers: one list spans every connected provider, picking a
+  model from another provider switches the provider too, and
+  unconnected account providers show a Connect row.
+- `codelaboon login chatgpt|claude|gemini|freebuff|qoder`, TUI login
+  dialog and web action menu cover all five account providers.
+- Qoder uses the official browser device flow (PKCE, token polled from
+  the OpenAPI host, automatic refresh) against a free-plan-capable
+  account. Chat runs through the installed `qodercli` binary in
+  tool-free print mode, because Qoder's inference gateway only accepts
+  requests signed by the official client; a Personal Access Token is
+  forwarded to the binary via `QODER_PERSONAL_ACCESS_TOKEN`. Model
+  discovery is live from `qodercli --list-models` when present, with
+  the documented tiers as the offline fallback. Free-plan data policy
   applies; use it for throwaway work, not secrets.
-- A token from an installed Freebuff CLI, `CODEBUFF_API_KEY` /
-  `FREEBUFF_API_KEY`, or an explicit `[freebuff]` token is honored without a
-  new browser sign-in.
-- 100 offline tests pass. Live account authorization and inference remain
-  unverified without real accounts.
-- Published as tag `v1.0.0-rc.5`; the tag-triggered release workflow tests,
+- Offline tests pass. Live Qoder authorization and inference remain
+  unverified without a real account and the `qodercli` binary.
+- Published as tag `v1.0.0-rc.6`; the tag-triggered release workflow tests,
   builds the wheel/source archive, writes SHA256SUMS and publishes a GitHub
   prerelease with downloadable artifacts.

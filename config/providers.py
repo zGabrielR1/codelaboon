@@ -34,6 +34,10 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
             "api_key": "",
             "models": [],
         },
+        "qoder": {
+            "api_key": "",
+            "models": [],
+        },
         "nvidia": {
             "api_key": "",
             "models": ["nemotron-3"],
@@ -197,6 +201,7 @@ def get_default_models(provider_name: str) -> list:
             "gemini-3.5-flash-lite",
         ],
         "freebuff": ["mimo/mimo-v2.5"],
+        "qoder": ["auto", "performance", "efficient", "ultimate"],
         "nvidia": ["nemotron-3"],
         "openrouter": ["openai/gpt-3.5-turbo"],
         "luna": ["luna-2"],

@@ -1,12 +1,14 @@
-RC5 tagged candidate: Freebuff device-code login shipped and published as v1.0.0-rc.5.
-Next: live authorization/provider validation with real accounts.
+RC6 tagged candidate: TUI model picker fixed (ctrl+o, unified across
+providers) and Qoder free-plan sign-in shipped.
+Next: live authorization/provider validation with real accounts, including
+Qoder device login and a qodercli-backed chat turn.
 
 # CURRENTTASK
 
-**ACTIVE**: Freebuff (ad-funded free tier) account sign-in shipped alongside
-Claude (claude.ai plan), Gemini (Google free tier) and ChatGPT. Next: validate
-the live login flows and inference with real accounts, and keep growing the
-free catalogue.
+**ACTIVE**: Qoder (free plan) account sign-in shipped alongside Freebuff
+(ad-funded free tier), Claude (claude.ai plan), Gemini (Google free tier)
+and ChatGPT. Next: validate the live login flows and inference with real
+accounts, and keep growing the free catalogue.
 
 ## Baseline established
 

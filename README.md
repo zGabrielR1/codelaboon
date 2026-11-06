@@ -23,9 +23,10 @@ The priority lane is genuinely free access. `codelaboon login gemini` signs in
 with a normal Google account and onboards Google's free Code Assist tier with no
 billing account and no API key; `codelaboon login freebuff` signs in to
 Freebuff's ad-funded free tier, also with no subscription and no API key;
-`ourfree` and `kilo` are keyless free pools. Free tiers impose their own data
-policies, and provider terms decide what each tier includes. Use throwaway
-prompts on lanes that may log them.
+`codelaboon login qoder` signs in to a Qoder account, which includes a free
+plan; `ourfree` and `kilo` are keyless free pools. Free tiers impose their own
+data policies, and provider terms decide what each tier includes. Use
+throwaway prompts on lanes that may log them.
 
 ## ChatGPT sign-in and current models
 
@@ -73,11 +74,11 @@ then run `codelaboon configure gemini` and import the downloaded JSON (or set
 is stored privately in `gemini-oauth.json`; no OAuth client credentials are
 embedded in this repository.
 
-Credentials live in `claude-session.json`, `gemini-session.json` and
-`freebuff-session.json` inside the config directory with owner-only permissions
-and refresh automatically. Do not share these files. Sign-in tokens are only
-ever sent to the provider's official endpoint; a custom `base_url` is refused
-for account sessions.
+Credentials live in `claude-session.json`, `gemini-session.json`,
+`freebuff-session.json` and `qoder-session.json` inside the config directory
+with owner-only permissions and refresh automatically. Do not share these
+files. Sign-in tokens are only ever sent to the provider's official endpoint;
+a custom `base_url` is refused for account sessions.
 
 ## Freebuff (ad-funded free tier)
 
@@ -105,6 +106,32 @@ token takes precedence and needs no browser sign-in:
 codelaboon login freebuff
 codelaboon models list freebuff
 codelaboon chat freebuff mimo/mimo-v2.5 "Hello"
+```
+
+## Qoder (free plan)
+
+`codelaboon login qoder` (or **Continue with Qoder** in the web workspace) uses
+the same browser device flow the official Qoder CLI uses: the command prints a
+URL, you finish sign-in in the browser, and the CLI polls for the account's
+device token, which then refreshes automatically. Qoder accounts include a
+free plan, so no subscription or API key is needed to sign in.
+
+One wrinkle: Qoder's inference gateway only accepts requests signed by the
+official client, so chat turns run through the installed `qodercli` binary in
+its non-interactive print mode (`qoder -p --model auto --tools ""`). Install
+it once with `curl -fsSL https://qoder.com/install | bash`, then sign in
+with `qoder login` — or skip that and paste a Personal Access Token from
+https://qoder.com/account/integrations as the `[qoder]` `api_key` (or set
+`QODER_PERSONAL_ACCESS_TOKEN`), which codelaboon forwards to the binary.
+Model discovery is live from `qodercli --list-models` when the binary is
+present; otherwise the CLI's documented tiers (`auto`, `performance`,
+`efficient`, `ultimate`) are the offline fallback. Free-plan data policy
+applies: use it for throwaway work, not secrets.
+
+```bash
+codelaboon login qoder
+codelaboon models list qoder
+codelaboon chat qoder auto "Hello"
 ```
 
 ## Local interfaces
@@ -184,7 +211,7 @@ terminal UI is an optional extra: `python3 -m pip install --user '.[tui]'`.
 | `models list <provider>` | List models for a provider |
 | `chat <provider> <model> <prompt>` | Send a chat completion request |
 | `decision <provider> <model> <input>` | Ask typed predicate/choice/score questions |
-| `login <chatgpt\|claude\|gemini\|freebuff>` | Sign in with an account (plan or free tier) |
+| `login <chatgpt\|claude\|gemini\|freebuff\|qoder>` | Sign in with an account (plan or free tier) |
 | `configure <provider>` | Interactively write an API key or start account sign-in |
 | `doctor` | Diagnose Python, dependencies, providers and config |
 | `tui` | Interactive terminal UI (needs the optional `textual` extra) |
@@ -230,8 +257,11 @@ The TUI offers:
 - **Diagnostics** — `ctrl+d` runs the same checks as `codelaboon doctor`
   inline
 
-Keys: `ctrl+p` providers · `ctrl+m` models · `ctrl+r` refresh models ·
-`ctrl+d` doctor · `ctrl+q` quit.
+Keys: `ctrl+p` providers · `ctrl+o` models (one list across providers;
+picking a model from another provider switches the provider too) ·
+`ctrl+r` refresh models · `ctrl+d` doctor · `ctrl+q` quit. (There is no
+`ctrl+m` binding: in terminals Ctrl+M is carriage return — byte-identical
+to Enter — so it can never be told apart from sending a message.)
 
 ## Supported providers
 
@@ -242,6 +272,8 @@ Keys: `ctrl+p` providers · `ctrl+m` models · `ctrl+r` refresh models ·
   free Code Assist tier
 - **Freebuff** (`freebuff`) — a Freebuff account on the ad-funded free tier
   (device-code login; no subscription, no API key)
+- **Qoder** (`qoder`) — a Qoder account on the free plan (browser device
+  login; chat runs through the official `qodercli` binary)
 - **NVIDIA Nemotron** (`nvidia`) — NVIDIA hosted endpoints
 - **OpenRouter** (`openrouter`) — multi-provider aggregator
 - **Luna** (`luna`) — Luna AI endpoints

@@ -37,6 +37,8 @@ gemini-session.json
 gemini-oauth.json
 freebuff-session.json
 freebuff-fingerprint.json
+qoder-session.json
+qoder-machine.json
 
 # Preserved local release artifacts
 releases/

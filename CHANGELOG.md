@@ -1,3 +1,30 @@
+## 1.0.0rc6 - 2026-11-05
+
+- Fixed the TUI model picker: `ctrl+m` could never open it, because in
+  terminals Ctrl+M is carriage return — byte-identical to Enter — so it
+  was always consumed as a message submit. The picker now lives on
+  `ctrl+o`, and it is unified across providers: one list spans every
+  connected provider, picking a model from another provider switches the
+  provider too, and unconnected account providers show a Connect row.
+- Added `qoder`: a Qoder account on the free plan, signed in with the
+  same browser device flow the official Qoder CLI uses (PKCE, token
+  polled from the OpenAPI host, automatic refresh). Because Qoder's
+  inference gateway only accepts requests signed by the official client,
+  chat turns run through the installed `qodercli` binary in tool-free
+  print mode; a Personal Access Token from
+  https://qoder.com/account/integrations is forwarded to it via
+  `QODER_PERSONAL_ACCESS_TOKEN`. Model discovery is live from
+  `qodercli --list-models` when present, with the documented tiers as
+  the offline fallback. Free-plan data policy applies.
+- `codelaboon login` accepts `chatgpt`, `claude`, `gemini`, `freebuff`
+  and `qoder`; `configure` offers account sign-in for Qoder when no key
+  is entered. TUI login dialog and web action menu cover all five
+  account providers.
+- Session files (`qoder-session.json`, `qoder-machine.json`) are atomic,
+  owner-only and refresh automatically.
+- Offline tests pass; live Qoder authorization and inference remain
+  unverified without a real account and the `qodercli` binary.
+
 ## 1.0.0rc5 - 2026-11-05
 
 - Added `freebuff`: a Freebuff account on the ad-funded free tier, signed in

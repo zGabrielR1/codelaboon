@@ -74,8 +74,14 @@ class Picker(ModalScreen[str]):
         self.dismiss("")
 
 
-ACCOUNT_PROVIDERS = {"chatgpt", "claude", "gemini", "freebuff"}
-ACCOUNT_LABELS = {"chatgpt": "ChatGPT", "claude": "Claude", "gemini": "Gemini", "freebuff": "Freebuff"}
+ACCOUNT_PROVIDERS = {"chatgpt", "claude", "gemini", "freebuff", "qoder"}
+ACCOUNT_LABELS = {
+    "chatgpt": "ChatGPT",
+    "claude": "Claude",
+    "gemini": "Gemini",
+    "freebuff": "Freebuff",
+    "qoder": "Qoder",
+}
 
 
 class ProviderLogin(ModalScreen[bool]):
@@ -142,12 +148,16 @@ class CodelaboonTuiApp(App[None]):
     ListView > ListItem.--highlight { background: #333333; }
     """
 
+    # NOTE: there is deliberately no ctrl+m binding. In terminals Ctrl+M is
+    # carriage return (0x0D) — byte-for-byte identical to Enter — so Textual
+    # delivers it to the prompt as a submit, never as this action. The model
+    # picker lives on ctrl+o, which terminals deliver distinctly.
     BINDINGS = [
         ("ctrl+s", "sessions", "Sessions"),
         ("ctrl+l", "new_conversation", "New chat"),
         ("ctrl+b", "toggle_sidebar", "Sidebar"),
         ("ctrl+p", "focus_providers", "Providers"),
-        ("ctrl+m", "focus_models", "Models"),
+        ("ctrl+o", "focus_models", "Models"),
         ("ctrl+r", "refresh_models", "Refresh models"),
         ("ctrl+d", "run_doctor", "Doctor"),
         ("ctrl+q", "quit", "Quit"),
@@ -164,6 +174,7 @@ class CodelaboonTuiApp(App[None]):
         self._models_worker: Any = None
         self._chat_worker: Any = None
         self._pending: Any = None
+        self._pending_model: Optional[str] = None
         self._generation = 0
         self._busy = False
         self._session_id = secrets.token_hex(16)
@@ -176,7 +187,7 @@ class CodelaboonTuiApp(App[None]):
                 yield Static("codelaboon / model workspace\n\nMake room for your next idea.\nChoose a model. Follow a question.", id="home", markup=False)
                 yield RichLog(id="chat", markup=False, highlight=False, wrap=True)
                 yield Input(placeholder="Ask anything...  /help for commands", id="prompt")
-                yield Static("ctrl+p providers    ctrl+m models    ctrl+b sidebar", id="hint")
+                yield Static("ctrl+p providers    ctrl+o models    ctrl+b sidebar", id="hint")
             with Vertical(id="sidebar"):
                 yield Static("New conversation", id="session-info", markup=False)
                 yield Label("Providers", classes="catalog-label")
@@ -192,8 +203,8 @@ class CodelaboonTuiApp(App[None]):
         providers_list.extend(
             [ListItem(Label(self._provider_label(name))) for name in self._provider_names]
         )
-        self._log("codelaboon TUI — pick a provider (ctrl+p), a model (ctrl+m), then type.")
-        self._log("Gemini (Google account), ourfree and kilo are free; other providers need their own key or plan.")
+        self._log("codelaboon TUI — pick a provider (ctrl+p), a model (ctrl+o), then type.")
+        self._log("Gemini (Google account), Freebuff, Qoder, ourfree and kilo are free; other providers need their own key or plan.")
         if self._provider_names:
             self._select_provider(self._provider_names[0], prompt_login=False)
         self.query_one("#prompt", Input).focus()
@@ -226,7 +237,7 @@ class CodelaboonTuiApp(App[None]):
         provider = self._current_provider or "no provider"
         model = self._current_model or "no model"
         turns = len([m for m in self.history if m["role"] == "user"])
-        self.query_one("#session-info", Static).update(f"Conversation\n\n{provider}\n{model}\n\nContext\n{turns} turns\n\nStatus\n{'Responding...' if self._busy else 'Ready'}\n\nctrl+p  provider\nctrl+m  model\nctrl+l  new chat")
+        self.query_one("#session-info", Static).update(f"Conversation\n\n{provider}\n{model}\n\nContext\n{turns} turns\n\nStatus\n{'Responding...' if self._busy else 'Ready'}\n\nctrl+p  provider\nctrl+o  model\nctrl+l  new chat")
         self.query_one("#status", Static).update(
             f"{provider} · {model} · {turns} turn(s) this session"
         )
@@ -298,7 +309,16 @@ class CodelaboonTuiApp(App[None]):
                 models_list.index = 0
             except (ValueError, IndexError):
                 pass
-            self._current_model = previous if previous in self._model_names else self._model_names[0]
+            if self._pending_model in self._model_names:
+                # A cross-provider pick from the unified model picker: land
+                # on the requested model, not the catalogue's first row.
+                self._current_model = self._pending_model
+                self._pending_model = None
+                self.history.clear()
+                self._log("─ model switched, context cleared ─")
+            else:
+                self._pending_model = None
+                self._current_model = previous if previous in self._model_names else self._model_names[0]
         if error:
             self._log(f"error> {error}")
         self._log(f"{len(self._model_names)} model(s) available for {name}.")
@@ -343,7 +363,7 @@ class CodelaboonTuiApp(App[None]):
             return
         model = self._selected_model()
         if not model:
-            self._log("error> select a model first (ctrl+m)")
+            self._log("error> select a model first (ctrl+o)")
             return
 
         self.query_one("#body").remove_class("home")
@@ -464,20 +484,76 @@ class CodelaboonTuiApp(App[None]):
 
     def _pick_provider(self, name):
         if name:
+            self._pending_model = None
             self._select_provider(name)
 
 
     def action_focus_models(self) -> None:
-        provider = self.cli.providers.get(self._current_provider)
-        if (
-            self._current_provider in ACCOUNT_PROVIDERS
-            and provider is not None
-            and not provider.validate_api_key()
-        ):
-            self.push_screen(ProviderLogin(self._current_provider))
+        """Open the unified model picker (ctrl+o).
+
+        One list spans every connected provider, so picking a model from
+        another provider switches the provider too — and sign-in for an
+        unconnected account provider is one row away. The catalogue build
+        runs in a worker: several providers discover models over the
+        network.
+        """
+        self.run_worker(
+            functools.partial(self._model_choices_job),
+            thread=True,
+            exclusive=True,
+            group="models",
+        )
+
+    def _model_choices_job(self) -> None:
+        choices = []
+        for name in self._provider_names:
+            provider = self.cli.providers.get(name)
+            if provider is None:
+                continue
+            label = ACCOUNT_LABELS.get(name, name.title())
+            if name in ACCOUNT_PROVIDERS and not provider.validate_api_key():
+                choices.append((f"__login__\x00{name}", f"{label} · Connect account…"))
+                continue
+            if name == self._current_provider and self._model_names:
+                models = list(self._model_names)
+            else:
+                # No network here: the picker must open instantly. Use
+                # the configured roster (or built-in defaults); picking
+                # the row loads that provider's live catalogue anyway.
+                models = list(
+                    getattr(provider, "models", None)
+                    or getattr(provider, "default_models", [])
+                    or []
+                )
+            names = getattr(provider, "model_names", {}) or {}
+            for model in models:
+                choices.append((f"{name}\x00{model}", f"{name} · {names.get(model, model)}"))
+        self.call_from_thread(self._show_model_picker, choices)
+
+    def _show_model_picker(self, choices) -> None:
+        if not choices:
+            self.notify("No models available. Connect a provider first (ctrl+p).")
             return
-        names = getattr(provider, "model_names", {})
-        self.push_screen(Picker("Select model", [(m, names.get(m, m)) for m in self._model_names]), self._pick_model)
+        self.push_screen(
+            Picker("Select model (switches provider too)", choices),
+            self._pick_model_key,
+        )
+
+    def _pick_model_key(self, key):
+        if not key:
+            return
+        kind, _, value = str(key).partition("\x00")
+        if kind == "__login__":
+            # _select_provider itself raises the sign-in dialog for an
+            # unconnected account provider.
+            self._select_provider(value)
+            return
+        provider_name, model = kind, value
+        if provider_name != self._current_provider:
+            self._pending_model = model
+            self._select_provider(provider_name, prompt_login=False)
+            return
+        self._pick_model(model)
 
     def _pick_model(self, model):
         if model:
@@ -549,6 +625,7 @@ class CodelaboonTuiApp(App[None]):
         index = event.control.index
         if event.control.id == "providers":
             if index is not None and 0 <= index < len(self._provider_names):
+                self._pending_model = None
                 self._select_provider(self._provider_names[index])
         elif event.control.id == "models":
             if index is not None and 0 <= index < len(self._model_names):
