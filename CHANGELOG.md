@@ -1,3 +1,24 @@
+## 1.0.0rc5 - 2026-11-05
+
+- Added `freebuff`: a Freebuff account on the ad-funded free tier, signed in
+  with the same device-code login the Freebuff CLI uses (browser sign-in, token
+  polled from the web app). No subscription, no credits, no API key. Free
+  sessions are admitted per model for an hour; limits, waiting-room and
+  withdrawn-model rejections are surfaced in plain language. The provider
+  speaks the compiled catalog by plain wire model ids, so no catalog handles
+  or device signing are needed; models that exist only in the server-driven
+  catalog are not listed. Free-tier data policy applies; use it for throwaway
+  work.
+- `codelaboon login` accepts `chatgpt`, `claude`, `gemini` and `freebuff`;
+  `configure` offers account sign-in for Freebuff when no key is entered. TUI
+  login dialog and web action menu cover all four account providers.
+- A token from an installed Freebuff CLI (`~/.config/manicode/credentials.json`),
+  from `CODEBUFF_API_KEY` / `FREEBUFF_API_KEY`, or from an explicit
+  `[freebuff]` token is honored without a new browser sign-in. Account tokens
+  are refused for custom `base_url` endpoints.
+- 100 offline tests pass; live account authorization and inference remain
+  unverified without real accounts.
+
 ## 1.0.0rc4 - 2026-11-05
 
 - Added `claude`: Anthropic Messages API with an API key, or a claude.ai account

@@ -160,3 +160,22 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - 86 offline tests pass, including new Claude/Gemini auth, provider and web
   coverage. Live OAuth authorization and inference remain unverified without
   real accounts; the provider decides what each plan or free tier includes.
+
+
+## RC5 - Freebuff account sign-in - 2026-11-05
+
+- Added `freebuff` provider: Freebuff account on the ad-funded free tier via
+  device-code login (browser sign-in, token polled from the web app). No
+  subscription, no credits, no API key. Free sessions are admitted per model
+  for an hour; limits and withdrawn-model rejections are explained. The
+  provider speaks the compiled catalog by plain wire model ids, so no catalog
+  handles or device signing are needed; models that exist only in the
+  server-driven catalog are not listed. Free-tier data policy applies.
+- CLI `login` accepts chatgpt, claude, gemini and freebuff; `configure` starts
+  account sign-in when no key is entered. TUI dialog and web action menu cover
+  all four. A token from an installed Freebuff CLI, `CODEBUFF_API_KEY` /
+  `FREEBUFF_API_KEY`, or an explicit `[freebuff]` token is honored without a
+  new browser sign-in.
+- 100 offline tests pass, including new Freebuff auth, provider and session
+  coverage. Live authorization and inference remain unverified without real
+  accounts.

@@ -69,6 +69,7 @@ class CodelaboonCLI:
             "chatgpt": "providers.chatgpt.chatgpt_provider.ChatGPTProvider",
             "claude": "providers.claude.claude_provider.ClaudeProvider",
             "gemini": "providers.gemini.gemini_provider.GeminiProvider",
+            "freebuff": "providers.freebuff.freebuff_provider.FreebuffProvider",
             "nvidia": "providers.nvidia.nvidia_provider.NVIDIAProvider",
             "openrouter": "providers.openrouter.openrouter_provider.OpenRouterProvider",
             "luna": "providers.luna.luna_provider.LunaProvider",
@@ -130,8 +131,8 @@ class CodelaboonCLI:
             check("requests installed", False, "install python3-requests or requests")
 
         for provider_name in (
-            "chatgpt", "claude", "gemini", "nvidia", "openrouter", "luna",
-            "ourfree", "kilo",
+            "chatgpt", "claude", "gemini", "freebuff", "nvidia", "openrouter",
+            "luna", "ourfree", "kilo",
         ):
             try:
                 self._get_provider_class(provider_name)
@@ -347,14 +348,25 @@ class CodelaboonCLI:
                 print(f"âœ— Failed to configure {provider_name}")
             return
 
-        if provider_name in ("claude", "gemini"):
+        if provider_name in ("claude", "gemini", "freebuff"):
             # Subscription and free-tier accounts sign in instead of pasting
-            # a key; an explicit key still works for both providers.
+            # a key; an explicit key still works for all three providers.
             api_key = input(
                 f"Enter an API key for {provider_name}, or leave blank to "
                 "sign in with an account: "
             ).strip()
             if not api_key:
+                if provider_name == "freebuff":
+                    from codelaboon.freebuff_auth import login
+
+                    try:
+                        login()
+                    except (ValueError, OSError) as error:
+                        print(f"Sign-in failed: {error}")
+                    else:
+                        self.load_providers()
+                    return
+
                 if provider_name == "claude":
                     from codelaboon.claude_auth import login
 
@@ -504,7 +516,7 @@ class CodelaboonCLI:
             "login", help="Sign in with an account for plan or free-tier access"
         )
         login_parser.add_argument(
-            "provider", choices=["chatgpt", "claude", "gemini"]
+            "provider", choices=["chatgpt", "claude", "gemini", "freebuff"]
         )
 
         # Configure command
@@ -598,6 +610,8 @@ class CodelaboonCLI:
                 from codelaboon.claude_auth import login
             elif args.provider == "gemini":
                 from codelaboon.gemini_auth import login
+            elif args.provider == "freebuff":
+                from codelaboon.freebuff_auth import login
             else:
                 from codelaboon.chatgpt_auth import login
             try:

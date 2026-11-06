@@ -82,8 +82,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(
             set(config),
             {
-                "chatgpt", "claude", "gemini", "nvidia", "openrouter", "luna",
-                "ourfree", "kilo",
+                "chatgpt", "claude", "gemini", "freebuff", "nvidia",
+                "openrouter", "luna", "ourfree", "kilo",
             },
         )
         self.assertTrue((config_dir / "providers.toml").is_file())
@@ -576,7 +576,7 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
         app = CodelaboonTuiApp()
         async with app.run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(len(app._provider_names), 8)
+            self.assertEqual(len(app._provider_names), 9)
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()

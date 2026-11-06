@@ -25,6 +25,16 @@ models = []
 api_key = ""
 models = []
 
+# Freebuff: leave api_key empty and run `codelaboon login freebuff` to sign in
+# with a Freebuff account (device-code login — the same flow the Freebuff CLI
+# uses). No subscription, no credits, no API key: free sessions are funded by
+# ads and admitted per model for an hour. Free-tier data policy applies; use
+# it for throwaway work, not secrets. An explicit token below, or
+# CODEBUFF_API_KEY / FREEBUFF_API_KEY, takes precedence.
+[freebuff]
+api_key = ""
+models = []
+
 [nvidia]
 api_key = ""
 models = ["nemotron-3"]

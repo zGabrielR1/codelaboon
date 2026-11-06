@@ -35,6 +35,8 @@ claude-session.json
 claude-device.json
 gemini-session.json
 gemini-oauth.json
+freebuff-session.json
+freebuff-fingerprint.json
 
 # Preserved local release artifacts
 releases/

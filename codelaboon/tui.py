@@ -74,8 +74,8 @@ class Picker(ModalScreen[str]):
         self.dismiss("")
 
 
-ACCOUNT_PROVIDERS = {"chatgpt", "claude", "gemini"}
-ACCOUNT_LABELS = {"chatgpt": "ChatGPT", "claude": "Claude", "gemini": "Gemini"}
+ACCOUNT_PROVIDERS = {"chatgpt", "claude", "gemini", "freebuff"}
+ACCOUNT_LABELS = {"chatgpt": "ChatGPT", "claude": "Claude", "gemini": "Gemini", "freebuff": "Freebuff"}
 
 
 class ProviderLogin(ModalScreen[bool]):

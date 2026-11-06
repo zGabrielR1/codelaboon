@@ -1,11 +1,12 @@
-RC4 tagged candidate: Claude and Gemini account sign-in shipped and published as v1.0.0-rc.4.
+RC5 tagged candidate: Freebuff device-code login shipped and published as v1.0.0-rc.5.
 Next: live authorization/provider validation with real accounts.
 
 # CURRENTTASK
 
-**ACTIVE**: Claude (claude.ai plan) and Gemini (Google free tier) account
-sign-in shipped alongside ChatGPT. Next: validate the live OAuth flows and
-inference with real accounts, and keep growing the free catalogue.
+**ACTIVE**: Freebuff (ad-funded free tier) account sign-in shipped alongside
+Claude (claude.ai plan), Gemini (Google free tier) and ChatGPT. Next: validate
+the live login flows and inference with real accounts, and keep growing the
+free catalogue.
 
 ## Baseline established
 

@@ -16,6 +16,7 @@ codelaboon/
 │   ├── chatgpt_auth.py   # ChatGPT account sign-in
 │   ├── claude_auth.py    # Claude account sign-in
 │   ├── gemini_auth.py    # Gemini/Google account sign-in
+│   ├── freebuff_auth.py  # Freebuff device-code sign-in
 │   └── tui.py            # Optional Textual terminal UI
 ├── providers/             # Model provider implementations
 │   ├── __init__.py
@@ -23,6 +24,7 @@ codelaboon/
 │   ├── chatgpt/          # ChatGPT/OpenAI provider
 │   ├── claude/           # Anthropic Claude provider
 │   ├── gemini/           # Google Gemini provider
+│   ├── freebuff/         # Freebuff ad-funded free-tier provider
 │   ├── nvidia/           # NVIDIA Nemotron provider
 │   ├── openrouter/       # OpenRouter provider
 │   ├── luna/             # Luna provider

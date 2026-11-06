@@ -21,9 +21,11 @@ codelaboon follows PI harness principles:
 
 The priority lane is genuinely free access. `codelaboon login gemini` signs in
 with a normal Google account and onboards Google's free Code Assist tier with no
-billing account and no API key; `ourfree` and `kilo` are keyless free pools.
-Free tiers impose their own data policies, and provider terms decide what each
-tier includes. Use throwaway prompts on lanes that may log them.
+billing account and no API key; `codelaboon login freebuff` signs in to
+Freebuff's ad-funded free tier, also with no subscription and no API key;
+`ourfree` and `kilo` are keyless free pools. Free tiers impose their own data
+policies, and provider terms decide what each tier includes. Use throwaway
+prompts on lanes that may log them.
 
 ## ChatGPT sign-in and current models
 
@@ -71,10 +73,39 @@ then run `codelaboon configure gemini` and import the downloaded JSON (or set
 is stored privately in `gemini-oauth.json`; no OAuth client credentials are
 embedded in this repository.
 
-Credentials live in `claude-session.json` and `gemini-session.json` inside the
-config directory with owner-only permissions and refresh automatically. Do not
-share these files. Sign-in tokens are only ever sent to the provider's official
-endpoint; a custom `base_url` is refused for account sessions.
+Credentials live in `claude-session.json`, `gemini-session.json` and
+`freebuff-session.json` inside the config directory with owner-only permissions
+and refresh automatically. Do not share these files. Sign-in tokens are only
+ever sent to the provider's official endpoint; a custom `base_url` is refused
+for account sessions.
+
+## Freebuff (ad-funded free tier)
+
+`codelaboon login freebuff` (or **Continue with Freebuff** in the web workspace)
+uses the same device-code login the Freebuff CLI uses: the command prints a URL,
+you finish sign-in in the browser, and the CLI polls for the account's token.
+Freebuff is funded by ads instead of a subscription, so signed-in accounts get
+frontier coding models for free. Free sessions are admitted per model for an
+hour and are rejected with a clear message when the account is at a limit, a
+model is rate limited, or a model was withdrawn from free mode.
+
+The provider speaks the compiled catalog — the picker rows the Freebuff CLI
+ships, addressed by plain wire model ids (MiMo, GLM, DeepSeek, GPT Luna, Solar,
+Gemini, Muse Spark and more) — so it needs no catalog handles or device
+signing. Models that exist only in Freebuff's server-driven catalog are not
+listed. Free-tier data policy applies: prompts may be processed, logged or
+retained by the provider, and some rows carry an AI-training notice. Use it
+for throwaway work, not secrets.
+
+A token from an installed Freebuff CLI (`~/.config/manicode/credentials.json`),
+from `CODEBUFF_API_KEY` / `FREEBUFF_API_KEY`, or from an explicit `[freebuff]`
+token takes precedence and needs no browser sign-in:
+
+```bash
+codelaboon login freebuff
+codelaboon models list freebuff
+codelaboon chat freebuff mimo/mimo-v2.5 "Hello"
+```
 
 ## Local interfaces
 
@@ -153,7 +184,7 @@ terminal UI is an optional extra: `python3 -m pip install --user '.[tui]'`.
 | `models list <provider>` | List models for a provider |
 | `chat <provider> <model> <prompt>` | Send a chat completion request |
 | `decision <provider> <model> <input>` | Ask typed predicate/choice/score questions |
-| `login <chatgpt\|claude\|gemini>` | Sign in with an account (plan or free tier) |
+| `login <chatgpt\|claude\|gemini\|freebuff>` | Sign in with an account (plan or free tier) |
 | `configure <provider>` | Interactively write an API key or start account sign-in |
 | `doctor` | Diagnose Python, dependencies, providers and config |
 | `tui` | Interactive terminal UI (needs the optional `textual` extra) |
@@ -209,6 +240,8 @@ Keys: `ctrl+p` providers · `ctrl+m` models · `ctrl+r` refresh models ·
 - **Claude** (`claude`) — Anthropic Messages API or a claude.ai account plan
 - **Gemini** (`gemini`) — Google AI Studio API key or a Google account on the
   free Code Assist tier
+- **Freebuff** (`freebuff`) — a Freebuff account on the ad-funded free tier
+  (device-code login; no subscription, no API key)
 - **NVIDIA Nemotron** (`nvidia`) — NVIDIA hosted endpoints
 - **OpenRouter** (`openrouter`) — multi-provider aggregator
 - **Luna** (`luna`) — Luna AI endpoints
