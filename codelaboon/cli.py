@@ -25,9 +25,12 @@ class CodelaboonCLI:
     """Main CLI harness for free AI model access."""
 
     def __init__(self):
-        self.config_dir = Path(
-            os.environ.get("CODELABOON_CONFIG_DIR", str(Path.home() / ".config" / "codelaboon"))
-        )
+        from codelaboon.paths import config_dir
+
+        self.config_dir = config_dir()
+        # The directory codelaboon is launched from is the project root. TUI
+        # sessions, the header and saved conversations use it.
+        self.project_dir = Path.cwd().resolve()
         self.config_dir.mkdir(parents=True, exist_ok=True)
         try:
             self.config_dir.chmod(0o700)
@@ -76,6 +79,7 @@ class CodelaboonCLI:
             "luna": "providers.luna.luna_provider.LunaProvider",
             "ourfree": "providers.ourfree.ourfree_provider.OurFreeModelProvider",
             "kilo": "providers.kilo.kilo_provider.KiloProvider",
+            "pollinations": "providers.pollinations.pollinations_provider.PollinationsProvider",
             "wusrouter": "providers.wusrouter.wusrouter_provider.WusRouterProvider",
         }
 
@@ -134,7 +138,8 @@ class CodelaboonCLI:
 
         for provider_name in (
             "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
-            "openrouter", "luna", "ourfree", "kilo", "wusrouter",
+            "openrouter", "luna", "ourfree", "kilo", "pollinations",
+            "wusrouter",
         ):
             try:
                 self._get_provider_class(provider_name)
@@ -196,6 +201,9 @@ class CodelaboonCLI:
         """List all available providers."""
         print("Available Providers:")
         print("-" * 40)
+        print("\nFREE (AUTO):")
+        print("  Status: ✓ Ranks the free lanes by availability, intelligence and speed")
+        print("  Models: free (Auto) — failover across ourfree/kilo/account lanes")
 
         for provider_name in sorted(self.providers):
             provider = self.providers[provider_name]
@@ -228,6 +236,16 @@ class CodelaboonCLI:
 
     def list_models(self, provider_name: str) -> None:
         """List models for a specific provider."""
+        if provider_name == "free":
+            from codelaboon.free_auto import AUTO_MODEL, describe
+
+            print("\nModels for free:")
+            print("-" * 40)
+            print(f"1. {AUTO_MODEL} — best available free model (automatic failover)")
+            for index, line in enumerate(describe(self.providers), 2):
+                print(f"{index}. {line}")
+            return
+
         provider = self._require_provider(provider_name)
         if provider is None:
             return
@@ -261,6 +279,32 @@ class CodelaboonCLI:
         **kwargs,
     ) -> bool:
         """Send a chat completion request. Returns True on success."""
+        if provider_name == "free":
+            from codelaboon import free_auto
+
+            print("\nSending request to free (Auto):")
+            print("-" * 40)
+            print(f"Prompt: {prompt}")
+            messages: List[Dict[str, str]] = []
+            if system:
+                messages.append({"role": "system", "content": system})
+            messages.append({"role": "user", "content": prompt})
+            try:
+                chosen, response = free_auto.chat(
+                    self.providers,
+                    messages,
+                    temperature=kwargs.get("temperature", 0.7),
+                    max_tokens=kwargs.get("max_tokens", 1000),
+                )
+            except Exception as e:
+                print(f"Error: {e}")
+                return False
+            print(f"\nAuto-selected: {chosen.provider}/{chosen.model} ({chosen.display})")
+            print("\nResponse:")
+            print("-" * 40)
+            print(response)
+            return True
+
         provider = self._require_provider(provider_name)
         if provider is None:
             return False
@@ -483,6 +527,13 @@ class CodelaboonCLI:
             description="codelaboon - Harness for free AI model access",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
+        try:
+            from codelaboon import __version__
+        except ImportError:  # Running from a directly executed module.
+            __version__ = "unknown"
+        parser.add_argument(
+            "--version", action="version", version=f"codelaboon {__version__}"
+        )
 
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
         subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
@@ -559,6 +610,16 @@ class CodelaboonCLI:
         # TUI command
         subparsers.add_parser("tui", help="Interactive terminal UI (needs the textual extra)")
 
+        install_parser = subparsers.add_parser(
+            "install", help="Install for the current user and add codelaboon to PATH"
+        )
+        install_parser.add_argument(
+            "--editable", "-e", action="store_true", help="Install the source checkout in editable mode"
+        )
+        install_parser.add_argument(
+            "--no-path", action="store_true", help="Do not modify PATH"
+        )
+
         web_parser = subparsers.add_parser("web", help="Open the localhost web workspace")
         web_parser.add_argument("--port", type=int, default=8765)
         web_parser.add_argument("--no-open", action="store_true")
@@ -568,6 +629,13 @@ class CodelaboonCLI:
 
         if not args.command:
             run_tui()
+            return
+
+        if args.command == "install":
+            from codelaboon.install import install
+
+            if not install(editable=args.editable, update_path=not args.no_path):
+                sys.exit(1)
             return
 
         # Load providers

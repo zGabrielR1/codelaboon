@@ -13,7 +13,9 @@ from pathlib import Path
 from typing import Any, Dict
 
 
-CONFIG_DIR = Path(os.environ.get("CODELABOON_CONFIG_DIR", str(Path.home() / ".config" / "codelaboon")))
+from codelaboon.paths import config_dir as _config_dir
+
+CONFIG_DIR = _config_dir()
 PROVIDERS_CONFIG_FILE = CONFIG_DIR / "providers.toml"
 _config_lock = threading.RLock()
 
@@ -76,6 +78,10 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
         "kilo": {
             "api_key": "",
             "models": ["kilo-auto/free", "openrouter/free"],
+        },
+        "pollinations": {
+            "api_key": "",
+            "models": ["openai-fast"],
         },
     }
 

@@ -83,7 +83,8 @@ class ConfigTests(unittest.TestCase):
             set(config),
             {
                 "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
-                "openrouter", "luna", "ourfree", "kilo", "wusrouter",
+                "openrouter", "luna", "ourfree", "kilo", "pollinations",
+                "wusrouter",
             },
         )
         self.assertTrue((config_dir / "providers.toml").is_file())
@@ -577,12 +578,13 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
         app = CodelaboonTuiApp()
         async with app.run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(len(app._provider_names), 11)
+            self.assertEqual(len(app._provider_names), 13)
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()
-            self.assertEqual(app._model_names, [])
-            self.assertIn(app._selected_provider(), app.cli.providers)
+            self.assertEqual(app._selected_provider(), "free")
+            self.assertIn("free (Auto)", app._model_names)
+            self.assertIn(app._selected_provider(), app._provider_names)
 
     @unittest.skipUnless(TEXTUAL_AVAILABLE, "textual is not installed")
     async def test_send_without_configuration_warns(self):
@@ -594,6 +596,7 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             lines: list = []
             app._log = lines.append
+            app._select_provider("chatgpt", prompt_login=False)
             app._send("hello")
             await pilot.pause()
         self.assertTrue(any("not configured" in line for line in lines))

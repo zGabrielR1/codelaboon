@@ -262,3 +262,41 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   after reboot is installed. CLI shell-like command parsing supports --checks-json
   when exact Windows arguments are required. Normal default launch still opens
   the chat TUI; `work` is the dedicated worker control entry point.
+
+### Session 2026-11-13 — CLI-TUI-first, free (Auto), install and project root
+
+- Reframed the product as a CLI-TUI-first coding agent: `codelaboon` with no
+  command opens the terminal workspace, in the interaction style of Claude
+  Code, OpenCode, Codex CLI and Pi. README now states that CLI-first means a
+  CLI TUI and documents the composer, searchable pickers, session rail and
+  project root.
+- Added `free (Auto)` as the TUI/CLI default. It is a synthetic provider
+  (`codelaboon/free_auto.py`) that ranks configured free lanes by availability
+  (55%), intelligence (30%) and speed (15%), shows the lane it would use, and
+  fails over at send time. `chat free free` and `models list free` expose it
+  from the plain CLI.
+- Fixed keyboard navigation: provider/model pickers now handle Up/Down and
+  PageUp/PageDown as screen bindings, since Input does not consume them. Up/
+  Down in the composer recalls previous prompts for editing and resending.
+- Rewrote ChatGPT sign-in: persist the issued `oaiapp_...` client id before
+  token exchange, send the documented Accept/User-Agent/Originator headers,
+  tolerate a missing `scope` by reading access-token claims, and surface the
+  real OAuth error code in the dialog instead of a generic failure.
+- Added `codelaboon install` plus `scripts/install.sh` and `scripts/install.ps1`.
+  It installs the package for the current user and idempotently adds pip's
+  user script directory to PATH (Windows user registry + WM_SETTINGCHANGE;
+  POSIX shell profiles). `--editable` and `--no-path` are supported.
+- The process working directory is now the session project root. The TUI
+  header, sidebar, `/project` and saved session metadata all show it.
+- Updated TUI tests for arrow navigation, prompt recall and login-error display;
+  added ranked/failover tests for `free (Auto)`. 16 focused tests pass.
+- Added the keyless `pollinations` provider (live discovery, OpenAI-compatible
+  chat, optional bearer token, one transient-timeout retry). It joins
+  `free (Auto)`; live `chat pollinations openai-fast` and `chat free free`
+  both succeeded, with Auto selecting Pollinations when Kilo returned empty.
+- Verified Gemini and Claude: 31 provider/auth tests pass, `doctor` reports
+  both importable, and no-catalogue handling is clean when unconfigured. Fixed
+  config-directory resolution to honor `CODELABOON_CONFIG_DIR` without eagerly
+  evaluating `Path.home()`; auth tests now run with a cleared environment.
+  POSIX permission assertions are conditional on `os.name == "posix"`.
+  Live account inference still needs real Google/Anthropic credentials.

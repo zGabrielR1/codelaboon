@@ -42,11 +42,9 @@ _lock = threading.RLock()
 
 
 def directory() -> Path:
-    return Path(
-        os.environ.get(
-            "CODELABOON_CONFIG_DIR", str(Path.home() / ".config" / "codelaboon")
-        )
-    )
+    from codelaboon.paths import config_dir
+
+    return config_dir()
 
 
 def read_session():
@@ -109,7 +107,9 @@ def _manicode_credentials_path() -> Path:
     configured = os.environ.get("FREEBUFF_CONFIG_DIR", "").strip()
     if configured:
         return Path(configured) / "credentials.json"
-    return Path.home() / ".config" / "manicode" / "credentials.json"
+    from codelaboon.paths import home
+
+    return home() / ".config" / "manicode" / "credentials.json"
 
 
 def _read_manicode_token() -> str:

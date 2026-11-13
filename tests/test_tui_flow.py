@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 from codelaboon.tui import CodelaboonTuiApp, ChatGPTLogin, Picker
-from textual.widgets import Input
+from textual.widgets import Input, ListView
 
 class TuiFlowTests(unittest.IsolatedAsyncioTestCase):
     async def test_select_chatgpt_offers_login_inside_tui(self):
@@ -116,3 +116,62 @@ class TuiFlowTests(unittest.IsolatedAsyncioTestCase):
             field.value='Keep this draft'
             app.on_input_submitted(Input.Submitted(field,field.value))
             self.assertEqual(field.value,'Keep this draft')
+
+    async def test_picker_arrow_keys_move_without_mouse(self):
+        app=CodelaboonTuiApp()
+        async with app.run_test(size=(120,40)) as pilot:
+            await pilot.pause()
+            app.action_focus_providers()
+            await pilot.pause()
+            view=app.screen.query_one(ListView)
+            self.assertEqual(view.index,0)
+            await pilot.press('down')
+            await pilot.press('down')
+            await pilot.pause()
+            self.assertEqual(view.index,2)
+            await pilot.press('up')
+            await pilot.pause()
+            self.assertEqual(view.index,1)
+            await pilot.press('enter')
+            await pilot.pause()
+            await pilot.pause()
+            self.assertNotIsInstance(app.screen,Picker)
+            self.assertEqual(app._current_provider,app._provider_names[1])
+            app._save_conversation= lambda: None
+
+    async def test_prompt_up_arrow_recalls_last_message(self):
+        from textual.widgets import Input
+        app=CodelaboonTuiApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            field=app.query_one('#prompt',Input)
+            app._send=lambda text: None
+            for text in ('first question','second question'):
+                field.value=text
+                app.on_input_submitted(Input.Submitted(field,text))
+            field.value=''
+            field.focus()
+            await pilot.press('up')
+            self.assertEqual(field.value,'second question')
+            await pilot.press('up')
+            self.assertEqual(field.value,'first question')
+            await pilot.press('down')
+            self.assertEqual(field.value,'second question')
+            await pilot.press('down')
+            self.assertEqual(field.value,'')
+
+    async def test_login_failure_keeps_dialog_and_shows_reason(self):
+        app=CodelaboonTuiApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            dialog=ChatGPTLogin()
+            app.push_screen(dialog)
+            await pilot.pause()
+            app._login_done(dialog,False,'invalid_grant: code expired')
+            await pilot.pause()
+            self.assertIsInstance(app.screen,ChatGPTLogin)
+            self.assertIn('invalid_grant',str(app.screen.query_one('#login-error').content))
+            await pilot.press('escape')
+            await pilot.pause()
+            self.assertNotIsInstance(app.screen,ChatGPTLogin)
+

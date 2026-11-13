@@ -2,7 +2,8 @@
 
 A declarative prompt-engineering harness for free AI model access. It wraps free model access into a self-perpetuating lifecycle: any CLI session bootstraps state, operates under a master prompt, verifies adversarially, improves the provider configurations themselves, and condenses context for the next session.
 
-No code, no build system, no runtime dependencies. Everything is self-documenting plain text and Python source code.
+Python source code with a small runtime dependency set (`requests`, Textual and
+PyJWT) and no build service.
 
 ## Layout
 
@@ -18,7 +19,9 @@ codelaboon/
 │   ├── gemini_auth.py    # Gemini/Google account sign-in
 │   ├── freebuff_auth.py  # Freebuff device-code sign-in
 │   ├── qoder_auth.py     # Qoder browser device sign-in
-│   └── tui.py            # Optional Textual terminal UI
+│   ├── free_auto.py      # free (Auto) ranking and failover
+│   ├── install.py        # `codelaboon install` (pip + PATH)
+│   └── tui.py            # CLI TUI (default interface)
 ├── providers/             # Model provider implementations
 │   ├── __init__.py
 │   ├── base.py           # Base provider interface
@@ -31,7 +34,8 @@ codelaboon/
 │   ├── openrouter/       # OpenRouter provider
 │   ├── luna/             # Luna provider
 │   ├── ourfree/          # dsh-our-free-model local gateway provider
-│   └── kilo/             # Kilo AI keyless free-pool provider
+│   ├── kilo/             # Kilo AI keyless free-pool provider
+│   └── pollinations/     # Pollinations keyless text provider
 ├── config/                # Configuration management
 │   ├── __init__.py
 │   └── providers.py      # Provider configuration

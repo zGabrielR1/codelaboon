@@ -1,18 +1,24 @@
 """
 Interactive terminal UI for codelaboon, built on Textual.
 
-The TUI is an optional surface: the core harness stays dependency-light
-(`requests` only), and this module imports `textual` lazily through
-`codelaboon.cli.run_tui`. Install it with `pip install 'codelaboon[tui]'`.
+The TUI follows the interaction model of the terminal coding agents this
+project is modelled on (OpenCode, Codex CLI and Pi): a centered home with a
+composer, a persistent session rail, selection dialogs that work from the
+keyboard alone, a slash-command surface and an auto-selected free model.
 
-Layout: a sidebar browses providers and their model catalogue (fed live by
-providers such as `ourfree`), and the main pane is a multi-turn chat against
-the selected provider/model. `ctrl+d` runs the same diagnostics as
-`codelaboon doctor` inline.
+`codelaboon` (with no subcommand) opens it. The directory codelaboon is
+launched from is the project root for the session, and it is shown in the
+header and saved with every conversation.
+
+Keys: ctrl+p providers · ctrl+o models · ctrl+n/ctrl+l new chat ·
+ctrl+s sessions · ctrl+b sidebar · ctrl+k account key · ctrl+r refresh ·
+ctrl+d doctor · esc interrupt · ctrl+q quit. Up/down in the composer recall
+sent prompts; up/down in a picker moves the highlight and Enter selects it.
 """
 
 import functools
 import secrets
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from rich.panel import Panel
@@ -23,18 +29,36 @@ from textual.binding import Binding
 from textual.screen import ModalScreen
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Footer, Header, Input, Label, ListItem, ListView, RichLog, Static
+from textual.widgets import Button, Footer, Input, Label, ListItem, ListView, RichLog, Static
 
 from codelaboon.cli import CodelaboonCLI
 
 
 class Picker(ModalScreen[str]):
-    BINDINGS = [("escape", "dismiss_picker", "Close")]
+    """Keyboard-first selection dialog used for providers, models and sessions."""
+
+    BINDINGS = [
+        Binding("escape", "dismiss_picker", "Close", show=False),
+        # The search field keeps focus so typing filters immediately. Arrow
+        # keys are not consumed by Input, so these screen bindings move the
+        # list highlight without ever reaching for the mouse.
+        Binding("up", "cursor_up", "Up", show=False),
+        Binding("down", "cursor_down", "Down", show=False),
+        Binding("pageup", "page_up", "Page up", show=False),
+        Binding("pagedown", "page_down", "Page down", show=False),
+    ]
     DEFAULT_CSS = """
-    Picker { align: center middle; background: #00000088; }
-    #picker-dialog { width: 70; max-width: 95%; height: 24; background: #131315; padding: 1 2; }
-    #picker-title { height: 2; text-style: bold; }
-    #picker-list { height: 1fr; }
+    Picker { align: center middle; background: #000000aa; }
+    #picker-dialog {
+        width: 76; max-width: 96%; height: 26;
+        background: #111113; border: round #2f2f36; padding: 1 2;
+    }
+    #picker-title { height: 1; text-style: bold; color: #eeeeee; }
+    #picker-hint { height: 1; color: #7d7d88; }
+    #picker-search { height: 3; margin: 1 0; }
+    #picker-list { height: 1fr; background: #111113; }
+    #picker-list > ListItem { padding: 0 1; }
+    Picker ListView > ListItem.--highlight { background: #2a2a31; color: #ffffff; }
     """
 
     def __init__(self, title, choices):
@@ -44,7 +68,8 @@ class Picker(ModalScreen[str]):
 
     def compose(self):
         with Vertical(id="picker-dialog"):
-            yield Label(self.heading + "  /  esc close", id="picker-title")
+            yield Label(self.heading, id="picker-title")
+            yield Label("↑↓ move   enter select   esc close", id="picker-hint")
             yield Input(placeholder="Search...", id="picker-search")
             yield ListView(id="picker-list")
 
@@ -64,12 +89,39 @@ class Picker(ModalScreen[str]):
         self.fill(event.value)
 
     def on_input_submitted(self, event):
-        if self.filtered:
-            self.dismiss(self.filtered[0][0])
+        self._select_current()
 
     def on_list_view_selected(self, event):
-        if event.control.index is not None:
-            self.dismiss(self.filtered[event.control.index][0])
+        self._select_current()
+
+    def _select_current(self):
+        if not self.filtered:
+            return
+        view = self.query_one(ListView)
+        index = view.index if view.index is not None else 0
+        if 0 <= index < len(self.filtered):
+            self.dismiss(self.filtered[index][0])
+
+    def _move(self, delta):
+        view = self.query_one(ListView)
+        if not self.filtered:
+            return
+        if view.index is None:
+            view.index = 0
+            return
+        view.index = max(0, min(len(self.filtered) - 1, view.index + delta))
+
+    def action_cursor_up(self):
+        self._move(-1)
+
+    def action_cursor_down(self):
+        self._move(1)
+
+    def action_page_up(self):
+        self._move(-8)
+
+    def action_page_down(self):
+        self._move(8)
 
     def action_dismiss_picker(self):
         self.dismiss("")
@@ -83,14 +135,22 @@ ACCOUNT_LABELS = {
     "freebuff": "Freebuff",
     "qoder": "Qoder",
 }
+# Lanes already covered by free (Auto); their individual catalogues stay out
+# of the picker so the list is short and the default is obvious.
+FREE_PROVIDERS = {
+    "ourfree", "kilo", "pollinations", "gemini", "freebuff", "qoder"
+}
+AUTO_PROVIDER = "free"
+AUTO_MODEL = "free (Auto)"
 
 
 class ProviderKey(ModalScreen[bool]):
     """Account-independent API key setup, including browser signup."""
+
     BINDINGS = [("escape", "dismiss", "Close")]
     DEFAULT_CSS = """
-    ProviderKey { align: center middle; background: #00000088; }
-    #key-dialog { width: 70; max-width: 95%; height: auto; padding: 2 3; background: #131315; }
+    ProviderKey { align: center middle; background: #000000aa; }
+    #key-dialog { width: 72; max-width: 96%; height: auto; padding: 2 3; background: #111113; border: round #2f2f36; }
     #key-dialog Static { height: auto; margin-bottom: 1; }
     #key-actions { height: 3; margin-top: 1; }
     """
@@ -146,9 +206,10 @@ class ProviderKey(ModalScreen[bool]):
 class ProviderLogin(ModalScreen[bool]):
     BINDINGS = [("escape", "cancel_login", "Close")]
     DEFAULT_CSS = """
-    ProviderLogin { align: center middle; background: #00000088; }
-    #login-dialog { width: 66; max-width: 95%; height: auto; background: #131315; padding: 2 3; }
+    ProviderLogin { align: center middle; background: #000000aa; }
+    #login-dialog { width: 68; max-width: 96%; height: auto; background: #111113; padding: 2 3; border: round #2f2f36; }
     #login-message { height: auto; margin: 1 0; }
+    #login-error { height: auto; margin: 1 0; color: #e06c75; }
     #login-actions { height: 3; }
     """
 
@@ -161,6 +222,7 @@ class ProviderLogin(ModalScreen[bool]):
         with Vertical(id="login-dialog"):
             yield Label(f"Connect {self.label}", markup=False)
             yield Static("Sign in to load your account's available models.\nComplete authorization in your browser, then return here.", id="login-message")
+            yield Static("", id="login-error", markup=False)
             with Horizontal(id="login-actions"):
                 yield Button(f"Continue with {self.label}", id="continue-login")
                 yield Button("Later", id="later-login")
@@ -170,8 +232,17 @@ class ProviderLogin(ModalScreen[bool]):
             self.dismiss(False)
         else:
             self.query_one("#continue-login", Button).disabled = True
+            self.query_one("#login-error", Static).update("")
             self.query_one("#login-message", Static).update("Waiting for browser authorization...\nThis can take up to five minutes.")
             self.app.start_provider_login(self, self.provider)
+
+    def show_error(self, message: str) -> None:
+        """Surface the real failure instead of a generic retry prompt."""
+        self.query_one("#continue-login", Button).disabled = False
+        self.query_one("#login-error", Static).update(f"Sign-in failed: {message}")
+        self.query_one("#login-message", Static).update(
+            "Complete authorization in your browser, then return here."
+        )
 
     def action_cancel_login(self):
         self.dismiss(False)
@@ -182,29 +253,30 @@ ChatGPTLogin = ProviderLogin
 
 
 class CodelaboonTuiApp(App[None]):
-    """Provider browser and multi-turn chat for the codelaboon harness."""
+    """OpenCode/Codex/Pi-style terminal workspace for the codelaboon harness."""
 
     TITLE = "codelaboon"
     SUB_TITLE = "model workspace"
 
     CSS = """
-    Screen { background: #171719; color: #eeeeee; }
+    Screen { background: #161618; color: #eeeeee; }
     #body { height: 1fr; }
     #main { width: 1fr; padding: 1 4; }
-    #sidebar { width: 32; background: #131315; padding: 2 3; border-left: solid #2b2b2e; }
+    #sidebar { width: 34; background: #111113; padding: 2 3; border-left: solid #2a2a30; }
+    #topbar { height: 2; color: #9a9aa5; }
     #session-info { height: auto; color: #a3a3ac; }
     #providers, #models, .catalog-label { display: none; }
     #status { height: 2; color: #a3a3ac; }
-    #chat { height: 1fr; background: #171719; }
+    #chat { height: 1fr; background: #161618; }
     #home { height: 1fr; min-height: 10; content-align: center bottom; color: #73daca; padding-bottom: 1; }
-    #prompt { background: #131315; border: none; border-left: solid #73daca; padding: 1 2; height: 5; }
+    #prompt { background: #111113; border: none; border-left: solid #73daca; padding: 1 2; height: 5; }
     #prompt:focus { border-left: solid #73daca; }
     #hint { height: 2; padding-top: 1; color: #a3a3ac; }
     .home #chat { display: none; }
     .home #hint { height: 5; }
-    Footer { background: #171719; }
-    ListView { background: #131315; }
-    ListView > ListItem.--highlight { background: #333333; }
+    Footer { background: #161618; color: #7d7d88; }
+    ListView { background: #111113; }
+    ListView > ListItem.--highlight { background: #2a2a31; }
     """
 
     # NOTE: there is deliberately no ctrl+m binding. In terminals Ctrl+M is
@@ -214,6 +286,7 @@ class CodelaboonTuiApp(App[None]):
     BINDINGS = [
         Binding("ctrl+k", "provider_key", "API key", priority=True),
         ("ctrl+s", "sessions", "Sessions"),
+        ("ctrl+n", "new_conversation", "New chat"),
         ("ctrl+l", "new_conversation", "New chat"),
         ("ctrl+b", "toggle_sidebar", "Sidebar"),
         ("ctrl+p", "focus_providers", "Providers"),
@@ -221,11 +294,15 @@ class CodelaboonTuiApp(App[None]):
         ("ctrl+r", "refresh_models", "Refresh models"),
         ("ctrl+d", "run_doctor", "Doctor"),
         ("ctrl+q", "quit", "Quit"),
+        Binding("escape", "interrupt", "Interrupt", show=False),
+        Binding("up", "history_previous", "Previous prompt", show=False),
+        Binding("down", "history_next", "Next prompt", show=False),
     ]
 
     def __init__(self) -> None:
         super().__init__()
         self.cli = CodelaboonCLI()
+        self.project_dir: Path = self.cli.project_dir
         self.history: List[Dict[str, str]] = []
         self._provider_names: List[str] = []
         self._model_names: List[str] = []
@@ -239,15 +316,24 @@ class CodelaboonTuiApp(App[None]):
         self._busy = False
         self._session_id = secrets.token_hex(16)
         self._discovery = 0
+        self._login_pending = False
+        self._prompt_history: List[str] = []
+        self._history_cursor: Optional[int] = None
+
+    # ── layout ─────────────────────────────────────────────────────────────
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="body", classes="home"):
             with Vertical(id="main"):
+                yield Static("", id="topbar", markup=False)
                 yield Static("", id="status", markup=False)
                 yield Static(self._welcome(80), id="home", markup=False)
                 yield RichLog(id="chat", markup=False, highlight=False, wrap=True)
                 yield Input(placeholder="Ask anything...  /help for commands", id="prompt")
-                yield Static("ctrl+p providers    ctrl+o models    ctrl+b sidebar", id="hint")
+                yield Static(
+                    "ctrl+p providers   ctrl+o models   ctrl+n new   esc interrupt",
+                    id="hint",
+                )
             with Vertical(id="sidebar"):
                 yield Static("New conversation", id="session-info", markup=False)
                 yield Label("Providers", classes="catalog-label")
@@ -256,8 +342,7 @@ class CodelaboonTuiApp(App[None]):
                 yield ListView(id="models")
         yield Footer()
 
-    @staticmethod
-    def _welcome(width, height=40):
+    def _welcome(self, width, height=40, project=None):
         whale = r"""           .  |  .
             \ | /
              \|/
@@ -275,28 +360,44 @@ class CodelaboonTuiApp(App[None]):
             wordmark = "C O D E L A B O O N"
         if width < 35 or height < 32:
             whale = r"""    __     /\_/\
- __/ o\___/    /
- \_________.-'"""
-        return whale + "\n\n" + wordmark + "\n\nYour next idea starts here."
+  __/ o\___/    /
+  \_________.-'"""
+        project = self.project_dir if project is None else project
+        name = getattr(project, "name", "") or str(project)
+        where = f"{name}  ·  {project}" if name else str(project)
+        where = where[:width] if width > 0 else where
+        return whale + "\n\n" + wordmark + "\n\n" + where + "\nYour next idea starts here."
 
     def _refresh_welcome(self):
         available = max(1, self.query_one("#main").size.width - 8)
         self.query_one("#home", Static).update(self._welcome(available, self.size.height))
+
+    def _refresh_topbar(self):
+        project = self.project_dir
+        self.query_one("#topbar", Static).update(
+            f"codelaboon   {project.name}\n{project}"
+        )
 
     def on_resize(self, event):
         self.call_after_refresh(self._refresh_welcome)
 
     def on_mount(self) -> None:
         self.cli.load_providers()
+        self.sub_title = str(self.project_dir)
         providers_list = self.query_one("#providers", ListView)
-        self._provider_names = sorted(self.cli.providers)
+        # free (Auto) is the first provider and therefore the default: the
+        # free lanes are what codelaboon is for, and Auto removes the need to
+        # choose between dozens of free model ids.
+        self._provider_names = [AUTO_PROVIDER] + sorted(
+            name for name in self.cli.providers if name not in {AUTO_PROVIDER}
+        )
         providers_list.extend(
             [ListItem(Label(self._provider_label(name))) for name in self._provider_names]
         )
-        self._log("codelaboon TUI — pick a provider (ctrl+p), a model (ctrl+o), then type.")
-        self._log("Gemini (Google account), Freebuff, Qoder, ourfree and kilo are free; other providers need their own key or plan.")
-        if self._provider_names:
-            self._select_provider(self._provider_names[0], prompt_login=False)
+        self._log("codelaboon TUI — free (Auto) is selected; just type.")
+        self._log("ctrl+p provider · ctrl+o model · ctrl+s sessions · /help for commands")
+        self._refresh_topbar()
+        self._select_provider(AUTO_PROVIDER, prompt_login=False)
         self.call_after_refresh(self._refresh_welcome)
         self.query_one("#prompt", Input).focus()
         if self.size.width < 100:
@@ -305,6 +406,8 @@ class CodelaboonTuiApp(App[None]):
     # ── helpers ────────────────────────────────────────────────────────────
 
     def _provider_label(self, name: str) -> str:
+        if name == AUTO_PROVIDER:
+            return f"● {AUTO_PROVIDER} (Auto)"
         provider = self.cli.providers.get(name)
         configured = bool(provider and provider.validate_api_key())
         return f"{'●' if configured else '○'} {name}"
@@ -328,7 +431,14 @@ class CodelaboonTuiApp(App[None]):
         provider = self._current_provider or "no provider"
         model = self._current_model or "no model"
         turns = len([m for m in self.history if m["role"] == "user"])
-        self.query_one("#session-info", Static).update(f"Conversation\n\n{provider}\n{model}\n\nContext\n{turns} turns\n\nStatus\n{'Responding...' if self._busy else 'Ready'}\n\nctrl+p  provider\nctrl+o  model\nctrl+l  new chat")
+        project = self.project_dir.name
+        self.query_one("#session-info", Static).update(
+            f"{project}\n{self.project_dir}\n\n"
+            f"Conversation\n\n{provider}\n{model}\n\n"
+            f"Context\n{turns} turns\n\n"
+            f"Status\n{'Responding...' if self._busy else 'Ready'}\n\n"
+            f"ctrl+p  provider\nctrl+o  model\nctrl+n  new chat\nctrl+s  sessions"
+        )
         self.query_one("#status", Static).update(
             f"{provider} · {model} · {turns} turn(s) this session"
         )
@@ -357,7 +467,9 @@ class CodelaboonTuiApp(App[None]):
                 providers_list.index = self._provider_names.index(name)
             except (ValueError, IndexError):
                 pass
-        if name == "wusrouter" and prompt_login and not self.cli.providers[name].validate_api_key():
+        if name == AUTO_PROVIDER:
+            self._on_models(name, self._auto_models(), "")
+        elif name == "wusrouter" and prompt_login and not self.cli.providers[name].validate_api_key():
             self.push_screen(ProviderKey(name))
         elif (
             name in ACCOUNT_PROVIDERS
@@ -368,7 +480,19 @@ class CodelaboonTuiApp(App[None]):
         else:
             self._load_models(name)
 
+    def _auto_models(self) -> List[str]:
+        """The synthetic free (Auto) row followed by its ranked candidates."""
+        from codelaboon import free_auto
+
+        rows = [AUTO_MODEL]
+        for provider, model, _label in free_auto.candidates(self.cli.providers):
+            rows.append(f"{provider}/{model}")
+        return rows
+
     def _load_models(self, name: str) -> None:
+        if name == AUTO_PROVIDER:
+            self._on_models(name, self._auto_models(), "")
+            return
         provider = self.cli.providers.get(name)
         if provider is None:
             return
@@ -401,9 +525,15 @@ class CodelaboonTuiApp(App[None]):
         self._current_model = None
         self._model_names = list(models)
         if self._model_names:
-            models_list.extend(
-                [ListItem(Label(getattr(self.cli.providers[name], "model_names", {}).get(model, model))) for model in self._model_names]
-            )
+            names = getattr(self.cli.providers.get(name), "model_names", {}) or {}
+            if name == AUTO_PROVIDER:
+                labels = [
+                    model if model == AUTO_MODEL else model.replace("/", " · ", 1)
+                    for model in self._model_names
+                ]
+            else:
+                labels = [names.get(model, model) for model in self._model_names]
+            models_list.extend([ListItem(Label(label)) for label in labels])
             try:
                 models_list.index = 0
             except (ValueError, IndexError):
@@ -420,49 +550,113 @@ class CodelaboonTuiApp(App[None]):
                 self._current_model = previous if previous in self._model_names else self._model_names[0]
         if error:
             self._log(f"error> {error}")
-        self._log(f"{len(self._model_names)} model(s) available for {name}.")
+        if name == AUTO_PROVIDER:
+            from codelaboon import free_auto
+
+            best = free_auto.select(self.cli.providers)
+            if best is None:
+                self._log(
+                    "error> free (Auto): no free lane is ready. Sign in to Gemini/Freebuff/Qoder, "
+                    "or configure ourfree; kilo and pollinations are keyless."
+                )
+            else:
+                self._log(
+                    f"free (Auto) will use {best.provider}/{best.model} ({best.display}) and fail over if it is busy."
+                )
+        else:
+            self._log(f"{len(self._model_names)} model(s) available for {name}.")
         self._update_status()
 
     # ── chat ───────────────────────────────────────────────────────────────
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
+        value = event.value
         was_busy = self._busy
-        self._send(event.value)
-        if (not was_busy and self._busy) or event.value.startswith("/"):
+        self._send(value)
+        if (not was_busy and self._busy) or value.startswith("/"):
             event.input.value = ""
+        if not was_busy and value.strip() and not value.startswith("/"):
+            self._prompt_history.append(value.strip())
+            self._history_cursor = None
+
+    def _set_prompt(self, value: str) -> None:
+        field = self.query_one("#prompt", Input)
+        field.value = value
+        field.cursor_position = len(value)
+
+    def action_history_previous(self) -> None:
+        field = self.query_one("#prompt", Input)
+        if not field.has_focus or not self._prompt_history:
+            return
+        if self._history_cursor is None:
+            self._history_cursor = len(self._prompt_history)
+        self._history_cursor = max(0, self._history_cursor - 1)
+        self._set_prompt(self._prompt_history[self._history_cursor])
+
+    def action_history_next(self) -> None:
+        field = self.query_one("#prompt", Input)
+        if not field.has_focus or self._history_cursor is None:
+            return
+        self._history_cursor = min(len(self._prompt_history), self._history_cursor + 1)
+        if self._history_cursor >= len(self._prompt_history):
+            self._history_cursor = None
+            self._set_prompt("")
+        else:
+            self._set_prompt(self._prompt_history[self._history_cursor])
 
     def _send(self, text: str) -> None:
         text = text.strip()
-        if text.strip() == "/key" and self._current_provider in ("wusrouter", "qoder"):
+        if text == "/key" and self._current_provider in ("wusrouter", "qoder"):
             self.push_screen(ProviderKey(self._current_provider))
             return
-        commands = {"/models": self.action_focus_models, "/connect": self.action_focus_providers, "/new": self.action_new_conversation, "/sidebar": self.action_toggle_sidebar, "/sessions": self.action_sessions, "/export": self.action_export}
+        commands = {
+            "/models": self.action_focus_models,
+            "/connect": self.action_focus_providers,
+            "/new": self.action_new_conversation,
+            "/sidebar": self.action_toggle_sidebar,
+            "/sessions": self.action_sessions,
+            "/export": self.action_export,
+            "/free": self.action_use_free,
+            "/project": self.action_project,
+            "/quit": self.action_quit,
+        }
         if text in commands:
             commands[text]()
             return
         if text == "/help":
-            self.notify("/connect provider / /models model / /new conversation / /sidebar toggle")
+            self.notify("/free auto · /connect provider · /models model · /new chat · /sessions history · /project root")
             return
         if not text:
             return
         if self._busy:
-            self._log("A reply is pending. Wait before sending another message.")
+            self._log("A reply is pending. Wait, or press esc to interrupt the wait.")
             return
 
         provider_name = self._selected_provider()
         if not provider_name:
             self._log("error> select a provider first (ctrl+p)")
             return
-        provider = self.cli.providers.get(provider_name)
-        if provider is None:
-            self._log(f"error> provider '{provider_name}' is not loaded")
-            return
-        if not provider.validate_api_key():
-            self._log(
-                f"error> {provider_name} is not configured — run: "
-                f"codelaboon configure {provider_name}"
-            )
-            return
+        if provider_name == AUTO_PROVIDER:
+            from codelaboon import free_auto
+
+            if not free_auto.ranked(self.cli.providers):
+                self._log(
+                    "error> free (Auto): no free lane is ready. Sign in to Gemini/Freebuff/Qoder, "
+                    "or configure ourfree; kilo and pollinations are keyless."
+                )
+                return
+            provider = None
+        else:
+            provider = self.cli.providers.get(provider_name)
+            if provider is None:
+                self._log(f"error> provider '{provider_name}' is not loaded")
+                return
+            if not provider.validate_api_key():
+                self._log(
+                    f"error> {provider_name} is not configured — run: "
+                    f"codelaboon configure {provider_name}"
+                )
+                return
         model = self._selected_model()
         if not model:
             self._log("error> select a model first (ctrl+o)")
@@ -486,7 +680,17 @@ class CodelaboonTuiApp(App[None]):
     def _chat_job(self, generation: int, pending: Any) -> None:
         provider_name, provider, model, messages = pending
         try:
-            reply = provider.chat(model, messages, temperature=0.7, max_tokens=1000)
+            if provider_name == AUTO_PROVIDER:
+                from codelaboon import free_auto
+
+                chosen, reply = free_auto.chat(
+                    self.cli.providers, messages, temperature=0.7, max_tokens=1000
+                )
+                self.call_from_thread(
+                    self._log, f"auto> {chosen.provider}/{chosen.model} ({chosen.display})"
+                )
+            else:
+                reply = provider.chat(model, messages, temperature=0.7, max_tokens=1000)
         except Exception as e:
             self.call_from_thread(self._on_chat_error, generation, str(e))
             return
@@ -514,8 +718,28 @@ class CodelaboonTuiApp(App[None]):
         self.history.append({"role": "assistant", "content": reply})
         self._log(f"assistant> {reply}")
         self._update_status()
+        self.query_one("#prompt", Input).focus()
 
     # ── actions ────────────────────────────────────────────────────────────
+
+    def action_interrupt(self) -> None:
+        """Stop waiting for the current reply (the provider may keep running)."""
+        if not self._busy:
+            return
+        self._generation += 1
+        self._busy = False
+        if self.history and self.history[-1]["role"] == "user":
+            self.history.pop()
+        self._log("interrupted> stopped waiting for the reply")
+        self._update_status()
+        self.query_one("#prompt", Input).focus()
+
+    def action_use_free(self) -> None:
+        self._pending_model = None
+        self._select_provider(AUTO_PROVIDER, prompt_login=False)
+
+    def action_project(self) -> None:
+        self.notify(f"Project root: {self.project_dir}", timeout=8)
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")
@@ -527,10 +751,11 @@ class CodelaboonTuiApp(App[None]):
         self._generation += 1
         self._busy = False
         self.history.clear()
+        self._history_cursor = None
         self.query_one("#body").add_class("home")
         self.query_one("#home").display = True
         self.query_one("#chat", RichLog).clear()
-        self._log("New conversation. Select a model and start writing.")
+        self._log("New conversation. free (Auto) is ready; select another model with ctrl+o.")
         self._update_status()
         self.query_one("#prompt", Input).focus()
 
@@ -540,7 +765,14 @@ class CodelaboonTuiApp(App[None]):
         from codelaboon.sessions import save_session
         title = next((m["content"][:60] for m in self.history if m["role"] == "user"), "Conversation")
         try:
-            return save_session(self.cli.config_dir, {"id": self._session_id, "title": title, "provider": self._current_provider, "model": self._current_model, "messages": list(self.history)})
+            return save_session(self.cli.config_dir, {
+                "id": self._session_id,
+                "title": title,
+                "provider": self._current_provider,
+                "model": self._current_model,
+                "project": str(self.project_dir),
+                "messages": list(self.history),
+            })
         except (OSError, ValueError):
             self.notify("Could not save conversation. Check config directory permissions.", severity="error")
 
@@ -550,13 +782,17 @@ class CodelaboonTuiApp(App[None]):
         if not self._saved_sessions:
             self.notify("No saved conversations yet. Completed replies are saved automatically.")
             return
-        self.push_screen(Picker("Resume conversation", [(key, item["title"] + " / " + item["provider"]) for key, item in self._saved_sessions.items()]), self._resume_session)
+        choices = []
+        for key, item in self._saved_sessions.items():
+            project = Path(item["project"]).name if item.get("project") else "?"
+            choices.append((key, f"{item['title']} / {item['provider']} / {project}"))
+        self.push_screen(Picker("Resume conversation", choices), self._resume_session)
 
     def _resume_session(self, identifier):
         if not identifier:
             return
         item = self._saved_sessions[identifier]
-        if item["provider"] not in self.cli.providers:
+        if item["provider"] not in self.cli.providers and item["provider"] != AUTO_PROVIDER:
             self.notify("This conversation's provider is unavailable.", severity="error")
             return
         self._save_conversation()
@@ -574,7 +810,10 @@ class CodelaboonTuiApp(App[None]):
             self._log(("you> " if message["role"] == "user" else "assistant> ") + message["content"])
         self._update_status()
         self.query_one("#prompt", Input).focus()
-        self._load_models(self._current_provider)
+        if self._current_provider == AUTO_PROVIDER:
+            self._on_models(AUTO_PROVIDER, self._auto_models(), "")
+        else:
+            self._load_models(self._current_provider)
 
     def action_export(self):
         path = self._save_conversation()
@@ -582,7 +821,13 @@ class CodelaboonTuiApp(App[None]):
             self.notify(f"Conversation JSON: {path}", timeout=10)
 
     def action_focus_providers(self) -> None:
-        self.push_screen(Picker("Connect a provider", [(name, self._provider_label(name)) for name in self._provider_names]), self._pick_provider)
+        self.push_screen(
+            Picker(
+                "Connect a provider",
+                [(name, self._provider_label(name)) for name in self._provider_names],
+            ),
+            self._pick_provider,
+        )
 
     def _pick_provider(self, name):
         if name:
@@ -593,11 +838,11 @@ class CodelaboonTuiApp(App[None]):
     def action_focus_models(self) -> None:
         """Open the unified model picker (ctrl+o).
 
-        One list spans every connected provider, so picking a model from
-        another provider switches the provider too — and sign-in for an
-        unconnected account provider is one row away. The catalogue build
-        runs in a worker: several providers discover models over the
-        network.
+        free (Auto) is the first row. The free lanes it covers are collapsed
+        into it, so the user does not have to scroll through dozens of free
+        model ids; paid providers keep their full catalogues. The catalogue
+        build runs in a worker because several providers discover models over
+        the network.
         """
         self.run_worker(
             functools.partial(self._model_choices_job),
@@ -607,13 +852,36 @@ class CodelaboonTuiApp(App[None]):
         )
 
     def _model_choices_job(self) -> None:
-        choices = []
+        from codelaboon import free_auto
+
+        choices = [
+            (f"{AUTO_PROVIDER}\x00{AUTO_MODEL}", "free · free (Auto) — best available free model")
+        ]
+        best = free_auto.select(self.cli.providers)
+        if best is not None:
+            choices[0] = (
+                f"{AUTO_PROVIDER}\x00{AUTO_MODEL}",
+                f"free · free (Auto) — now {best.provider}/{best.model}",
+            )
         for name in self._provider_names:
+            if name == AUTO_PROVIDER:
+                continue
             provider = self.cli.providers.get(name)
             if provider is None:
                 continue
             label = ACCOUNT_LABELS.get(name, name.title())
-            if name in ACCOUNT_PROVIDERS and not provider.validate_api_key():
+            connected = False
+            try:
+                connected = bool(provider.validate_api_key())
+            except Exception:
+                connected = False
+            if name in FREE_PROVIDERS:
+                # Covered by free (Auto); only surface the sign-in row when
+                # the lane is not usable yet.
+                if not connected and name in ACCOUNT_PROVIDERS:
+                    choices.append((f"__login__\x00{name}", f"{label} · Connect account…"))
+                continue
+            if name in ACCOUNT_PROVIDERS and not connected:
                 choices.append((f"__login__\x00{name}", f"{label} · Connect account…"))
                 continue
             if name == self._current_provider and self._model_names:
@@ -652,6 +920,9 @@ class CodelaboonTuiApp(App[None]):
             # unconnected account provider.
             self._select_provider(value)
             return
+        if kind == AUTO_PROVIDER:
+            self._select_provider(AUTO_PROVIDER, prompt_login=False)
+            return
         provider_name, model = kind, value
         if provider_name != self._current_provider:
             self._pending_model = model
@@ -686,28 +957,34 @@ class CodelaboonTuiApp(App[None]):
     def _login_job(self, dialog, provider: str):
         import importlib
 
-        module = importlib.import_module(f"codelaboon.{provider}_auth")
         try:
+            module = importlib.import_module(f"codelaboon.{provider}_auth")
             module.login(report=lambda message: self.call_from_thread(self.notify, message))
-        except Exception:
-            self.call_from_thread(self._login_done, dialog, False)
+        except Exception as error:
+            # Never swallow the reason: the dialog shows the provider's own
+            # message (network error, invalid token, declined scope, ...).
+            self.call_from_thread(self._login_done, dialog, False, str(error))
         else:
-            self.call_from_thread(self._login_done, dialog, True)
+            self.call_from_thread(self._login_done, dialog, True, "")
 
-    def _login_done(self, dialog, success):
+    def _login_done(self, dialog, success, error: str = ""):
         self._login_pending = False
         provider = getattr(dialog, "provider", self._current_provider or "chatgpt")
         label = ACCOUNT_LABELS.get(provider, provider.title())
-        if dialog in self.screen_stack:
-            dialog.dismiss(success)
-        if success and self._current_provider == provider:
-            self._load_models(provider)
-        self.notify(
-            f"{label} connected" if success
-            else f"Sign-in did not complete. Select {label} to retry.",
-            severity="information" if success else "error",
-        )
-
+        if success:
+            if dialog in self.screen_stack:
+                dialog.dismiss(True)
+            if self._current_provider == provider:
+                self._load_models(provider)
+            self.notify(f"{label} connected", severity="information")
+            return
+        # Keep the dialog open so the failure is readable and retryable.
+        if dialog in self.screen_stack and hasattr(dialog, "show_error"):
+            dialog.show_error(error or "unknown error")
+        else:
+            if dialog in self.screen_stack:
+                dialog.dismiss(False)
+            self.notify(f"{label} sign-in failed: {error or 'unknown error'}", severity="error")
 
     def action_provider_key(self):
         if self._current_provider in ("wusrouter", "qoder"):
@@ -748,5 +1025,5 @@ class CodelaboonTuiApp(App[None]):
 
 
 def run_app() -> None:
-    """Run the TUI."""
+    """Run the TUI in the current directory, which becomes the project root."""
     CodelaboonTuiApp().run()

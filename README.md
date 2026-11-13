@@ -1,21 +1,54 @@
 # codelaboon
 
-**A local workspace for accessing AI models from multiple providers**
+**A local, terminal-first coding agent for multiple AI providers**
 
-codelaboon is a cross-platform, CLI-first harness for calling AI models through
-their provider APIs. It works from source with no installation step, and can
-optionally be installed as a `codelaboon` command.
+codelaboon is a cross-platform CLI harness for calling AI models through their
+provider APIs. It works from source with no installation step, and installs as
+a `codelaboon` command on your `PATH`.
 
 ## Overview
 
 codelaboon follows PI harness principles:
 
-- **CLI-first**: no web UI; an optional interactive TUI is available
+- **CLI-first means a CLI TUI**: running `codelaboon` opens an interactive
+  terminal workspace in the style of Claude Code, OpenCode, Codex CLI and Pi.
+  There is no browser dependency for the main flow; `codelaboon web` is an
+  optional extra.
+- **Your current directory is the project**: start `codelaboon` from a
+  repository and that directory becomes the project root for the session.
+  It is shown in the header, sidebar and saved conversations.
+- **Free by default**: the TUI starts on **`free (Auto)`**, which ranks the
+  configured free lanes and picks the best available model automatically.
 - **Provider-agnostic**: one command structure for supported providers
 - **Declarative, self-documenting**: behavior is described by files in this repo
 - **Minimal dependencies**: Python 3.11+ and `requests`; configuration uses the
   standard-library `tomllib`
 - **Cross-platform**: Linux, macOS, and Windows
+
+## `free (Auto)` — the default model
+
+`free (Auto)` is a synthetic provider shown first in the TUI. It does not use a
+separate API: it ranks the free lanes you have configured and sends the turn
+through the best one, failing over when a provider is rate limited or busy.
+
+- **Availability (55%)** — signed-in/keyless lanes are preferred over lanes
+  that would need a login. Today that means `ourfree`, `kilo`, `pollinations`
+  and any signed-in account lane.
+- **Intelligence (30%)** — stronger free models rank above small ones.
+- **Speed (15%)** — faster and lighter models break close ties.
+
+The picker shows the lane `free (Auto)` would use now, for example
+`free → gemini/gemini-2.5-pro`. Selecting `free (Auto)` in the model picker
+keeps working when a lane goes away: the next ranked candidate is tried at send
+time. If no free lane is ready, the TUI says which sign-ins are missing instead
+of failing silently.
+
+From the plain CLI the same lane is available as `free`:
+
+```bash
+python3 -m codelaboon models list free
+python3 -m codelaboon chat free free "Explain this repository"
+```
 
 ## Free account lane first
 
@@ -24,9 +57,9 @@ with a normal Google account and onboards Google's free Code Assist tier with no
 billing account and no API key; `codelaboon login freebuff` signs in to
 Freebuff's ad-funded free tier, also with no subscription and no API key;
 `codelaboon login qoder` signs in to a Qoder account, which includes a free
-plan; `ourfree` and `kilo` are keyless free pools. Free tiers impose their own
-data policies, and provider terms decide what each tier includes. Use
-throwaway prompts on lanes that may log them.
+plan; `ourfree`, `kilo` and `pollinations` are keyless free pools. Free tiers
+impose their own data policies, and provider terms decide what each tier
+includes. Use throwaway prompts on lanes that may log them.
 
 ## ChatGPT sign-in and current models
 
@@ -136,9 +169,13 @@ codelaboon chat qoder auto "Hello"
 
 ## Local interfaces
 
-Run `codelaboon` (or `python -m codelaboon`) to open the terminal workspace.
-Run `codelaboon web` to start the web workspace and open your browser at
-`http://127.0.0.1:8765`. Use `--port 9000` to choose a port or `--no-open`
+Run `codelaboon` (or `python -m codelaboon`) from any directory to open the
+terminal workspace. The directory you start it in becomes the project root,
+like `opencode`, `codex` or `claude` started in a repository. The header,
+sidebar and saved sessions show that project.
+
+Run `codelaboon web` to start the optional web workspace and open your browser
+at `http://127.0.0.1:8765`. Use `--port 9000` to choose a port or `--no-open`
 to start without opening a browser. Stop the server with Ctrl+C.
 
 The web workspace includes provider/model discovery, multi-turn conversations,
@@ -147,8 +184,10 @@ Provider credentials stay on the Python server. Messages go to the provider you 
 Conversations are saved in this browser?s local storage; exporting creates a portable JSON copy.
 The server binds only to loopback and requires a session token for chat requests.
 
-The terminal workspace supports Ctrl+B to toggle the sidebar and Ctrl+L for a new chat.
-Textual is installed with the application so the default command works after installation.
+The terminal workspace supports Ctrl+P for providers, Ctrl+O for models,
+Ctrl+N/Ctrl+L for a new chat, Ctrl+S for saved sessions, Ctrl+B to toggle the
+sidebar and Ctrl+K to replace an account key. Textual is installed with the
+application so the default command works after installation.
 
 ## Quick start
 
@@ -192,16 +231,46 @@ python3 -m codelaboon chat openrouter openai/gpt-3.5-turbo "Hello"
 python3 -m codelaboon chat ourfree deepseek-v4.1-flash-free "Hello"
 ```
 
-## Installation (optional)
+## Installation (adds `codelaboon` to PATH)
+
+From the source checkout:
 
 ```bash
-python3 -m pip install --user .
-codelaboon providers list
+python3 -m codelaboon install
 ```
 
-This installs a `codelaboon` console script and the Python packages used by the
-harness. Running from the source checkout works without installing. The
-terminal UI is an optional extra: `python3 -m pip install --user '.[tui]'`.
+This installs the package for the current user (including the Textual TUI) and
+adds pip's user script directory to your `PATH`:
+
+- **Windows** — updates the user `Path` registry value and broadcasts the
+  change; open a new terminal afterwards.
+- **Linux/macOS** — appends an idempotent `export PATH=…` line to the shell
+  profile(s) that already exist (`~/.bashrc`, `~/.zshrc`, `~/.profile`, fish).
+
+Then open a new terminal and run:
+
+```bash
+codelaboon --version
+codelaboon
+```
+
+`codelaboon install --editable` installs the checkout in editable mode, so code
+changes are picked up without reinstalling. `--no-path` installs without
+touching `PATH`.
+
+Scripted installers are available too:
+
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/…/scripts/install.sh | bash
+
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+```
+
+Running from the source checkout works without installing at all:
+`python3 -m codelaboon`. The TUI is now a normal dependency; the `[tui]` extra
+is retained for compatibility.
 
 ## Commands
 
@@ -219,12 +288,13 @@ and `work add`. New instructions enter a persistent inbox without restarting.
 |---------|-------------|
 | `providers list` | List providers and whether they are configured |
 | `models list <provider>` | List models for a provider |
-| `chat <provider> <model> <prompt>` | Send a chat completion request |
+| `chat <provider> <model> <prompt>` | Send a chat completion request (`free free` uses Auto) |
 | `decision <provider> <model> <input>` | Ask typed predicate/choice/score questions |
 | `login <chatgpt\|claude\|gemini\|freebuff\|qoder>` | Sign in with an account (plan or free tier) |
 | `configure <provider>` | Interactively write an API key or start account sign-in |
 | `doctor` | Diagnose Python, dependencies, providers and config |
-| `tui` | Interactive terminal UI (needs the optional `textual` extra) |
+| `install` | Install for the current user and add `codelaboon` to PATH |
+| `tui` | Interactive terminal UI (the default when no command is given) |
 
 common options for `chat`: `--system`, `--temperature`, `--max-tokens`.
 
@@ -246,19 +316,28 @@ See [docs/DECISIONS.md](docs/DECISIONS.md) and
 python3 -m codelaboon chat openrouter my-model "Hello" --temperature 0.2 --max-tokens 200
 ```
 
-## Terminal UI (optional)
+## Terminal UI (the main interface)
 
-`codelaboon tui` opens an interactive terminal interface built on
-[Textual](https://github.com/Textualize/textual). It is an optional extra to
-keep the core harness dependency-light:
+Running `codelaboon` with no command opens the interactive terminal workspace,
+built on [Textual](https://github.com/Textualize/textual). It is a CLI TUI in
+the same family as Claude Code, OpenCode, Codex CLI and Pi: a centered home,
+searchable selection dialogs, a composer that stays at the bottom, and a
+session rail.
 
 ```bash
-python3 -m pip install 'codelaboon[tui]'
-python3 -m codelaboon tui
+codelaboon
+# or explicitly
+codelaboon tui
 ```
 
 The TUI offers:
 
+- **`free (Auto)` by default** - just type; the best available free lane is
+  chosen and ranked candidates are tried in order if one is busy
+- **Prompt history** - `Up`/`Down` in the composer recalls previously sent
+  messages, so you can edit and resend
+- **Project awareness** - the directory you launched from is the project root
+  and is shown in the header, sidebar and saved sessions
 - **Provider browser** — all configured providers with their configured status
 - **Model catalogue** — the selected provider's models, refreshed live
   (the `ourfree` catalogue is discovered from the gateway on every pick)
@@ -269,9 +348,13 @@ The TUI offers:
 
 Keys: `ctrl+p` providers · `ctrl+o` models (one list across providers;
 picking a model from another provider switches the provider too) ·
-`ctrl+r` refresh models · `ctrl+d` doctor · `ctrl+q` quit. (There is no
-`ctrl+m` binding: in terminals Ctrl+M is carriage return — byte-identical
-to Enter — so it can never be told apart from sending a message.)
+`ctrl+n` / `ctrl+l` new chat · `ctrl+s` saved sessions · `ctrl+b` sidebar ·
+`ctrl+k` replace an account key · `ctrl+r` refresh models · `ctrl+d` doctor ·
+`esc` interrupt a request · `ctrl+q` quit. In every picker, `Up`/`Down`
+(or `PageUp`/`PageDown`) moves the highlight and `Enter` selects — no mouse
+required. (There is no `ctrl+m` binding: in terminals Ctrl+M is carriage
+return — byte-identical to Enter — so it can never be told apart from sending
+a message.)
 
 ## Supported providers
 
@@ -291,6 +374,8 @@ to Enter — so it can never be told apart from sending a message.)
   [dsh-our-free-model](https://github.com/Ebony-Vinyl/dsh-our-free-model)
   plugin for DeepSeek Harness
 - **Kilo** (`kilo`) — Kilo AI's public gateway free pool, completely keyless
+- **Pollinations** (`pollinations`) — keyless OpenAI-compatible text API with
+  live model discovery and an optional token for higher limits
 
 Each provider implements the shared contract in [`providers/base.py`](providers/base.py).
 API keys, base URLs, default models and request payloads are provider-specific;
@@ -373,6 +458,35 @@ python3 -m codelaboon models list kilo
 python3 -m codelaboon chat kilo kilo-auto/free "Hello"
 ```
 
+### Pollinations (keyless free text pool)
+
+The `pollinations` provider talks to [Pollinations](https://pollinations.ai)'s
+public text API. No account, key or local service is required: the anonymous
+tier answers immediately, and an optional token can be set for higher limits.
+
+- **Discovery is live** from `https://text.pollinations.ai/models`; the
+  offline fallback is `openai-fast` (GPT-OSS 20B).
+- **OpenAI-compatible** requests go to `https://text.pollinations.ai/openai`,
+  so chat, TUI and `free (Auto)` all use the same lane.
+- **Failover-friendly**: rate limits and timeouts are reported as errors so
+  `free (Auto)` can move to the next candidate. One immediate retry covers
+  transient stalls on the shared anonymous pool.
+- **Privacy**: free-tier prompts may be logged upstream. Keep secrets off this
+  lane.
+
+```bash
+python3 -m codelaboon models list pollinations
+python3 -m codelaboon chat pollinations openai-fast "Hello"
+```
+
+To raise limits, put a token in `providers.toml`:
+
+```toml
+[pollinations]
+api_key = "your-token"
+models = ["openai-fast"]
+```
+
 ## Configuration
 
 Configuration lives at:
@@ -422,8 +536,11 @@ codelaboon/
 │   ├── __init__.py
 │   ├── __main__.py        # `python -m codelaboon`
 │   ├── cli.py
+│   ├── chatgpt_auth.py    # Sign in with ChatGPT (OAuth + PKCE)
 │   ├── decision.py        # Typed decision protocols
-│   └── tui.py             # Optional Textual terminal UI
+│   ├── free_auto.py       # free (Auto) ranking and failover
+│   ├── install.py         # `codelaboon install` (pip + PATH)
+│   └── tui.py             # CLI TUI (default interface)
 ├── providers/             # Provider implementations
 │   ├── base.py            # Shared provider contract
 │   ├── chatgpt/
@@ -431,7 +548,8 @@ codelaboon/
 │   ├── openrouter/
 │   ├── luna/
 │   ├── ourfree/           # dsh-our-free-model local gateway
-│   └── kilo/              # Kilo AI keyless free pool
+│   ├── kilo/              # Kilo AI keyless free pool
+│   └── pollinations/      # Pollinations keyless text API
 ├── examples/
 │   └── questions.json     # Decision question example
 ├── config/
@@ -471,10 +589,12 @@ permission, and each provider's own terms continue to apply.
 
 ### Terminal workspace flow
 
-The TUI opens on a centered composer. Ctrl+P opens a searchable provider
-picker and Ctrl+M opens a searchable model picker. Selecting ChatGPT, Claude or
-Gemini without credentials offers the matching account sign-in inside the TUI;
-complete browser authorization and the model catalogue refreshes automatically.
+The TUI opens on a centered composer with `free (Auto)` selected and the
+current directory as the project. Ctrl+P opens a searchable provider picker and
+Ctrl+O opens a searchable model picker; both respond to `Up`/`Down` and
+`Enter`. Selecting ChatGPT, Claude or Gemini without credentials offers the
+matching account sign-in inside the TUI; complete browser authorization and
+the model catalogue refreshes automatically.
 Later or Escape
 closes the dialog. An authorization already started continues in the background
 until completion or timeout.

@@ -223,7 +223,8 @@ class FreebuffAuthTests(unittest.TestCase):
                 mode = os.stat(
                     os.path.join(root, "freebuff-fingerprint.json")
                 ).st_mode
-                self.assertEqual(mode & 0o777, 0o600)
+                if os.name == "posix":
+                    self.assertEqual(mode & 0o777, 0o600)
 
     def test_token_precedence_session_then_env(self):
         with tempfile.TemporaryDirectory() as root:
@@ -294,7 +295,8 @@ class FreebuffAuthTests(unittest.TestCase):
                 mode = os.stat(
                     os.path.join(root, "freebuff-session.json")
                 ).st_mode
-                self.assertEqual(mode & 0o777, 0o600)
+                if os.name == "posix":
+                    self.assertEqual(mode & 0o777, 0o600)
 
 
 if __name__ == "__main__":

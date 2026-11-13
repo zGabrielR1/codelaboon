@@ -122,7 +122,8 @@ class QoderAuthTests(unittest.TestCase):
                 first = auth.machine_id()
                 self.assertEqual(auth.machine_id(), first)
                 mode = os.stat(os.path.join(root, "qoder-machine.json")).st_mode
-                self.assertEqual(mode & 0o777, 0o600)
+                if os.name == "posix":
+                    self.assertEqual(mode & 0o777, 0o600)
 
     def test_pkce_challenge_matches_verifier(self):
         import base64
@@ -204,7 +205,8 @@ class QoderAuthTests(unittest.TestCase):
                 self.assertEqual(get.call_count, 2)
                 self.assertEqual(auth.token(), "login-token")
                 mode = os.stat(os.path.join(root, "qoder-session.json")).st_mode
-                self.assertEqual(mode & 0o777, 0o600)
+                if os.name == "posix":
+                    self.assertEqual(mode & 0o777, 0o600)
                 session = json.loads(
                     Path(root, "qoder-session.json").read_text(encoding="utf-8")
                 )

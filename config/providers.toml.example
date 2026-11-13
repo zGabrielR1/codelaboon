@@ -91,6 +91,14 @@ models = [
 api_key = ""
 models = ["kilo-auto/free", "openrouter/free"]
 
+# Pollinations' public text API — keyless and OpenAI-compatible. The
+# anonymous tier needs no account; an optional token below raises limits.
+# Discovery is live from https://text.pollinations.ai/models.
+# Note: free-tier prompts may be logged upstream — keep secrets off this lane.
+[pollinations]
+api_key = ""
+models = ["openai-fast"]
+
 # Sign up at https://wusrouter.com/ and create an API key.
 # Public model discovery stays live; models is an optional offline fallback.
 [wusrouter]

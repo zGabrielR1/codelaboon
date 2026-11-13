@@ -137,7 +137,8 @@ class ClaudeAuthTests(unittest.TestCase):
                 )
                 path = os.path.join(root, "claude-session.json")
                 mode = os.stat(path).st_mode & 0o777
-                self.assertEqual(mode, 0o600)
+                if os.name == "posix":
+                    self.assertEqual(mode, 0o600)
                 self.assertEqual(
                     json.loads(Path(path).read_text(encoding="utf-8"))["access_token"],
                     "token",

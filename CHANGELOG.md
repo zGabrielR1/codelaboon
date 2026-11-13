@@ -1,3 +1,32 @@
+## 1.0.0rc9 - 2026-11-13
+
+- Make the CLI TUI the default interface: running `codelaboon` with no
+  command opens a terminal workspace modelled on Claude Code, OpenCode, Codex
+  CLI and Pi. The launch directory is the project root and is shown in the
+  header, sidebar, `/project` and saved sessions.
+- Add `free (Auto)`, the default TUI model and a synthetic CLI provider. It
+  ranks configured free lanes by availability (55%), intelligence (30%) and
+  speed (15%), displays the lane it will use, and fails over at send time.
+  `chat free free` and `models list free` use the same ranking.
+- Fix picker and composer keyboard navigation: Up/Down and PageUp/PageDown move
+  the picker highlight and Enter selects; Up/Down in the composer recalls
+  previously sent prompts. No mouse is required.
+- Rewrite ChatGPT sign-in: persist the issued client id before exchange, send
+  the documented request headers, tolerate a missing scope claim, and show the
+  provider's real OAuth error instead of a generic failure.
+- Add `codelaboon install` and scripted installers. The command installs the
+  package for the current user and idempotently adds pip's user script
+  directory to PATH on Windows and POSIX. `--editable` and `--no-path` are
+  supported.
+- Add the keyless `pollinations` provider: live model discovery from
+  `text.pollinations.ai/models`, OpenAI-compatible chat, optional bearer
+  token, transient-timeout retry, and membership in `free (Auto)`. Verified
+  live end-to-end, including `chat free free`.
+- Fix config-directory resolution so `CODELABOON_CONFIG_DIR` is honored
+  without evaluating `Path.home()` first; this also makes auth tests work in
+  environments with no home variable.
+- Add ranked/failover and new TUI interaction tests; focused suites pass.
+
 ## 1.0.0rc8 - 2026-11-08
 
 - Add WusRouter with public live model discovery, API-key chat, and browser

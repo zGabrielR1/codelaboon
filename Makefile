@@ -18,7 +18,9 @@ help:
 check:
 	@echo "Checking codelaboon structure..."
 	@for file in codelaboon/cli.py codelaboon/__init__.py codelaboon/__main__.py \
-		codelaboon/decision.py codelaboon/tui.py \
+		codelaboon/decision.py codelaboon/paths.py codelaboon/tui.py \
+		codelaboon/free_auto.py codelaboon/install.py \
+		codelaboon/chatgpt_auth.py \
 		codelaboon/claude_auth.py codelaboon/gemini_auth.py \
 		codelaboon/freebuff_auth.py codelaboon/qoder_auth.py \
 		providers/__init__.py providers/base.py \
@@ -30,6 +32,7 @@ check:
 		providers/nvidia/nvidia_provider.py \
 		providers/openrouter/openrouter_provider.py providers/luna/luna_provider.py \
 		providers/ourfree/ourfree_provider.py providers/kilo/kilo_provider.py \
+		providers/pollinations/pollinations_provider.py \
 		providers/wusrouter/wusrouter_provider.py providers/qoder/cloud.py \
 		config/providers.py README.md LICENSE pyproject.toml MANIFEST.in \
 		docs/AGENTS.md docs/ARCHITECTURE.md docs/PROGRESS.md; do \

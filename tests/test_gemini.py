@@ -195,7 +195,8 @@ class GeminiAuthTests(unittest.TestCase):
                 mode = os.stat(
                     os.path.join(root, "gemini-oauth.json")
                 ).st_mode
-                self.assertEqual(mode & 0o777, 0o600)
+                if os.name == "posix":
+                    self.assertEqual(mode & 0o777, 0o600)
 
     def test_oauth_client_import_accepts_google_download_shape(self):
         with tempfile.TemporaryDirectory() as root:
@@ -299,7 +300,8 @@ class GeminiAuthTests(unittest.TestCase):
                     {"access_token": "token", "refresh_token": "refresh"},
                 )
                 mode = os.stat(os.path.join(root, "gemini-session.json")).st_mode
-                self.assertEqual(mode & 0o777, 0o600)
+                if os.name == "posix":
+                    self.assertEqual(mode & 0o777, 0o600)
 
 
 if __name__ == "__main__":

@@ -38,11 +38,9 @@ _lock = threading.RLock()
 
 
 def directory() -> Path:
-    return Path(
-        os.environ.get(
-            "CODELABOON_CONFIG_DIR", str(Path.home() / ".config" / "codelaboon")
-        )
-    )
+    from codelaboon.paths import config_dir
+
+    return config_dir()
 
 
 def read_session():

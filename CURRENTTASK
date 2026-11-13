@@ -1,14 +1,20 @@
-RC8 local release complete: WusRouter catalog/key setup, Qoder Cloud Agents
-without local CLI, responsive whale TUI banner, atomic configuration writes,
-stream/account-switch hardening and verified wheel/source artifacts.
-132 tests pass from the source archive; structural checks and installed-wheel
-smoke checks pass. SHA256SUMS and latest.json describe local artifacts.
-Next: authenticated provider validation with account credentials and Qoder
-Cloud Agents access. No remote tag or publication was performed.
+2026-11-13: CLI-TUI-first product pass.
+`codelaboon` with no command is the terminal workspace, modelled on Claude Code,
+OpenCode, Codex CLI and Pi. It opens on `free (Auto)` (availability 55%,
+intelligence 30%, speed 15%, send-time failover) and uses the launch directory
+as the project root. Picker Up/Down/PageUp/PageDown and composer prompt history
+work without a mouse. ChatGPT sign-in follows the documented OAuth headers and
+surfaces real error codes. `codelaboon install` installs for the current user
+and adds the script directory to PATH.
 
-2026-11-13: Local routing/cloud planning-and-building service is running from
-.watch/watch-active.json. Two demo project pipelines and the isolated DigiSat
-build-runner manifest task passed; service remains running and idle. Next work:
-queue explicit project tasks; do not invent additional vendor reconstruction.
-Review .watch/cloud/state.json and .watch/workspaces/digisat-recomp; original
-project files are outside this writable workspace and must not be overwritten.
+State: focused free-auto/TUI tests (16) and ChatGPT tests (9) pass. Gemini and
+Claude provider/auth suites (31 tests) pass, and `doctor` reports both
+importable. Added the keyless Pollinations provider; live `chat pollinations`
+and `chat free free` both succeed. README, ARCHITECTURE, PROGRESS and CHANGELOG
+are updated. Next: run the full suite and `scripts/verify.sh`, then validate
+live ChatGPT/Gemini/Claude sign-in with real accounts and confirm the installed
+`codelaboon` command from a new terminal.
+
+Prior objective (kept for context): RC8 local release artifacts, WusRouter and
+Qoder Cloud Agents; authenticated provider validation still pending. The local
+routing/cloud worker service (`.watch/watch-active.json`) is idle and preserved.

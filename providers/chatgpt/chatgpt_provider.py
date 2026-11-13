@@ -29,17 +29,32 @@ class ChatGPTProvider(BaseProvider):
         self.model_names = {}
 
     def validate_api_key(self) -> bool:
-        from codelaboon.chatgpt_auth import read_session
-        return bool(self.api_key.strip() or os.environ.get("OPENAI_API_KEY", "").strip() or read_session())
+        from codelaboon.chatgpt_auth import PLAN_SCOPE, read_session
+        if self.api_key.strip() or os.environ.get("OPENAI_API_KEY", "").strip():
+            return True
+        session = read_session()
+        if not session:
+            return False
+        scopes = session.get("scopes") or []
+        if scopes and PLAN_SCOPE not in scopes:
+            return False
+        return bool(session.get("access_token") or session.get("refresh_token"))
 
     def _credential(self):
-        from codelaboon.chatgpt_auth import access_token
+        from codelaboon.chatgpt_auth import PLAN_SCOPE, access_token, read_session
         # Explicit API configuration takes precedence over a saved subscription.
         key = self.api_key.strip() or os.environ.get("OPENAI_API_KEY", "").strip()
         if key:
             return key, False
         if self.base_url.rstrip("/") != "https://api.openai.com/v1":
             raise ValueError("ChatGPT sign-in tokens can only be sent to OpenAI.")
+        session = read_session()
+        scopes = session.get("scopes") or []
+        if scopes and PLAN_SCOPE not in scopes:
+            raise ValueError(
+                "ChatGPT plan usage was not granted. Run `codelaboon login chatgpt` "
+                "and allow plan usage."
+            )
         return access_token(), True
 
     def list_models(self) -> List[str]:
