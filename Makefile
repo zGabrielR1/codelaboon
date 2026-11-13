@@ -19,7 +19,7 @@ check:
 	@echo "Checking codelaboon structure..."
 	@for file in codelaboon/cli.py codelaboon/__init__.py codelaboon/__main__.py \
 		codelaboon/decision.py codelaboon/paths.py codelaboon/tui.py \
-		codelaboon/free_auto.py codelaboon/install.py \
+		codelaboon/free_auto.py codelaboon/install.py codelaboon/update.py \
 		codelaboon/chatgpt_auth.py \
 		codelaboon/claude_auth.py codelaboon/gemini_auth.py \
 		codelaboon/freebuff_auth.py codelaboon/qoder_auth.py \

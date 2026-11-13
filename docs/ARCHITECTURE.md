@@ -21,6 +21,7 @@ codelaboon/
 │   ├── qoder_auth.py     # Qoder browser device sign-in
 │   ├── free_auto.py      # free (Auto) ranking and failover
 │   ├── install.py        # `codelaboon install` (pip + PATH)
+│   ├── update.py         # `codelaboon update` (pull + reinstall)
 │   └── tui.py            # CLI TUI (default interface)
 ├── providers/             # Model provider implementations
 │   ├── __init__.py

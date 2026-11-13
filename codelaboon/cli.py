@@ -620,6 +620,16 @@ class CodelaboonCLI:
             "--no-path", action="store_true", help="Do not modify PATH"
         )
 
+        update_parser = subparsers.add_parser(
+            "update", help="Pull latest source changes and reinstall codelaboon"
+        )
+        update_parser.add_argument(
+            "--no-pull", action="store_true", help="Skip git pull; only reinstall"
+        )
+        update_parser.add_argument(
+            "--no-editable", action="store_true", help="Install as a regular package instead of editable"
+        )
+
         web_parser = subparsers.add_parser("web", help="Open the localhost web workspace")
         web_parser.add_argument("--port", type=int, default=8765)
         web_parser.add_argument("--no-open", action="store_true")
@@ -635,6 +645,13 @@ class CodelaboonCLI:
             from codelaboon.install import install
 
             if not install(editable=args.editable, update_path=not args.no_path):
+                sys.exit(1)
+            return
+
+        if args.command == "update":
+            from codelaboon.update import update
+
+            if not update(editable=not args.no_editable, pull=not args.no_pull):
                 sys.exit(1)
             return
 

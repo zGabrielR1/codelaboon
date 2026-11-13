@@ -12,15 +12,102 @@ line is never appended twice. On Windows the user ``Path`` registry value is
 updated and a settings-change broadcast is sent; new terminals pick it up.
 """
 
+import itertools
 import os
+import shutil
 import subprocess
 import sys
 import sysconfig
+import threading
+import time
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 
 MARKER = "# codelaboon"
+
+# ANSI styling, disabled automatically when the terminal cannot show it.
+_RESET = "\033[0m"
+_BOLD = "\033[1m"
+_DIM = "\033[2m"
+_CYAN = "\033[36m"
+_GREEN = "\033[32m"
+_RED = "\033[31m"
+_YELLOW = "\033[33m"
+_MAGENTA = "\033[35m"
+_SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+
+def _color_enabled() -> bool:
+    if os.environ.get("NO_COLOR"):
+        return False
+    if os.environ.get("FORCE_COLOR"):
+        return True
+    stream = getattr(sys.stdout, "isatty", None)
+    if not callable(stream) or not stream():
+        return False
+    if os.name == "nt":
+        return os.environ.get("WT_SESSION") or os.environ.get("TERM") or os.environ.get("ANSICON")
+    return True
+
+
+def _paint(text: str, *styles: str) -> str:
+    if not _color_enabled() or not styles:
+        return text
+    return "".join(styles) + text + _RESET
+
+
+def _banner() -> None:
+    width = max(44, min(shutil.get_terminal_size((72, 20)).columns, 72))
+    mark = _paint("▲ codelaboon", _BOLD, _CYAN)
+    print()
+    print(f"  {mark}  {_paint('installer', _DIM)}")
+    print("  " + _paint("─" * (width - 4), _DIM))
+
+
+def _step(label: str, action: Callable[[], tuple[bool, str]], detail: str = "") -> tuple[bool, str]:
+    """Run ``action`` with an animated spinner, returning its (ok, detail)."""
+    is_tty = callable(getattr(sys.stdout, "isatty", None)) and sys.stdout.isatty()
+    interactive = is_tty and not os.environ.get("CODELABOON_NO_ANIMATION")
+    plain_frames = "-\\|/"
+    frames = itertools.cycle(_SPINNER if _color_enabled() else plain_frames)
+    done = threading.Event()
+    result: list[tuple[bool, str]] = [(False, "")]
+
+    def run() -> None:
+        try:
+            result[0] = action()
+        except Exception as error:  # Show install failures, never crash the UI.
+            result[0] = (False, str(error))
+        finally:
+            done.set()
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+
+    if interactive:
+        while not done.is_set():
+            frame = next(frames)
+            sys.stdout.write("\r" + f"  {_paint(frame, _CYAN)} {label}")
+            if detail:
+                sys.stdout.write(f" {_paint(detail, _DIM)}")
+            sys.stdout.write("   ")
+            sys.stdout.flush()
+            done.wait(0.08)
+        sys.stdout.write("\r")
+    else:
+        print(f"  … {label}" + (f" ({detail})" if detail else ""))
+        done.wait()
+
+    ok, message = result[0]
+    icon = _paint("✓", _BOLD, _GREEN) if ok else _paint("✗", _BOLD, _RED)
+    line = f"  {icon} {label}"
+    if message:
+        color = _DIM if ok else _YELLOW
+        line += f" {_paint(message, color)}"
+    print(line + " " * 8)
+    return ok, message
+
 
 
 def package_root() -> Path:
@@ -41,22 +128,30 @@ def user_scripts_dir() -> Path:
     return Path(path)
 
 
-def install_package(editable: bool = False, extra: Optional[str] = "tui") -> int:
+def install_package(
+    editable: bool = False,
+    extra: Optional[str] = "tui",
+    quiet: bool = False,
+) -> tuple[int, str]:
     """Run ``pip install --user`` against the current source checkout."""
     root = package_root()
     if not (root / "pyproject.toml").is_file():
-        print("No source checkout found; skipping pip install (already installed?).")
-        return 0
+        return 0, "source checkout not found"
     target = str(root)
     if extra:
         target += f"[{extra}]"
-    command = [sys.executable, "-m", "pip", "install", "--user"]
+    command = [sys.executable, "-m", "pip", "install", "--user", "--progress-bar", "off"]
     if editable:
         command.append("-e")
     command.append(target)
-    print("Installing:", " ".join(command))
+    if quiet:
+        completed = subprocess.run(
+            command, capture_output=True, text=True, encoding="utf-8", errors="replace"
+        )
+        output = (completed.stdout or "") + (completed.stderr or "")
+        return completed.returncode, output.strip()
     completed = subprocess.run(command, check=False)
-    return completed.returncode
+    return completed.returncode, ""
 
 
 def _posix_profiles() -> List[Path]:
@@ -127,13 +222,13 @@ def add_to_windows_path(directory: Path) -> bool:
     return True
 
 
-def add_to_path(directory: Path) -> bool:
+def add_to_path(directory: Path, quiet: bool = False) -> bool:
     """Make ``directory`` reachable from new shells. True when it changed."""
     directory = directory.expanduser()
     if os.name == "nt":
         return add_to_windows_path(directory)
     updated = add_to_posix_path(directory)
-    if updated:
+    if updated and not quiet:
         print("Updated:", ", ".join(str(path) for path in updated))
     return bool(updated)
 
@@ -144,16 +239,72 @@ def on_path(directory: Path) -> bool:
 
 
 def install(editable: bool = False, update_path: bool = True) -> bool:
-    status = install_package(editable=editable)
-    if status != 0:
+    interactive = callable(getattr(sys.stdout, "isatty", None)) and sys.stdout.isatty()
+    interactive = interactive and not os.environ.get("CODELABOON_PLAIN_INSTALL")
+    directory = user_scripts_dir()
+    pip_output = ""
+
+    if interactive:
+        _banner()
+
+        def do_install() -> tuple[bool, str]:
+            nonlocal pip_output
+            code, output = install_package(editable=editable, quiet=True)
+            pip_output = output
+            if code != 0:
+                return False, "pip install failed"
+            if "source checkout not found" in output:
+                return True, "already installed"
+            return True, "ready"
+
+        ok, _ = _step(
+            "Install codelaboon",
+            do_install,
+            detail="(editable)" if editable else "(user)",
+        )
+        if not ok:
+            if pip_output:
+                tail = "\n".join(pip_output.splitlines()[-12:])
+                print("\n" + _paint("pip output:", _DIM))
+                print(_paint(tail, _DIM))
+            print(_paint("\n  PATH was not changed.", _YELLOW))
+            return False
+
+        changed = False
+        if update_path:
+            def do_path() -> tuple[bool, str]:
+                nonlocal changed
+                changed = add_to_path(directory, quiet=True)
+                if on_path(directory) and not changed:
+                    return True, "already on PATH"
+                if changed:
+                    return True, "updated"
+                return True, "add manually"
+
+            _step("Configure PATH", do_path, detail=str(directory))
+        else:
+            _step("Configure PATH", lambda: (True, "skipped (--no-path)"))
+
+        print()
+        print("  " + _paint("Next steps", _BOLD, _MAGENTA))
+        if changed or (not on_path(directory) and not update_path):
+            print("  " + _paint("Open a new terminal, then:", _DIM))
+        print(f"  {_paint('$', _DIM)} cd my-project")
+        print(f"  {_paint('$', _DIM)} codelaboon")
+        if update_path and not on_path(directory) and not changed and os.name == "nt":
+            print("  " + _paint(f"Add to PATH if needed: {directory}", _YELLOW))
+        print()
+        return True
+
+    # Non-interactive: keep plain, script-friendly output.
+    code, output = install_package(editable=editable, quiet=False)
+    if code != 0:
         print("pip install failed; PATH was not changed.")
         return False
 
-    directory = user_scripts_dir()
     changed = False
     if update_path:
         changed = add_to_path(directory)
-
     print()
     print(f"codelaboon installed. Scripts directory: {directory}")
     if on_path(directory):

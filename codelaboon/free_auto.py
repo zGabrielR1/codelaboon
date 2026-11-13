@@ -151,6 +151,49 @@ def select(providers: Dict[str, object]) -> Optional[FreeModel]:
     return entries[0] if entries else None
 
 
+def _is_transient_error(error: Exception) -> bool:
+    """Whether a failure is worth a quick retry or failover."""
+    text = str(error).lower()
+    transient = (
+        "429",
+        "rate limit",
+        "rate-limit",
+        "ratelimit",
+        "too many requests",
+        "timeout",
+        "timed out",
+        "temporar",
+        "overloaded",
+        "capacity",
+        "busy",
+        "503",
+        "502",
+        "504",
+        "500",
+        "connection",
+        "reset by peer",
+        "server error",
+        "try again",
+        "unavailable",
+        "admit",
+    )
+    permanent = (
+        "invalid api key",
+        "unauthorized",
+        "forbidden",
+        "not configured",
+        "no credential",
+        "no free model is configured",
+        "missing",
+        "does not exist",
+        "unknown model",
+        "unsupported",
+    )
+    if any(mark in text for mark in permanent):
+        return False
+    return any(mark in text for mark in transient)
+
+
 def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwargs):
     """Answer with the best available free model, failing over on errors.
 
@@ -158,6 +201,8 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
     failed, including the collected provider errors so the TUI/CLI can show
     what actually happened instead of a generic failure.
     """
+    import time
+
     entries = ranked(providers)
     if not entries:
         raise ValueError(
@@ -166,17 +211,32 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
         )
 
     errors: List[str] = []
+    attempts = 0
+    max_attempts = 12  # avoid very long stalls while still being resilient
     for entry in entries:
         provider = providers.get(entry.provider)
         if provider is None:
             continue
-        try:
-            reply = provider.chat(entry.model, list(messages), **kwargs)
-        except Exception as error:  # Fail over: the point of Auto is availability.
-            errors.append(f"{entry.provider}/{entry.model}: {error}")
-            continue
-        if isinstance(reply, str) and reply.strip():
-            return entry, reply
-        errors.append(f"{entry.provider}/{entry.model}: empty reply")
+        for attempt in range(2):
+            attempts += 1
+            if attempts > max_attempts:
+                break
+            try:
+                reply = provider.chat(entry.model, list(messages), **kwargs)
+            except Exception as error:  # Fail over: the point of Auto is availability.
+                errors.append(f"{entry.provider}/{entry.model}: {error}")
+                if attempt == 0 and _is_transient_error(error):
+                    time.sleep(0.6)
+                    continue
+                break
+            if isinstance(reply, str) and reply.strip():
+                return entry, reply
+            errors.append(f"{entry.provider}/{entry.model}: empty reply")
+            if attempt == 0:
+                time.sleep(0.25)
+                continue
+            break
+        if attempts > max_attempts:
+            break
     detail = " | ".join(errors[-4:]) if errors else "no candidate answered"
     raise ValueError(f"free (Auto) could not get an answer. {detail}")

@@ -58,8 +58,10 @@ class FreeAutoTests(unittest.TestCase):
         self.assertEqual(reply, "ok")
         self.assertNotEqual(chosen.model, "deepseek-v4.1-flash-free")
         self.assertEqual(provider.calls[0], "deepseek-v4.1-flash-free")
+        # Transient failures get one quick retry before failover.
+        self.assertEqual(provider.calls[1], "deepseek-v4.1-flash-free")
         self.assertEqual(
-            provider.calls[1],
+            provider.calls[2],
             next(entry.model for entry in free_auto.ranked(providers) if entry.model != "deepseek-v4.1-flash-free"),
         )
 

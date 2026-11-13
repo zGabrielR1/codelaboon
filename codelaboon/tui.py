@@ -604,27 +604,86 @@ class CodelaboonTuiApp(App[None]):
         else:
             self._set_prompt(self._prompt_history[self._history_cursor])
 
-    def _send(self, text: str) -> None:
-        text = text.strip()
-        if text == "/key" and self._current_provider in ("wusrouter", "qoder"):
-            self.push_screen(ProviderKey(self._current_provider))
-            return
-        commands = {
+    def _slash_commands(self):
+        return {
             "/models": self.action_focus_models,
             "/connect": self.action_focus_providers,
             "/new": self.action_new_conversation,
+            "/clear": self.action_new_conversation,
             "/sidebar": self.action_toggle_sidebar,
             "/sessions": self.action_sessions,
             "/export": self.action_export,
             "/free": self.action_use_free,
             "/project": self.action_project,
+            "/doctor": self.action_run_doctor,
+            "/update": self.action_update,
+            "/retry": self.action_retry,
             "/quit": self.action_quit,
         }
+
+    def _slash_aliases(self):
+        return {
+            "/h": "/help",
+            "/?": "/help",
+            "/m": "/models",
+            "/c": "/connect",
+            "/n": "/new",
+            "/s": "/sessions",
+            "/q": "/quit",
+            "/d": "/doctor",
+            "/u": "/update",
+            "/r": "/retry",
+            "/p": "/project",
+            "/k": "/key",
+        }
+
+    def _resolve_slash_command(self, text: str) -> str:
+        """Autocorrect mistyped slash commands to the closest known one."""
+        if not text.startswith("/"):
+            return text
+        commands = self._slash_commands()
+        aliases = self._slash_aliases()
+        head = text.split(maxsplit=1)[0].lower()
+        if head in aliases:
+            head = aliases[head]
+            return head
+        if head in commands or head in ("/help", "/key"):
+            return head + text[len(text.split(maxsplit=1)[0]):]
+        import difflib
+
+        known = sorted(set(commands) | set(aliases) | {"/help", "/key"})
+        matches = difflib.get_close_matches(head, known, n=1, cutoff=0.55)
+        if matches:
+            corrected = aliases.get(matches[0], matches[0])
+            if corrected != head:
+                self._log(f"↳ corrected {head} to {corrected}")
+                self.notify(f"Corrected to {corrected}", timeout=2)
+            return corrected
+        return text
+
+    def _send(self, text: str) -> None:
+        text = text.strip()
+        if text.startswith("/"):
+            text = self._resolve_slash_command(text)
+        commands = self._slash_commands()
+        if text == "/key":
+            self.action_provider_key()
+            return
         if text in commands:
             commands[text]()
             return
         if text == "/help":
-            self.notify("/free auto · /connect provider · /models model · /new chat · /sessions history · /project root")
+            self._log(
+                "Commands: /models /connect /new /sessions /free /doctor /update /retry "
+                "/project /sidebar /export /key /quit  (aliases: /m /c /n /s /d /u /r /h /k)"
+            )
+            self.notify("/models /connect /new /sessions /free /doctor /update /retry /help")
+            return
+        if text.startswith("/"):
+            known = ", ".join(sorted(set(commands) | {"/help", "/key"}))
+            self._log(f"error> unknown command: {text}")
+            self._log(f"hint> try: {known}")
+            self.notify("Unknown command. Type /help", timeout=4)
             return
         if not text:
             return
@@ -1006,6 +1065,47 @@ class CodelaboonTuiApp(App[None]):
         with contextlib.redirect_stdout(buffer):
             self.cli.doctor()
         self._log(buffer.getvalue().rstrip())
+
+    def action_retry(self) -> None:
+        if self._busy:
+            self.notify("A reply is pending. Wait or press Esc.", timeout=3)
+            return
+        last = None
+        for item in reversed(self.history):
+            if item.get("role") == "user":
+                content = item.get("content")
+                if isinstance(content, str) and content.strip():
+                    last = content
+                    break
+        if not last:
+            self.notify("Nothing to retry yet.", timeout=3)
+            return
+        self._log("↻ retrying last message…")
+        self._send(last)
+
+    def action_update(self) -> None:
+        self._log("Checking for updates and reinstalling…")
+        self.notify("Updating codelaboon…", timeout=3)
+        self.run_worker(self._update_job, thread=True, exclusive=False, group="update")
+
+    def _update_job(self) -> None:
+        import contextlib
+        import io
+
+        buffer = io.StringIO()
+        ok = False
+        try:
+            from codelaboon.update import update
+
+            with contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
+                ok = update(editable=True, pull=True)
+        except Exception as error:
+            buffer.write(f"\n{error}")
+        output = buffer.getvalue().strip()
+        if not output:
+            output = "Update complete. Restart codelaboon to use the new version." if ok else "Update failed."
+        self.call_from_thread(self._log, output)
+        self.call_from_thread(self.notify, "Update complete" if ok else "Update failed", timeout=4)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """Route list selections: provider picks load models, model picks switch."""

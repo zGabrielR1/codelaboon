@@ -28,6 +28,7 @@ required_files=(
     "codelaboon/tui.py"
     "codelaboon/free_auto.py"
     "codelaboon/install.py"
+    "codelaboon/update.py"
     "codelaboon/chatgpt_auth.py"
     "codelaboon/claude_auth.py"
     "codelaboon/gemini_auth.py"

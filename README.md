@@ -258,6 +258,16 @@ codelaboon
 changes are picked up without reinstalling. `--no-path` installs without
 touching `PATH`.
 
+To pull the latest source and refresh the installed command in one step, run:
+
+```bash
+python3 -m codelaboon update
+```
+
+Use `--no-pull` to reinstall only, or `--no-editable` for a regular user
+install. If changes don't seem to take effect, updating/reinstalling (and
+restarting `codelaboon`) ensures the running command uses the current code.
+
 Scripted installers are available too:
 
 ```bash
@@ -294,6 +304,7 @@ and `work add`. New instructions enter a persistent inbox without restarting.
 | `configure <provider>` | Interactively write an API key or start account sign-in |
 | `doctor` | Diagnose Python, dependencies, providers and config |
 | `install` | Install for the current user and add `codelaboon` to PATH |
+| `update` | Pull latest source changes and reinstall codelaboon |
 | `tui` | Interactive terminal UI (the default when no command is given) |
 
 common options for `chat`: `--system`, `--temperature`, `--max-tokens`.
@@ -540,6 +551,7 @@ codelaboon/
 │   ├── decision.py        # Typed decision protocols
 │   ├── free_auto.py       # free (Auto) ranking and failover
 │   ├── install.py         # `codelaboon install` (pip + PATH)
+│   ├── update.py          # `codelaboon update` (pull + reinstall)
 │   └── tui.py             # CLI TUI (default interface)
 ├── providers/             # Provider implementations
 │   ├── base.py            # Shared provider contract
