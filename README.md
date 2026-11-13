@@ -116,7 +116,7 @@ URL, you finish sign-in in the browser, and the CLI polls for the account's
 device token, which then refreshes automatically. Qoder accounts include a
 free plan, so no subscription or API key is needed to sign in.
 
-One wrinkle: Qoder's inference gateway only accepts requests signed by the
+For browser device sessions, Qoder's inference gateway only accepts requests signed by the
 official client, so chat turns run through the installed `qodercli` binary in
 its non-interactive print mode (`qoder -p --model auto --tools ""`). Install
 it once with `curl -fsSL https://qoder.com/install | bash`, then sign in
@@ -204,6 +204,16 @@ harness. Running from the source checkout works without installing. The
 terminal UI is an optional extra: `python3 -m pip install --user '.[tui]'`.
 
 ## Commands
+
+For a persistent task queue with project/harness rotation, see [WATCH.md](WATCH.md).
+Run it with `python -m codelaboon.watch examples/watch.json`; local models can
+avoid hosted token quotas, while hosted provider limits still apply.
+For local orchestration with cloud-only planning and building, see
+[CLOUD-WATCH.md](CLOUD-WATCH.md).
+
+Run `python -m codelaboon work` for the background-worker control menu, or use
+`work start`, `work status`, `work stop`, `work pause`, `work resume`, `work logs`
+and `work add`. New instructions enter a persistent inbox without restarting.
 
 | Command | Description |
 |---------|-------------|
@@ -488,3 +498,35 @@ controls rename, archive or restore the selected conversation. Archiving is
 reversible. Drafts recover after reload and when switching saved conversations.
 Stop waiting restores the draft and controls; the provider may continue executing
 and billing the original request. It does not promise upstream cancellation.
+
+### WusRouter and switching accounts
+
+WusRouter (`wusrouter`) discovers its full public catalog live from
+https://wusrouter.com/v1/models. Catalog availability does not establish chat
+quota or free access. Sign up at https://wusrouter.com/ in your browser and
+create an API key, then run `codelaboon configure wusrouter` or set
+`WUSROUTER_API_KEY`. In the TUI select WusRouter with Ctrl+P; its connection
+dialog opens signup and accepts the key privately. Ctrl+K (or `/key`) lets you
+replace the saved key to switch accounts. Ctrl+R refreshes the live models.
+The configured `models` list is only a fallback if discovery fails.
+
+### Qoder without installing its CLI
+
+A Personal Access Token can use the official
+[Cloud Agents HTTP API](https://docs.qoder.com/cloud-agents/quickstart)
+without any local Qoder binary or additional SDK. This route is selected when
+a PAT is configured and no CLI is on PATH; set `CODELABOON_QODER_CLOUD=1` to
+prefer it even with a CLI installed. Set `QODER_PERSONAL_ACCESS_TOKEN` or
+`QODER_PAT`, paste the PAT with `codelaboon configure qoder`, or select Qoder
+and press Ctrl+K in the TUI. The same model discovery and chat route serves
+CLI, TUI and web callers. Browser device sign-in continues to use the CLI lane.
+
+Cloud Agents access and quota are required; this is not a promise of free
+personal-plan inference. Create a cloud environment in Qoder first. Each chat
+call creates a remote agent with no tools and a new remote session, and sends
+the conversation as text. Those resources remain visible in your Qoder account;
+cloud model and sandbox usage may consume credits. Errors never silently retry
+through the CLI. Live authenticated inference still needs account verification.
+
+The TUI welcome screen now includes a whale and an ASCII Codelaboon wordmark,
+with a compact layout for narrow terminals.

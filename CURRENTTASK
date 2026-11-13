@@ -1,105 +1,14 @@
-RC7 tagged candidate: Qoder limitation alert on CLI/TUI/web, license
-switched to Personal Use Only. No Qoder provider changes.
-Next: live authorization/provider validation with real accounts, including
-Qoder device login and a qodercli-backed chat turn. A native Qoder
-inference alternative is still an open question for later.
+RC8 local release complete: WusRouter catalog/key setup, Qoder Cloud Agents
+without local CLI, responsive whale TUI banner, atomic configuration writes,
+stream/account-switch hardening and verified wheel/source artifacts.
+132 tests pass from the source archive; structural checks and installed-wheel
+smoke checks pass. SHA256SUMS and latest.json describe local artifacts.
+Next: authenticated provider validation with account credentials and Qoder
+Cloud Agents access. No remote tag or publication was performed.
 
-# CURRENTTASK
-
-**ACTIVE**: Qoder (free plan) account sign-in shipped alongside Freebuff
-(ad-funded free tier), Claude (claude.ai plan), Gemini (Google free tier)
-and ChatGPT. Next: validate the live login flows and inference with real
-accounts, and keep growing the free catalogue.
-
-## Baseline established
-
-The original v0.1.0 release task is complete:
-
-- Cross-platform CLI harness exists
-- Five providers implemented: ChatGPT/OpenAI, NVIDIA, OpenRouter, Luna,
-  Our Free Model
-- TOML-based configuration with restrictive file permissions
-- README, architecture, agents, progress and workflow docs present
-- Working verification: `scripts/verify.sh`, `scripts/test.sh`, `make check`
-
-## What shipped
-
-### v0.1.0 — 2026-11-03
-
-- Initial release
-- MIT license and changelog
-- Minimal packaging with `pyproject.toml`
-- `forks/` excluded from the release
-
-### v0.1.1 — 2026-11-03
-
-- Offline unit tests
-- `CODELABOON_CONFIG_DIR` honored by the CLI and config module
-- Structural verification extended to the test runner
-
-### v0.2.0 — 2026-11-03
-
-- `codelaboon doctor` diagnoses Python, dependencies, providers, and config
-- GitHub Actions workflow runs tests and verification on Python 3.11–3.13
-- Release docs updated to current reality
-
-### v0.3.0 — 2026-11-03
-
-- Typed decision models: predicate, choice and score questions
-- OpenAI `/decisions` and System One `/systemone` protocols
-- `--json` output and JSON/inline question definitions
-- Non-zero exit codes for failed chat and decision requests
-
-### v0.4.0 — 2026-11-04
-
-- `ourfree` provider: dsh-our-free-model local gateway as a model catalogue
-  input; every model on the lane is free, DeepSeek first
-- Live discovery from `GET /v1/models`; configured models as offline fallback
-- `base_url` config key honored by every provider
-- `configure ourfree` asks for the gateway base URL
-
-### v0.5.0 — 2026-11-04
-
-- `codelaboon tui`: optional Textual terminal UI — provider browser, live
-  model catalogue, multi-turn chat, inline doctor
-- `textual` moved to an optional `[tui]` extra; the CLI prints install
-  instructions and exits 2 when it is missing
-- Headless pilot tests for mount, selection and chat; CI installs the extra
-
-### v0.6.0 — 2026-11-04
-
-- `kilo` provider: Kilo AI's public gateway free pool, completely keyless
-- Live discovery filters the gateway listing to its `isFree` slice;
-  `kilo-auto/free` and `openrouter/free` are the offline fallbacks
-- Chat requests the stream wire and parses by shape (SSE frames folded,
-  keepalive comments skipped, single JSON documents accepted); `reasoning`
-  levels (`off`/`low`/`medium`/`high`) map onto the gateway's parameter
-- Keyless providers are a first-class concept: `providers list` shows
-  "Free (no key needed)" and `configure kilo` only offers a base URL override
-
-## Success criteria
-
-- [x] CLI exists and works from a clean checkout
-- [x] Providers implemented behind a shared interface
-- [x] Configuration is writable, validated, and private
-- [x] Structural verification and offline tests pass
-- [x] Documentation for all major components is present
-- [ ] Real API keys validated against production provider endpoints
-- [ ] Public GitHub release notes (requires GitHub release/`gh` or manual publish)
-- [ ] Cross-platform CI matrix beyond Linux (macOS/Windows job)
-- [ ] Live chat validated against a running dsh-our-free-model gateway
-
-## Dependencies
-
-- Python 3.11+
-- `requests`
-- `markdownlint-cli2` (optional, for linting)
-- GitHub Actions runner (for CI)
-
-## Next steps
-
-1. Validate each provider against a real API key in an isolated config
-2. Validate `ourfree` against a running dsh-our-free-model forward gateway
-3. Publish GitHub Release notes for the pushed tag
-4. Add macOS and Windows CI jobs if release claims grow beyond Linux
-5. Keep `docs/` treated as source when behavior changes
+2026-11-13: Local routing/cloud planning-and-building service is running from
+.watch/watch-active.json. Two demo project pipelines and the isolated DigiSat
+build-runner manifest task passed; service remains running and idle. Next work:
+queue explicit project tasks; do not invent additional vendor reconstruction.
+Review .watch/cloud/state.json and .watch/workspaces/digisat-recomp; original
+project files are outside this writable workspace and must not be overwritten.

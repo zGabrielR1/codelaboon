@@ -76,6 +76,7 @@ class CodelaboonCLI:
             "luna": "providers.luna.luna_provider.LunaProvider",
             "ourfree": "providers.ourfree.ourfree_provider.OurFreeModelProvider",
             "kilo": "providers.kilo.kilo_provider.KiloProvider",
+            "wusrouter": "providers.wusrouter.wusrouter_provider.WusRouterProvider",
         }
 
         if provider_name not in provider_mapping:
@@ -133,7 +134,7 @@ class CodelaboonCLI:
 
         for provider_name in (
             "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
-            "openrouter", "luna", "ourfree", "kilo",
+            "openrouter", "luna", "ourfree", "kilo", "wusrouter",
         ):
             try:
                 self._get_provider_class(provider_name)
@@ -343,6 +344,9 @@ class CodelaboonCLI:
         except (ImportError, AttributeError, ValueError):
             provider_class = None
 
+        if provider_class is not None and getattr(provider_class, "signup_url", None):
+            print(f"Sign up and create an API key at {provider_class.signup_url}")
+
         if provider_class is not None and getattr(provider_class, "keyless", False):
             # Keyless pools need no credential; only a base URL override if
             # the gateway is reachable somewhere else.
@@ -481,6 +485,7 @@ class CodelaboonCLI:
         )
 
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
+        subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
 
         # List providers command
         providers_parser = subparsers.add_parser("providers", help="Provider management")
@@ -686,6 +691,10 @@ def main() -> None:
                 stream.reconfigure(errors="replace")
             except (OSError, ValueError):
                 pass
+    if sys.argv[1:2] == ['work']:
+        from codelaboon.work import main as work_main
+        work_main(sys.argv[2:])
+        return
     cli = CodelaboonCLI()
     cli.run()
 

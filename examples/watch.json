@@ -1,0 +1,24 @@
+{
+  "runtime": "../.watch",
+  "poll_seconds": 15,
+  "harnesses": [
+    {
+      "id": "local-ollama",
+      "argv": ["{python}", "{source}/scripts/local_completion.py", "REPLACE_WITH_INSTALLED_MODEL", "{prompt_file}"],
+      "timeout_seconds": 900,
+      "cooldown_seconds": 300
+    }
+  ],
+  "tasks": [
+    {
+      "id": "codelaboon-plan-001",
+      "project": "..",
+      "prompt": "Propose a checklist for testing a persistent multi-provider task scheduler. Output the checklist only. You have no filesystem tools in this completion."
+    },
+    {
+      "id": "other-project-plan-001",
+      "project": "../..",
+      "prompt": "Propose a concise template for a coding task with acceptance criteria and validation commands. You have no filesystem tools in this completion."
+    }
+  ]
+}

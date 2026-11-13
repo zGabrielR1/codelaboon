@@ -6,18 +6,11 @@ browser device flow — see ``codelaboon.qoder_auth``) or with a Personal
 Access Token from https://qoder.com/account/integrations (the ``qoder``
 provider's ``api_key`` or ``QODER_PERSONAL_ACCESS_TOKEN``).
 
-Why chat goes through the ``qodercli`` binary: Qoder's inference
-gateway only accepts requests signed by the official client (the
-signature and response encryption live in that client's WASM module,
-and personal-account requests without it are rejected with
-``Signature invalid``). codelaboon therefore does not mint inference
-requests itself; when the official ``qodercli``/``qoder`` binary is on
-PATH it runs the turn through its non-interactive print mode
-(``qoder -p --model <model> --tools ""``), which is tool-free plain
-conversation on the signed-in account. A PAT, when configured, is
-forwarded to that binary via ``QODER_PERSONAL_ACCESS_TOKEN`` — the same
-variable the official CLI reads. Without the binary, chat says so
-plainly instead of failing with a signature error from the gateway.
+Browser device sessions use the official qodercli binary. Personal Access
+Tokens can instead use the documented Cloud Agents HTTP API without a local
+binary. Cloud Agents is selected when no binary is present or when
+CODELABOON_QODER_CLOUD=1. It requires Cloud Agents access, quota and an existing
+cloud environment; personal-plan free inference is not guaranteed.
 
 Free-tier terms apply: prompts may be processed under Qoder's data
 policy for the plan in use. Use it for throwaway work, not secrets.
@@ -44,7 +37,9 @@ TURN_TIMEOUT = 300
 
 _INSTALL_HINT = (
     "Qoder chat runs through the official qodercli binary, which is not "
-    "on PATH. Install it with: curl -fsSL https://qoder.com/install | bash\n"
+    "on PATH. Alternatively, set QODER_PERSONAL_ACCESS_TOKEN to use the native "
+    "Cloud Agents API (requires Cloud Agents access and an existing cloud environment). "
+    "Install the CLI with: curl -fsSL https://qoder.com/install | bash\n"
     "Then sign in once with `qoder login` (or set "
     "QODER_PERSONAL_ACCESS_TOKEN to a Personal Access Token from "
     "https://qoder.com/account/integrations) and retry."
@@ -70,7 +65,7 @@ def _render_prompt(messages: List[Dict[str, str]], system: str = "") -> str:
 
 
 class QoderProvider(BaseProvider):
-    """Provider for Qoder accounts, driven through the official CLI."""
+    """Qoder accounts through Cloud Agents or the official CLI."""
 
     def __init__(
         self,
@@ -86,7 +81,14 @@ class QoderProvider(BaseProvider):
         """Return the configured Personal Access Token, if any."""
         if self.api_key.strip():
             return self.api_key.strip()
-        return os.environ.get("QODER_PERSONAL_ACCESS_TOKEN", "").strip()
+        return (os.environ.get("QODER_PERSONAL_ACCESS_TOKEN", "") or os.environ.get("QODER_PAT", "")).strip()
+
+    def _cloud(self):
+        """Use native Cloud Agents when requested or when no CLI is installed."""
+        if self._pat() and (os.environ.get("CODELABOON_QODER_CLOUD") == "1" or not _binary()):
+            from providers.qoder.cloud import QoderCloud
+            return QoderCloud(self._pat())
+        return None
 
     def validate_api_key(self) -> bool:
         if self._pat():
@@ -108,6 +110,9 @@ class QoderProvider(BaseProvider):
             return []
         if self.models:
             return list(self.models)
+        cloud = self._cloud()
+        if cloud:
+            return cloud.list_models()
         binary = _binary()
         if binary:
             try:
@@ -135,6 +140,12 @@ class QoderProvider(BaseProvider):
     def chat(self, model: str, messages: List[Dict[str, str]], **kwargs) -> str:
         if not self.validate_api_key():
             raise ValueError("Invalid or missing Qoder credential")
+        cloud = self._cloud()
+        if cloud:
+            prompt = _render_prompt(messages, str(kwargs.get("system") or ""))
+            if not prompt:
+                raise ValueError("Qoder needs a prompt")
+            return cloud.chat(str(model or "auto"), prompt, timeout=float(kwargs.get("timeout", TURN_TIMEOUT)))
         binary = _binary()
         if not binary:
             raise ValueError(_INSTALL_HINT)

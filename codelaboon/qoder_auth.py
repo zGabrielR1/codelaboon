@@ -12,8 +12,9 @@ in here just like the other account lanes. Note what this module does
 and does not do: the login, token refresh, userinfo and plan checks
 run against the OpenAPI host with a plain bearer token. Qoder's
 inference gateway additionally requires the signed requests only the
-official client can mint, so chat itself runs through the installed
-``qodercli`` binary (see ``providers/qoder``).
+official client can mint, so browser-session chat runs through the installed
+``qodercli`` binary. An explicit PAT can use the separate Cloud Agents HTTP
+API without a binary (see ``providers/qoder``).
 
 A Personal Access Token from ``https://qoder.com/account/integrations``
 is also honored: set ``QODER_PERSONAL_ACCESS_TOKEN`` or paste it as the
@@ -49,10 +50,10 @@ LOGIN_TIMEOUT = 300.0
 # Current Qoder limitation, shown in the CLI, TUI and web workspace so
 # nobody mistakes the qodercli-backed chat path for direct inference.
 QODER_LIMITATION = (
-    "Qoder limitation: login works natively, but chat runs through the "
-    "official qodercli binary — Qoder's inference gateway only accepts "
-    "requests signed by the official client, so codelaboon has no direct "
-    "Qoder inference yet."
+    "Qoder limitation: browser sign-in uses qodercli for chat. With a Personal "
+    "Access Token and no local CLI, codelaboon uses Cloud Agents directly; "
+    "Cloud Agents access, quota and an existing cloud environment are required. "
+    "Set CODELABOON_QODER_CLOUD=1 to prefer Cloud Agents with a CLI installed."
 )
 
 _lock = threading.RLock()

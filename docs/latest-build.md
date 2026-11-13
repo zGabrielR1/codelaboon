@@ -1,19 +1,22 @@
-# Latest build: 1.0.0rc7
+# Latest build: 1.0.0rc8
 
-Adds the Qoder limitation alert across CLI, TUI and web, and switches
-the license from MIT to Personal Use Only. No Qoder provider logic
-changed in this build.
+Local release candidate built on 2026-11-08. Artifacts and SHA-256 checksums
+are in `releases/`; this build has not been published or tagged remotely.
 
-- Qoder limitation alert: the CLI prints it for Qoder
-  `login`/`configure`/`models list`/`chat`, the TUI logs and notifies
-  it when Qoder is selected, and the web workspace shows a banner
-  while Qoder is the selected provider. It states that login works
-  natively but chat runs through the official `qodercli` binary,
-  because Qoder's gateway only accepts signed official-client requests.
-- License: MIT replaced with a Personal Use Only license — codelaboon
-  is a personal project for the owner's own use, with no redistribution
-  or commercial use without permission. Each provider's own terms
-  continue to apply.
-- Published as tag `v1.0.0-rc.7`; the tag-triggered release workflow tests,
-  builds the wheel/source archive, writes SHA256SUMS and publishes a GitHub
-  prerelease with downloadable artifacts.
+Includes WusRouter live discovery, browser signup and account-key switching;
+native Qoder Cloud Agents support for PAT users without a local CLI; and a
+responsive whale ASCII TUI welcome screen.
+
+Low-level fixes cover atomic private configuration writes, concurrent updates,
+stale TUI requests after switching accounts, bounded UTF-8 event parsing,
+recoverable Qoder errors, and source-archive verification.
+
+Live WusRouter public discovery was checked. Authenticated inference requires
+provider credentials; Qoder Cloud Agents also needs access, quota and an
+existing environment. Account availability and free-tier eligibility have not
+been established by offline tests.
+
+Validation: 132 tests pass from the extracted source archive. Both the checkout
+and source archive pass `make check` and structural verification. The wheel is
+installed and smoke-tested outside the checkout, and both artifacts have SHA-256
+checksums in `releases/SHA256SUMS`.

@@ -6,6 +6,8 @@ Handles loading and saving provider configurations from TOML files.
 
 import json
 import os
+import tempfile
+import threading
 import tomllib
 from pathlib import Path
 from typing import Any, Dict
@@ -13,6 +15,7 @@ from typing import Any, Dict
 
 CONFIG_DIR = Path(os.environ.get("CODELABOON_CONFIG_DIR", str(Path.home() / ".config" / "codelaboon")))
 PROVIDERS_CONFIG_FILE = CONFIG_DIR / "providers.toml"
+_config_lock = threading.RLock()
 
 
 def _default_config() -> Dict[str, Dict[str, Any]]:
@@ -69,6 +72,7 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
                 "jev-1.13-free",
             ],
         },
+        "wusrouter": {"api_key": "", "models": []},
         "kilo": {
             "api_key": "",
             "models": ["kilo-auto/free", "openrouter/free"],
@@ -158,9 +162,10 @@ def save_provider_config(provider_name: str, config: Dict[str, Any]) -> bool:
         True if successful, False otherwise
     """
     try:
-        current_config = get_providers_config()
-        current_config[provider_name] = config
-        return save_providers_config(current_config)
+        with _config_lock:
+            current_config = get_providers_config()
+            current_config[provider_name] = config
+            return save_providers_config(current_config)
     except Exception as e:
         print(f"Error saving provider config: {e}")
         return False
@@ -173,15 +178,25 @@ def save_providers_config(config: Dict[str, Dict[str, Any]]) -> bool:
     Returns:
         True if successful, False otherwise
     """
+    temporary = None
     try:
-        _ensure_config_dir()
-        with open(PROVIDERS_CONFIG_FILE, "w", encoding="utf-8") as f:
-            f.write(_dump_toml(config))
-        PROVIDERS_CONFIG_FILE.chmod(0o600)
+        payload = _dump_toml(config)
+        with _config_lock:
+            _ensure_config_dir()
+            fd, temporary = tempfile.mkstemp(prefix=".providers-", suffix=".tmp", dir=CONFIG_DIR)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temporary, PROVIDERS_CONFIG_FILE)
+            temporary = None
         return True
     except Exception as e:
         print(f"Error saving providers config: {e}")
         return False
+    finally:
+        if temporary is not None:
+            Path(temporary).unlink(missing_ok=True)
 
 
 def get_default_models(provider_name: str) -> list:
@@ -209,6 +224,7 @@ def get_default_models(provider_name: str) -> list:
             "deepseek-v4.1-flash-free",
             "deepseek-v4-flash-free",
         ],
+        "wusrouter": [],
         "kilo": ["kilo-auto/free", "openrouter/free"],
     }
 

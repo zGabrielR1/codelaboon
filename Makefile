@@ -30,8 +30,9 @@ check:
 		providers/nvidia/nvidia_provider.py \
 		providers/openrouter/openrouter_provider.py providers/luna/luna_provider.py \
 		providers/ourfree/ourfree_provider.py providers/kilo/kilo_provider.py \
+		providers/wusrouter/wusrouter_provider.py providers/qoder/cloud.py \
 		config/providers.py README.md LICENSE pyproject.toml MANIFEST.in \
-		docs/AGENTS.md docs/ARCHITECTURE.md docs/PROGRESS.md docs/CURRENTTASK; do \
+		docs/AGENTS.md docs/ARCHITECTURE.md docs/PROGRESS.md; do \
 		if [ ! -f "$$file" ]; then \
 			echo "Error: $$file not found"; exit 1; \
 		fi; \
@@ -55,9 +56,9 @@ lint:
 all: check lint
 	@echo "Full verification completed."
 verify:
-	@scripts/verify.sh
+	@bash scripts/verify.sh
 test:
-	@scripts/test.sh
+	@bash scripts/test.sh
 clean:
 	@bash scripts/cleanup.sh
 configure:

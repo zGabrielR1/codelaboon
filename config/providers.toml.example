@@ -90,3 +90,9 @@ models = [
 [kilo]
 api_key = ""
 models = ["kilo-auto/free", "openrouter/free"]
+
+# Sign up at https://wusrouter.com/ and create an API key.
+# Public model discovery stays live; models is an optional offline fallback.
+[wusrouter]
+api_key = ""
+models = []

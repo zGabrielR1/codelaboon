@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "providers": {
+    "codelaboon-kilo": {
+      "name": "Codelaboon Kilo free pool",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {"baseURL": "https://api.kilo.ai/api/gateway"},
+      "models": {
+        "kilo-auto/free": {"name": "Kilo free router"},
+        "openrouter/free": {"name": "OpenRouter free via Kilo"}
+      }
+    }
+  }
+}

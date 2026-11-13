@@ -83,7 +83,7 @@ class ConfigTests(unittest.TestCase):
             set(config),
             {
                 "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
-                "openrouter", "luna", "ourfree", "kilo",
+                "openrouter", "luna", "ourfree", "kilo", "wusrouter",
             },
         )
         self.assertTrue((config_dir / "providers.toml").is_file())
@@ -116,7 +116,8 @@ class ProviderTests(unittest.TestCase):
         ):
             with self.subTest(provider=provider_class.__name__):
                 provider = provider_class(api_key="", models=[])
-                models = provider.list_models()
+                with mock.patch("requests.get", side_effect=__import__("requests").ConnectionError("offline")):
+                    models = provider.list_models()
                 if provider_class is ChatGPTProvider:
                     self.assertEqual(models, [])
                 else:
@@ -576,7 +577,7 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
         app = CodelaboonTuiApp()
         async with app.run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(len(app._provider_names), 10)
+            self.assertEqual(len(app._provider_names), 11)
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()

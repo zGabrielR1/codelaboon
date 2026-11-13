@@ -1,3 +1,21 @@
+## 1.0.0rc8 - 2026-11-08
+
+- Add WusRouter with public live model discovery, API-key chat, and browser
+  signup from the TUI. Ctrl+K or `/key` replaces WusRouter/Qoder credentials.
+- Add native Qoder Cloud Agents HTTP transport for PAT users without a local
+  CLI. Requires Cloud Agents access, quota and an existing cloud environment;
+  live authenticated inference remains unverified.
+- Add a responsive whale ASCII welcome screen and Codelaboon wordmark.
+- Write provider configuration atomically with private temporary files, fsync,
+  replacement and a process-local lock to preserve concurrent account updates.
+- Clear stale busy/model state when changing TUI credentials; invalidate older
+  chat results before the new account's discovery finishes.
+- Validate Qoder catalogs and stream frames, bound event size, decode UTF-8
+  explicitly, and wait through documented recoverable server retries.
+- Repair Makefile verification's stale path and package workflow files so a
+  source archive can run the same structural checks as the checkout. Empty
+  archive directories are no longer treated as required release content.
+
 ## 1.0.0rc7 - 2026-11-05
 
 - Qoder limitation alert, shown on all three surfaces: the CLI prints it

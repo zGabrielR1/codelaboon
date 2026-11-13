@@ -1,0 +1,44 @@
+{
+  "runtime": "../.watch/cloud",
+  "poll_seconds": 15,
+  "keep_awake": true,
+  "orchestrator": {
+    "url": "http://127.0.0.1:18765/v1/chat/completions",
+    "model": "local-router",
+    "timeout_seconds": 60
+  },
+  "harnesses": [
+    {
+      "id": "kilo-planner", "location": "cloud", "stages": ["plan"],
+      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--provider", "kilo", "--model", "kilo-auto/free", "--runtime", "{runtime}", "{prompt_file}"],
+      "timeout_seconds": 600, "cooldown_seconds": 3600
+    },
+    {
+      "id": "kilo-builder", "location": "cloud", "stages": ["build"],
+      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--agent", "--model", "codelaboon-kilo/kilo-auto/free", "--runtime", "{runtime}", "{prompt_file}"],
+      "timeout_seconds": 1800, "cooldown_seconds": 3600
+    },
+    {
+      "id": "pool-planner-backup", "location": "cloud", "stages": ["plan"],
+      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--provider", "kilo", "--model", "openrouter/free", "--runtime", "{runtime}", "{prompt_file}"],
+      "timeout_seconds": 600, "cooldown_seconds": 3600
+    },
+    {
+      "id": "pool-builder-backup", "location": "cloud", "stages": ["build"],
+      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--agent", "--model", "codelaboon-kilo/openrouter/free", "--runtime", "{runtime}", "{prompt_file}"],
+      "timeout_seconds": 1800, "cooldown_seconds": 3600
+    }
+  ],
+  "tasks": [
+    {
+      "id": "smoke-clamp-001", "project": "../.watch/demo-clamp",
+      "prompt": "Create clamp.py with clamp(value, lower, upper): return the value bounded inclusively, raise ValueError when lower exceeds upper. Preserve fractional values. This is an isolated smoke project; keep it to one module and do not install dependencies.",
+      "verify_argv": [["{python}", "-c", "from clamp import clamp; assert clamp(-2, 0, 10) == 0; assert clamp(12, 0, 10) == 10; assert clamp(2.5, 0, 10) == 2.5; import unittest; case = unittest.TestCase(); case.assertRaises(ValueError, clamp, 1, 5, 2)"]]
+    },
+    {
+      "id": "smoke-slug-001", "project": "../.watch/demo-slug",
+      "prompt": "Create slugify.py with slugify(text): lowercase ASCII text, replace each run of non-alphanumeric characters with one hyphen, strip leading and trailing hyphens, return empty string for punctuation only. This is an isolated smoke project; keep it to one module and do not install dependencies.",
+      "verify_argv": [["{python}", "-c", "from slugify import slugify; assert slugify(' Hello, WORLD! ') == 'hello-world'; assert slugify('a___b') == 'a-b'; assert slugify('!!!') == ''; assert slugify('A12') == 'a12'"]]
+    }
+  ]
+}

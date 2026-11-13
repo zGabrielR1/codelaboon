@@ -19,6 +19,7 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.text import Text
 
+from textual.binding import Binding
 from textual.screen import ModalScreen
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -84,6 +85,64 @@ ACCOUNT_LABELS = {
 }
 
 
+class ProviderKey(ModalScreen[bool]):
+    """Account-independent API key setup, including browser signup."""
+    BINDINGS = [("escape", "dismiss", "Close")]
+    DEFAULT_CSS = """
+    ProviderKey { align: center middle; background: #00000088; }
+    #key-dialog { width: 70; max-width: 95%; height: auto; padding: 2 3; background: #131315; }
+    #key-dialog Static { height: auto; margin-bottom: 1; }
+    #key-actions { height: 3; margin-top: 1; }
+    """
+
+    def __init__(self, provider):
+        super().__init__()
+        self.provider = provider
+
+    def compose(self):
+        url = "https://wusrouter.com/" if self.provider == "wusrouter" else "https://qoder.com/account/integrations"
+        with Vertical(id="key-dialog"):
+            yield Label(f"Connect {self.provider.title()}", markup=False)
+            yield Static(f"Sign in or create an account in your browser:\n{url}\nPaste its API key here. Save a new key to switch accounts.", markup=False)
+            if self.provider == "qoder":
+                yield Static("A PAT uses Cloud Agents without a local CLI. Cloud access, quota and an existing environment are required.")
+            yield Input(placeholder="API key / Personal Access Token", password=True, id="provider-key")
+            with Horizontal(id="key-actions"):
+                yield Button("Open signup / account", id="key-signup")
+                yield Button("Save key", id="key-save")
+                yield Button("Later", id="key-later")
+
+    def on_button_pressed(self, event):
+        if event.button.id == "key-later":
+            self.dismiss(False)
+        elif event.button.id == "key-signup":
+            import webbrowser
+            url = "https://wusrouter.com/" if self.provider == "wusrouter" else "https://qoder.com/account/integrations"
+            webbrowser.open(url)
+        elif event.button.id == "key-save":
+            key = self.query_one("#provider-key", Input).value.strip()
+            if not key:
+                self.notify("Enter a key first.", severity="warning")
+                return
+            from config.providers import save_provider_config
+            config = self.app.cli._current_provider_config(self.provider)
+            config["api_key"] = key
+            if not save_provider_config(self.provider, config):
+                self.notify("Could not save the key.", severity="error")
+                return
+            self.app.cli.load_providers()
+            self.app._save_conversation()
+            self.app.history.clear()
+            self.app._session_id = secrets.token_hex(16)
+            self.app._generation += 1
+            self.app._busy = False
+            self.app._current_model = None
+            self.app._model_names = []
+            self.dismiss(True)
+            self.app._load_models(self.provider)
+            self.app._update_status()
+
+
 class ProviderLogin(ModalScreen[bool]):
     BINDINGS = [("escape", "cancel_login", "Close")]
     DEFAULT_CSS = """
@@ -137,12 +196,12 @@ class CodelaboonTuiApp(App[None]):
     #providers, #models, .catalog-label { display: none; }
     #status { height: 2; color: #a3a3ac; }
     #chat { height: 1fr; background: #171719; }
-    #home { height: 1fr; content-align: left bottom; color: #eeeeee; padding-bottom: 3; }
+    #home { height: 1fr; min-height: 10; content-align: center bottom; color: #73daca; padding-bottom: 1; }
     #prompt { background: #131315; border: none; border-left: solid #73daca; padding: 1 2; height: 5; }
     #prompt:focus { border-left: solid #73daca; }
     #hint { height: 2; padding-top: 1; color: #a3a3ac; }
     .home #chat { display: none; }
-    .home #hint { height: 1fr; }
+    .home #hint { height: 5; }
     Footer { background: #171719; }
     ListView { background: #131315; }
     ListView > ListItem.--highlight { background: #333333; }
@@ -153,6 +212,7 @@ class CodelaboonTuiApp(App[None]):
     # delivers it to the prompt as a submit, never as this action. The model
     # picker lives on ctrl+o, which terminals deliver distinctly.
     BINDINGS = [
+        Binding("ctrl+k", "provider_key", "API key", priority=True),
         ("ctrl+s", "sessions", "Sessions"),
         ("ctrl+l", "new_conversation", "New chat"),
         ("ctrl+b", "toggle_sidebar", "Sidebar"),
@@ -184,7 +244,7 @@ class CodelaboonTuiApp(App[None]):
         with Horizontal(id="body", classes="home"):
             with Vertical(id="main"):
                 yield Static("", id="status", markup=False)
-                yield Static("codelaboon / model workspace\n\nMake room for your next idea.\nChoose a model. Follow a question.", id="home", markup=False)
+                yield Static(self._welcome(80), id="home", markup=False)
                 yield RichLog(id="chat", markup=False, highlight=False, wrap=True)
                 yield Input(placeholder="Ask anything...  /help for commands", id="prompt")
                 yield Static("ctrl+p providers    ctrl+o models    ctrl+b sidebar", id="hint")
@@ -195,6 +255,36 @@ class CodelaboonTuiApp(App[None]):
                 yield Label("Models", classes="catalog-label")
                 yield ListView(id="models")
         yield Footer()
+
+    @staticmethod
+    def _welcome(width, height=40):
+        whale = r"""           .  |  .
+            \ | /
+             \|/
+       .-----' `----.          /\_/\
+     .'              `-.     /     /
+    /    o              \___/     /
+    |                           .'
+     \     ._______________.--'
+      `---'"""
+        wordmark = r"""  ___ ___  ___  ___ _      _   ___  ___   ___  _  _
+ / __/ _ \|   \/ __| |    /_\ | _ )/ _ \ / _ \| \| |
+| (_| (_) | |) | _|| |__ / _ \| _ \ (_) | (_) | .` |
+ \___\___/|___/\___|____/_/ \_\___/\___/ \___/|_|\_|"""
+        if width < 54 or height < 32:
+            wordmark = "C O D E L A B O O N"
+        if width < 35 or height < 32:
+            whale = r"""    __     /\_/\
+ __/ o\___/    /
+ \_________.-'"""
+        return whale + "\n\n" + wordmark + "\n\nYour next idea starts here."
+
+    def _refresh_welcome(self):
+        available = max(1, self.query_one("#main").size.width - 8)
+        self.query_one("#home", Static).update(self._welcome(available, self.size.height))
+
+    def on_resize(self, event):
+        self.call_after_refresh(self._refresh_welcome)
 
     def on_mount(self) -> None:
         self.cli.load_providers()
@@ -207,6 +297,7 @@ class CodelaboonTuiApp(App[None]):
         self._log("Gemini (Google account), Freebuff, Qoder, ourfree and kilo are free; other providers need their own key or plan.")
         if self._provider_names:
             self._select_provider(self._provider_names[0], prompt_login=False)
+        self.call_after_refresh(self._refresh_welcome)
         self.query_one("#prompt", Input).focus()
         if self.size.width < 100:
             self.query_one("#sidebar").display = False
@@ -256,8 +347,7 @@ class CodelaboonTuiApp(App[None]):
         if name == "qoder":
             from codelaboon.qoder_auth import QODER_LIMITATION
 
-            # Persistent, in-pane alert: chat on this lane goes through
-            # the official qodercli binary, not direct inference.
+            # Explain which account types can use the native cloud lane.
             self._log(f"note> {QODER_LIMITATION}")
             self.notify(QODER_LIMITATION, timeout=10)
         self._update_status()
@@ -267,7 +357,9 @@ class CodelaboonTuiApp(App[None]):
                 providers_list.index = self._provider_names.index(name)
             except (ValueError, IndexError):
                 pass
-        if (
+        if name == "wusrouter" and prompt_login and not self.cli.providers[name].validate_api_key():
+            self.push_screen(ProviderKey(name))
+        elif (
             name in ACCOUNT_PROVIDERS
             and prompt_login
             and not self.cli.providers[name].validate_api_key()
@@ -341,6 +433,9 @@ class CodelaboonTuiApp(App[None]):
 
     def _send(self, text: str) -> None:
         text = text.strip()
+        if text.strip() == "/key" and self._current_provider in ("wusrouter", "qoder"):
+            self.push_screen(ProviderKey(self._current_provider))
+            return
         commands = {"/models": self.action_focus_models, "/connect": self.action_focus_providers, "/new": self.action_new_conversation, "/sidebar": self.action_toggle_sidebar, "/sessions": self.action_sessions, "/export": self.action_export}
         if text in commands:
             commands[text]()
@@ -532,6 +627,8 @@ class CodelaboonTuiApp(App[None]):
                     or getattr(provider, "default_models", [])
                     or []
                 )
+            if not models:
+                choices.append((f"__login__\x00{name}", f"{label} · Discover models / connect…"))
             names = getattr(provider, "model_names", {}) or {}
             for model in models:
                 choices.append((f"{name}\x00{model}", f"{name} · {names.get(model, model)}"))
@@ -611,6 +708,12 @@ class CodelaboonTuiApp(App[None]):
             severity="information" if success else "error",
         )
 
+
+    def action_provider_key(self):
+        if self._current_provider in ("wusrouter", "qoder"):
+            self.push_screen(ProviderKey(self._current_provider))
+        else:
+            self.notify("Select WusRouter or Qoder to configure its account key.")
 
     def action_refresh_models(self) -> None:
         name = self._selected_provider()

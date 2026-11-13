@@ -43,3 +43,4 @@ qoder-machine.json
 # Preserved local release artifacts
 releases/
 .taste-skill/
+.watch/

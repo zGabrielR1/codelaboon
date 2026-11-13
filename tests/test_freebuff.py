@@ -62,7 +62,8 @@ class FreebuffProviderTests(unittest.TestCase):
 
     def test_no_credential_lists_nothing(self):
         provider = FreebuffProvider("", models=[])
-        self.assertEqual(provider.list_models(), [])
+        with patch("codelaboon.freebuff_auth.token", return_value=""):
+            self.assertEqual(provider.list_models(), [])
 
     def test_chat_admits_then_completes_with_free_metadata(self):
         provider = FreebuffProvider("", models=[])

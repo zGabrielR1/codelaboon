@@ -179,3 +179,86 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - 100 offline tests pass, including new Freebuff auth, provider and session
   coverage. Live authorization and inference remain unverified without real
   accounts.
+
+### Session 2026-11-08 — RC8 release hardening
+
+- Added WusRouter, native Qoder Cloud Agents and TUI account-key setup.
+- Added a responsive whale ASCII welcome screen.
+- Review found interrupted-config-write risk, lost concurrent config updates,
+  stale busy/model state after key changes and malformed/recoverable stream
+  handling. Added fixes and targeted regression tests.
+- Repaired Makefile's obsolete `docs/CURRENTTASK` check and included workflow
+  files in the source archive for structural verification from releases.
+- Build RC8 locally with checksums; validate wheel installation and source
+  archive before marking it ready. No authenticated inference claim.
+- Future runs: test source archives as well as source checkouts, and isolate
+  local credential discovery in tests that assume an unconfigured account.
+
+- RC8 validation: 132 extracted-source tests pass. Empty archival directories
+  are no longer required by structural verification. Review confirms config
+  replacement failures preserve the original, concurrent updates survive,
+  account changes invalidate old chat generations, and partial/failed cloud
+  streams cannot be reported as successful turns. Live authentication and
+  remote resource/credit behavior remain the next validation objective.
+
+### Session 2026-11-13 — local orchestration and cloud workers
+
+- Added a persistent command scheduler, loopback-only Qwen routing adapter,
+  Codelaboon cloud planner adapter, OpenCode cloud builder adapter and background
+  supervisor. The local model receives routing metadata only. Planning and
+  implementation run through explicit cloud workers; configured acceptance
+  commands decide completion. Failure pauses/cools workers without local coding
+  or a paid fallback.
+- Downloaded and checksum-verified llama.cpp b12360 and official Qwen3 0.6B Q8
+  into gitignored `.watch/local`. Real local routing and free cloud inference
+  succeeded. Both isolated smoke projects completed planning, implementation
+  and independent acceptance commands.
+- Nine focused scheduler/routing/cloud-worker tests pass. The wider 139-test
+  run had 2 failures and 15 errors in existing auth/UI tests (JWT module shape,
+  mocked Windows home handling, POSIX permission expectations and `/tmp` output).
+  All structural checks pass. Git Bash initially lacked `python3`; a local
+  gitignored shim to the installed Python plus UTF-8 mode allowed the unchanged
+  verification script to complete. Direct new-module syntax compilation passes.
+- Prepared an isolated snapshot of the user-selected DigiSat recomp tooling,
+  with explicit source provenance and baseline copies. The cloud-authored plan
+  targets lost build manifests on compiler timeouts/launch failures. Before the
+  change, an independent three-case offline oracle confirmed two failures and
+  one success. The cloud implementation completed; all three independent
+  oracle checks and all six cloud-authored offline tests pass. Both the original
+  snapshot file hashes and the reviewable patch are checked before delivery.
+  `.watch/artifacts/digisat-recomp-build-manifest.patch` contains the isolated
+  source-tooling change. No original checkout or installed binaries were changed.
+- Adversarial review: success alone cannot establish behavioral equivalence;
+  the oracle specifically tests handled failures, dependent-job suppression,
+  manifest invariants and command flags. Added cloud tests were run separately
+  to avoid accepting implementation output with a broken test suite. Runtime
+  claims are limited to the running supervisor and completed finite queue;
+  cloud limits, logout, OS events and hardware failure still apply.
+- Future runs: use `python -m codelaboon.service .watch/watch-active.json
+  --background` for the selected project queue; PowerShell script policy may
+  disable the optional `.ps1` launcher. Do not clear real provider cooldowns.
+  The initial local encoding failures were corrected by emitting UTF-8; their
+  diagnostic records remain in the attempt history.
+
+### Background worker controls — 2026-11-13
+
+- Added `codelaboon work`: interactive control menu plus start, stop, status,
+  pause, resume, logs and add commands. The commands dispatch before provider
+  configuration is loaded. Closing the menu leaves the service running.
+- Added atomic task inbox files polled between attempts. Instructions added
+  while running require no restart and keep existing plans/completed IDs.
+  Each new task requires explicit acceptance commands; it does not interrupt
+  or inject a live message into the current cloud agent.
+- Native llama-server/OpenCode discovery now distinguishes Windows and POSIX.
+  The setup helper downloads the model alone on POSIX and asks for a native
+  runtime instead of downloading a Windows executable there. Linux/macOS
+  execution remains unverified here; DigiSat native tasks still need Windows.
+- Thirteen focused control/scheduler/router/cloud-worker tests pass, including
+  an instruction arriving during an active supervisor run and pause/resume.
+  Tested real Windows status and graceful stop; restarting the background
+  service preserves the three completed project tasks. Source syntax checks pass.
+- Review: service presence uses the OS lock rather than trusting stale PID files;
+  status labels old unfinished attempts as active or interrupted. No auto-start
+  after reboot is installed. CLI shell-like command parsing supports --checks-json
+  when exact Windows arguments are required. Normal default launch still opens
+  the chat TUI; `work` is the dedicated worker control entry point.
