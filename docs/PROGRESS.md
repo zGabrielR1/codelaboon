@@ -399,3 +399,8 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   response and prompt recall, tmux/theme/sidebar checks, types and 183 unit tests.
 - Added actual VTE/Xvfb CI gate and portable immediate-reply regression.
 - Next: publish v1.0.0-rc.12 only after CI succeeds. Preserve user profiles/queues.
+
+- User confirmed installed RC12 opens in a fresh Ptyxis window ("Yes, it opens").
+- Published [RC12](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.12)
+  from `99eb59f`; release `43612181195` and verify `43612181008` succeeded,
+  including actual VTE/Xvfb. Downloaded release wheel/sdist hashes verified.

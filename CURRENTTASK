@@ -10,7 +10,12 @@ passes. Actual VTE UI, fixture model response and Up recall pass with installed
 RC12. Wide tmux/theme/sidebar checks, native types, 183 tests and bundle hashes
 pass. CI now gates publication on actual VTE under Xvfb as well as fast replies.
 
-Next: publish v1.0.0-rc.12 after reviewed commit and successful CI. Installed local
-command is already RC12. Close the old blank instance; launch from a fresh terminal.
+Published v1.0.0-rc.12 from 99eb59fa991d0f16a51812a9f731b33b8745391d.
+Release run 43612181195 and verify run 43612181008 succeeded, including actual
+VTE/Xvfb, fast-response regression and all existing native gates. Published
+wheel/sdist hashes verified against SHA256SUMS. User confirmed: "Yes, it opens"
+in a fresh Ptyxis terminal with the installed RC12. This reported failure is fixed.
+Next: monitor further acceptance feedback; authenticated-provider checks remain
+separate from this now-reproduced and fixed startup race.
 Preserve provider credentials, OMP sessions, .watch and all background queues.
 See docs/release-1.0.0rc12.md and docs/review-1.0.0rc12.md.
