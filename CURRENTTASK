@@ -1,22 +1,16 @@
-2026-11-14: Publish RC11 Fedora startup fix and optional native CLIs.
+2026-11-14: RC12 fixes the reproduced Fedora Ptyxis/GNOME blank screen.
 
-OpenCode remains the default, with no engine selection required. Root causes:
-serial provider discovery, models.dev fetch without a startup timeout, duplicate
-empty plugin dependency installations, and different source/installed setup paths.
-Fixed with bounded discovery/cache, setup-time metadata, empty-plugin skip,
-shared packaged-cache paths and automatic missing-runtime preparation.
+Root cause: immediate VTE background reply let frontend RPC requests outrun the
+backend listener. Bun dropped early messages; SyncProvider waited indefinitely.
+Fix: explicit rpc.ready handshake, awaited calls and a 15-second readiness bound.
+Source fork changes are bundled and replay-checked; temporary traces removed.
 
-Production-only dependencies, default Bun cache sharing, optional Textual, and
-checksum-verified native Bun download without Node/npm reduce installation cost.
-OMP preserved. Optional official Kilo/Claude native binaries install on request;
-Kilo uses gateway; Claude keeps native auth and proprietary client unchanged.
+Verified before/after: RC11 fails immediate-terminal-response regression; RC12
+passes. Actual VTE UI, fixture model response and Up recall pass with installed
+RC12. Wide tmux/theme/sidebar checks, native types, 183 tests and bundle hashes
+pass. CI now gates publication on actual VTE under Xvfb as well as fast replies.
 
-Validated: 183 tests, bundle integrity, structural checks, OpenCode types, installed
-normal startup, native UI checks and OMP/Kilo tool loops. Native Claude onboarding
-and no-Node Bun installation pass. See docs/release-1.0.0rc11.md.
-
-Published v1.0.0-rc.11 from e4e11ebe07cf903f24c15d8e5d1d060bd2c6aaf5.
-Release run 43555456667 and verify run 43555456805 succeeded, including all native
-UI gates. Downloaded wheel/sdist hashes match published SHA256SUMS.
-Next: user Fedora acceptance testing; authenticated provider and other OS checks. Preserve .watch,
-credentials, installed OMP sessions and background queues/service configuration.
+Next: publish v1.0.0-rc.12 after reviewed commit and successful CI. Installed local
+command is already RC12. Close the old blank instance; launch from a fresh terminal.
+Preserve provider credentials, OMP sessions, .watch and all background queues.
+See docs/release-1.0.0rc12.md and docs/review-1.0.0rc12.md.

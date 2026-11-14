@@ -1,3 +1,12 @@
+## 1.0.0rc12 - 2026-11-14
+
+- Fix OpenCode's blank screen in Fedora Ptyxis/GNOME Terminal. Fast terminal
+  background replies could let the frontend send RPC requests before its backend
+  worker registered its listener. Add an explicit worker-readiness handshake and
+  a bounded startup wait; remove the dependency on terminal response timing.
+- Add an immediate-terminal-response regression that reproduced the RC11 failure.
+  Verify the fix against the real Fedora VTE terminal library as well as tmux.
+
 ## 1.0.0rc11 - 2026-11-14
 
 - Fix default OpenCode startup: bound provider discovery, cache model metadata,

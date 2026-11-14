@@ -37,6 +37,9 @@ jobs:
       - name: Check normal startup without local-only shortcuts
         if: matrix.engine == 'opencode' && matrix.width == 160
         run: python scripts/smoke_ui.py --engine opencode --width 160 --normal-startup --installed
+      - name: Check fast terminal replies cannot race backend startup
+        if: matrix.engine == 'opencode' && matrix.width == 160
+        run: python scripts/smoke_fast_terminal.py
       - name: Check a real file-tool round trip
         if: matrix.width == 160
         run: python scripts/smoke_native.py --engine ${{ matrix.engine }} --setup
@@ -76,5 +79,31 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: optional-native
+          path: .runtime/ui-qa/
+          if-no-files-found: warn
+
+  vte-terminal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Install wrapper and GNOME terminal test libraries
+        run: |
+          python -m pip install .
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-vte-2.91 xvfb xauth
+      - name: Verify actual VTE rendering and prompt recall
+        run: GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 scripts/smoke_vte.py
+      - name: Preserve terminal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-vte
           path: .runtime/ui-qa/
           if-no-files-found: warn

@@ -387,3 +387,15 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Published [RC11](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.11)
   from `e4e11eb`: release run `43555456667`, verify run `43555456805`, all
   native UI/tool gates successful. Downloaded wheel/sdist checksums verified.
+
+
+### Session 2026-11-14 — RC12 VTE blank-screen race
+
+- Reproduced blank OpenCode in actual VTE (Fedora default Ptyxis/GNOME Terminal),
+  alongside a working alternate-screen control. Plain PTY and tmux masked it.
+- Fast OSC 11 reply let frontend RPC requests precede the worker listener; added
+  readiness handshake, awaited calls and bounded startup wait.
+- RC11 fails new immediate-reply regression; installed RC12 passes real VTE UI,
+  response and prompt recall, tmux/theme/sidebar checks, types and 183 unit tests.
+- Added actual VTE/Xvfb CI gate and portable immediate-reply regression.
+- Next: publish v1.0.0-rc.12 only after CI succeeds. Preserve user profiles/queues.

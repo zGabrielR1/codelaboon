@@ -1,16 +1,13 @@
-# Latest release candidate: 1.0.0rc11
+# Latest release candidate: 1.0.0rc12
 
-RC11 repairs default OpenCode startup and automatic dependency installation,
-reduces the production dependency footprint, and adds optional official Kilo and
-Claude Code native CLIs. See [RC11 notes](release-1.0.0rc11.md) and the
-[native runtime guide](native-runtime.md).
+RC12 fixes the reproduced blank OpenCode screen in Fedora Ptyxis/GNOME Terminal:
+frontend requests could outrun the backend worker listener. An explicit worker
+readiness handshake replaces the accidental dependency on terminal timing.
+See [RC12 notes](release-1.0.0rc12.md) and [review](review-1.0.0rc12.md).
 
-Local validation includes 183 Python tests, installed-command normal startup,
-OpenCode/OMP/Kilo UI checks and native file-tool round trips. Claude Code's native
-onboarding renders; authenticated inference remains account-dependent and untested.
+Validated locally with the installed command in real VTE: home screen, fixture
+model response and Up-arrow recall. The new immediate-terminal-response test
+fails against RC11 and passes with the fix. Existing tmux UI, OpenCode types,
+183 Python tests, patch replay and bundle integrity pass.
 
-[RC11 is published](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.11).
-Release run `43555456667` and verify run `43555456805` succeeded. Downloaded
-wheel/source assets match the published SHA256SUMS.
-Release artifacts exclude provider credentials, sessions, dependencies and model
-weights. Existing background service/queue data is preserved.
+Publication requires successful `v1.0.0-rc.12` CI, including actual VTE under Xvfb.
