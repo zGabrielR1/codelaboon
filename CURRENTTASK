@@ -17,6 +17,10 @@ live free-provider reply. User confirmed installed RC14 opens in Ptyxis.
 Source ref 0dcd3d5fc452343d400b9de876d2dc10883f9519; license FSL-1.1-MIT retained.
 See docs/release-1.0.0rc14.md and docs/review-1.0.0rc14.md.
 
-Next: commit/tag/publish RC14 after CI passes. Local wheel is already installed.
+Published v1.0.0-rc.14 from ed674520f2138994cd6b040cc55cd7c46e4b3283.
+Release run 43620769354 and verify run 43620769150 succeeded, including native
+Crush UI/tools and actual VTE plus all previous engine gates. Downloaded release
+wheel/source hashes match SHA256SUMS. Local RC14 is installed; user confirmed
+Crush opens in Ptyxis. Requested release complete; monitor acceptance feedback.
 Preserve credentials, OMP/Claude sessions, .watch and background queues/services.
-Do not claim publication until release workflow succeeds.
+Published release and verification results are recorded in docs/latest-build.md.

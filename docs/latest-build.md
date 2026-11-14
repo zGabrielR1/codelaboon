@@ -8,5 +8,7 @@ Validated locally: 200 tests, actual native UI/model picker/history/themes/sessi
 storage, repeated real file-tool loops, Fedora VTE, and a live free-provider reply.
 The user confirmed the installed Crush engine opens in Ptyxis.
 
-Publication requires successful `v1.0.0-rc.14` CI, including Crush tools/UI and VTE
-alongside all existing native engine gates. Upstream FSL-1.1-MIT license retained.
+[RC14 is published](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.14).
+Release `43620769354` and verify `43620769150` succeeded, including Crush UI/tools
+and actual VTE alongside all previous engines. Published wheel/source checksums
+verified. Upstream FSL-1.1-MIT license retained.

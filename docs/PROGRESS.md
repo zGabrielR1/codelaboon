@@ -435,3 +435,8 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   Fedora VTE and live free-provider response pass. User confirmed Ptyxis startup.
 - Added Crush UI/tool/VTE CI gates. No new runtime dependencies; upstream FSL
   license retained. Next: publish reviewed RC14 only after CI succeeds.
+
+- Published [RC14](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.14)
+  from `ed67452`; release `43620769354` and verify `43620769150` succeeded, including
+  native Crush UI/tools/VTE and all existing engines. Downloaded wheel/source
+  checksums verified. Installed user acceptance confirmed; requested RC complete.
