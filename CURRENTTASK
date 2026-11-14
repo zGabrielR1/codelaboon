@@ -1,18 +1,19 @@
-2026-11-14: RC15 — final verification/publication of lean core and native swarms.
+2026-11-14: RC15 COMPLETE — published and exact release wheel installed locally.
 
-User selected Keep OpenCode UI; lightweight swarms. Code modularizes engine
-assets, moves dev sources/cache outside ppp, adds verified Jcode Rust workers and
-bounded native swarms, changes background builder default, unloads idle router.
+Release https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.15
+Feature commit db3bb970aab699a1cbc2ee7edc462063b4a8ebfb.
+Verify43629827877 and release43629831664 succeeded:208tests, all native UIs,
+OpenCode/Crush VTE, native Rust file tools and two-worker swarm/cap rejection.
+Published wheel177843bytes; sdist293190bytes; engine bundles separate. Allpublished
+SHA256SUMS verified; actual cold engine downloads from installed wheel PASS.
 
-Preserved ALL moved data; checkout 3.9 GB ->29 MB. Two move journals are under
-~/.local/share/codelaboon/storage-migrations. Legacy .watch history (3 tasks) now
-~/.local/share/codelaboon/legacy-watch. Canonical active config/state/local model
-under ~/.config/codelaboon; tasks empty. Service restarted with new configuration.
-Native OpenCode VTE/home/reply/Up and file tools pass; Rust native worker and
-actual two-worker swarm/cap rejection pass. Initial thin wheel173KiB/sdist284KiB.
+OpenCode remains default interactive UI. Jcode supplies lightweight native swarms
+and default background builders. Idle service unloads owned router model.
+Checkout3.9GB->29MB through preservation/relocation, not deletion. Bulk dev sources
+and clones now ~/.cache/codelaboon/development. Canonical active configuration,
+state and optional model ~/.config/codelaboon. Legacy3-task work history preserved
+under ~/.local/share/codelaboon/legacy-watch. Two external move journals recorded.
+Empty user service restarted and active. No credentials, queues or historylost.
 
-Review: docs/review-1.0.0rc15.md. Final 208 tests/build, thin artifacts and engine asset staging PASS.
-Install final wheel, commit/push/tag v1.0.0-rc.15 and watch release
-CI. RC15 engine-manifest URLs require staged source assets in publishedrelease.
-No deletion; Git inputs and patch bundles unchanged. Do not repeat Jcode's RAM
-multipliers as Codelaboon measurements. Preserve priorengine/account behavior.
+Docs:docs/lean-runtime.md and docs/review-1.0.0rc15.md. Await user feedback;
+do not repeat upstream RAM ratios as Codelaboon measurements.

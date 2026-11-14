@@ -459,3 +459,11 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   rendering/reply/Up recall and file-tool gateway checks pass after relocation.
 - Next: final build/reinstall and 208-test run, then commit/tag/publish only after
   complete native release gates. Do not claim upstream RAM ratios as our results.
+
+- Published [RC15](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.15)
+  from `db3bb97`. Verify `43629827877` and release `43629831664` both succeeded,
+  including all native UI, VTE, optional engines, Rust swarm/cap and build gates.
+  Verified every published SHA-256; installed the exact published 177843-byte
+  wheel. Source distribution 293190 bytes. Real cold OpenCode/OMP HTTP downloads
+  succeeded from the installed thin package with an empty temporary cache.
+  Requested RC complete; await user feedback. No user data deleted.
