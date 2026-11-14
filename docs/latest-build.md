@@ -9,6 +9,8 @@ Local validation includes 183 Python tests, installed-command normal startup,
 OpenCode/OMP/Kilo UI checks and native file-tool round trips. Claude Code's native
 onboarding renders; authenticated inference remains account-dependent and untested.
 
-Publication is complete only when the `v1.0.0-rc.11` release workflow succeeds.
+[RC11 is published](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.11).
+Release run `43555456667` and verify run `43555456805` succeeded. Downloaded
+wheel/source assets match the published SHA256SUMS.
 Release artifacts exclude provider credentials, sessions, dependencies and model
 weights. Existing background service/queue data is preserved.

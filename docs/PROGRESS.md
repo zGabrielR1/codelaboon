@@ -383,3 +383,7 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Lesson: local-only UI checks missed the normal startup defect. CI now tests the
   installed normal path from a fresh profile and optional native Kilo tools.
 - Publication target: v1.0.0-rc.11; remote workflow is the publication authority.
+
+- Published [RC11](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.11)
+  from `e4e11eb`: release run `43555456667`, verify run `43555456805`, all
+  native UI/tool gates successful. Downloaded wheel/sdist checksums verified.

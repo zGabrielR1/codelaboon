@@ -15,6 +15,8 @@ Validated: 183 tests, bundle integrity, structural checks, OpenCode types, insta
 normal startup, native UI checks and OMP/Kilo tool loops. Native Claude onboarding
 and no-Node Bun installation pass. See docs/release-1.0.0rc11.md.
 
-Next: commit and publish v1.0.0-rc.11 only after adversarial review and CI gates.
-Never claim publication until the release workflow succeeds. Preserve .watch,
+Published v1.0.0-rc.11 from e4e11ebe07cf903f24c15d8e5d1d060bd2c6aaf5.
+Release run 43555456667 and verify run 43555456805 succeeded, including all native
+UI gates. Downloaded wheel/sdist hashes match published SHA256SUMS.
+Next: user Fedora acceptance testing; authenticated provider and other OS checks. Preserve .watch,
 credentials, installed OMP sessions and background queues/service configuration.
