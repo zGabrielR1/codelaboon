@@ -271,7 +271,7 @@ def on_path(directory: Path) -> bool:
     return any(os.path.normcase(entry) == wanted for entry in os.environ.get("PATH", "").split(os.pathsep))
 
 
-def install(editable: bool = False, update_path: bool = True, runtime: bool = True, engine="opencode") -> bool:
+def install(editable: bool = False, update_path: bool = True, runtime: bool = False, engine="opencode") -> bool:
     interactive = callable(getattr(sys.stdout, "isatty", None)) and sys.stdout.isatty()
     interactive = interactive and not os.environ.get("CODELABOON_PLAIN_INSTALL")
     directory = user_scripts_dir()
@@ -375,7 +375,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     update_path = "--no-path" not in argv
     engine = argv[argv.index("--engine") + 1] if "--engine" in argv else "opencode"
     return 0 if install(editable=editable, update_path=update_path,
-                        runtime="--skip-runtime" not in argv, engine=engine) else 1
+                        runtime="--prepare-runtime" in argv, engine=engine) else 1
 
 
 if __name__ == "__main__":

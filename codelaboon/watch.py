@@ -28,6 +28,16 @@ def terminate(process):
     else:
         import signal
         try:
+            os.killpg(process.pid, signal.SIGTERM)
+            # A wrapper may exit before its children finish cleaning private native groups.
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                process.poll()  # Reap the direct child while waiting for the group.
+                try:
+                    os.killpg(process.pid, 0)
+                except ProcessLookupError:
+                    break
+                time.sleep(0.05)
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass

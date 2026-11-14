@@ -42,7 +42,12 @@ jobs:
           PY
 
       - name: Build wheel and source archive
-        run: python -m build
+        run: |
+          python -m build
+          python scripts/verify_core.py dist
+
+      - name: Stage separately downloadable engine sources
+        run: python scripts/stage_engine_assets.py --out dist
 
       - name: Write checksums
         run: cd dist && sha256sum * > SHA256SUMS

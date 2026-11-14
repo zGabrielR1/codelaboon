@@ -17,10 +17,9 @@ SOURCE = Path(__file__).resolve().parent.parent
 def configuration(path=None):
     if path is None:
         installed = config_dir() / 'work.json'
-        local = SOURCE / '.runtime/work.json'
-        active = SOURCE / '.watch/watch-active.json'
-        path = (installed if installed.exists() else local if local.exists()
-                else active if active.exists() else SOURCE / 'examples/watch-cloud.json')
+        if not installed.exists():
+            raise ValueError('Initialize the background worker with codelaboon work init')
+        path = installed
     path = Path(path).resolve()
     config = json.loads(path.read_text(encoding='utf-8'))
     return path, config, (path.parent / config.get('runtime', '.watch')).resolve()
@@ -33,13 +32,13 @@ def initialize(path=None):
     target.parent.mkdir(parents=True, exist_ok=True)
     worker = ['{python}', '{source}/codelaboon/cloud_worker.py', '--provider', 'free',
               '--model', 'free', '--runtime', '{runtime}', '{prompt_file}']
-    builder = ['{python}', '{source}/codelaboon/cloud_worker.py', '--agent', '--model', 'codelaboon/free',
+    builder = ['{python}', '{source}/codelaboon/cloud_worker.py', '--agent', '--model', 'free',
                '--runtime', '{runtime}', '{prompt_file}']
     save(target, {'runtime': 'work-runtime', 'poll_seconds': 15,
         'orchestrator': {'url': 'http://127.0.0.1:18765/v1/chat/completions', 'model': 'local-router'},
         'harnesses': [
             {'id': 'free-planner', 'location': 'cloud', 'stages': ['plan'], 'argv': worker},
-            {'id': 'source-builder', 'location': 'cloud', 'stages': ['build'], 'argv': builder}],
+            {'id': 'rust-builder', 'location': 'cloud', 'stages': ['build'], 'argv': builder}],
         'tasks': []})
     print('Created ' + str(target))
     return target

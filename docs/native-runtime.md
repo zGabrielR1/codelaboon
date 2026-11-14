@@ -5,16 +5,18 @@
 The default UI executes OpenCode v1.2.27, revision
 `4ee426ba549131c4903a71dfb6259200467aca81`. The OMP option executes
 Oh My Pi v13.18.0, revision `3f60ba602abead98563fdab1d9d3db6b28cef429`.
-Reference clones live under ignored `forks/`. Runtime workspaces are imported by
+Reference clones live under `~/.cache/codelaboon/development/forks/`. Runtime workspaces are imported by
 `scripts/import_upstreams.py`; reproducible patches live in `scripts/patches/`.
-`scripts/bundle_sources.py` builds source archives for wheels and source releases.
+`scripts/bundle_sources.py` builds separate, pinned release assets. The small
+wheel and source distribution contain the asset manifest, without engine bundles.
 Only provenance-listed files enter those archives; dependencies, sessions and
 credentials are excluded. Each archive includes upstream licenses, original file
 hashes, and hashes of modified files. OMP's native addon is downloaded at setup
 and checked against npm's SHA-512 integrity value.
 
-Installers prepare the selected engine and install Bun through npm if needed.
-`--skip-runtime` installs Python only. Virtual environments use their own script
+Installers prepare the core only by default. First use automatically prepares
+the selected engine and verified Bun if needed. `--prepare-runtime` prepares
+OpenCode during installation. Virtual environments use their own script
 directory. Externally managed system Python uses a private venv instead of
 overriding the operating system's package protections. Fish profiles use
 `fish_add_path`. Source updates stop on a failed fast-forward pull; `--no-pull`
@@ -252,3 +254,9 @@ Crush's own behavior; the wrapper does not add yolo flags.
 The Linux x64 native package measured about 98 MB locally; no Go/Node/Bun runtime
 or development source tree is required. Windows/macOS archives are mapped by the
 installer but native execution on those hosts has not been verified here.
+
+## RC15 lean storage and native swarms
+
+See [lean runtime operations](lean-runtime.md) for external development caches,
+non-destructive storage relocation, native Jcode workers, bounded swarms and
+resource measurement scope. OpenCode remains the default interactive interface.

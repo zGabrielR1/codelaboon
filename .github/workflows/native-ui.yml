@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
 
+env:
+  CODELABOON_ENGINE_ASSETS: ${{ github.workspace }}/codelaboon/_vendor
+
 jobs:
   terminal:
     runs-on: ubuntu-latest
@@ -71,10 +74,15 @@ jobs:
           python -m codelaboon kilo --version
           python -m codelaboon claude --version
           python -m codelaboon crush --version
+          python -m codelaboon jcode --version
       - name: Verify Kilo interface and tools with local inference
         run: |
           python scripts/smoke_ui.py --engine kilo --width 160
           python scripts/smoke_native.py --engine kilo
+      - name: Verify lightweight Rust worker
+        run: |
+          python scripts/smoke_jcode.py
+          python scripts/smoke_swarm.py
       - name: Verify Crush native UI and tools
         run: |
           python scripts/smoke_crush.py

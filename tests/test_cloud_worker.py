@@ -15,7 +15,7 @@ class CloudWorkerTests(unittest.TestCase):
         process.wait.return_value = code
         with tempfile.TemporaryDirectory() as directory, \
                 patch('subprocess.Popen', return_value=process):
-            return agent('cloud/model', Path(directory) / 'prompt.md', Path(directory))
+            return agent('cloud/model', Path(directory) / 'prompt.md', Path(directory), engine='opencode')
 
     def test_complete_cloud_response(self):
         self.assertEqual(self.invoke([
@@ -31,6 +31,19 @@ class CloudWorkerTests(unittest.TestCase):
         ):
             with self.assertRaises(RuntimeError):
                 self.invoke(events)
+
+    def test_rust_builder_requires_final_json_text(self):
+        process = MagicMock(returncode=0)
+        process.communicate.return_value = ('{"text":"Verified build"}', None)
+        with tempfile.TemporaryDirectory() as directory, patch('subprocess.Popen', return_value=process) as spawn:
+            prompt = Path(directory)/'prompt.md'
+            prompt.write_text('Implement change')
+            self.assertEqual(agent('codelaboon/free', prompt, Path(directory)), 'Verified build')
+            self.assertIn('jcode', spawn.call_args.args[0])
+            self.assertIn('free', spawn.call_args.args[0])
+            process.communicate.return_value = ('{"text":""}', None)
+            with self.assertRaisesRegex(RuntimeError, 'no final'):
+                agent('free', prompt, Path(directory))
 
 
 if __name__ == '__main__':

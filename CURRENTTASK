@@ -1,26 +1,18 @@
-2026-11-14: RC14 — Add Crush as a native engine.
+2026-11-14: RC15 — final verification/publication of lean core and native swarms.
 
-User confirmed RC13 works and requested charmbracelet/crush for the next RC.
-Implemented optional `codelaboon crush`, official pinned v0.101.0 native download
-with checksum verification, generated crushrc for free (Auto), native model picker,
-separate global/project state, local/security profiles and no extra runtime deps.
-OpenCode remains default; all previous working engines are preserved.
+User selected Keep OpenCode UI; lightweight swarms. Code modularizes engine
+assets, moves dev sources/cache outside ppp, adds verified Jcode Rust workers and
+bounded native swarms, changes background builder default, unloads idle router.
 
-Found native headless local-mode stdout can lose fast replies. Use the upstream
-client/server run path with a private per-launch IPC server, bounded readiness and
-owned cleanup. Interactive UI remains in-process. Native permissions retained;
-headless permissions follow upstream semantics. No persistent Crush daemon.
+Preserved ALL moved data; checkout 3.9 GB ->29 MB. Two move journals are under
+~/.local/share/codelaboon/storage-migrations. Legacy .watch history (3 tasks) now
+~/.local/share/codelaboon/legacy-watch. Canonical active config/state/local model
+under ~/.config/codelaboon; tasks empty. Service restarted with new configuration.
+Native OpenCode VTE/home/reply/Up and file tools pass; Rust native worker and
+actual two-worker swarm/cap rejection pass. Initial thin wheel173KiB/sdist284KiB.
 
-Validated: 200 tests; native download; repeated real file-tool loops; native UI,
-model picker, prompt recall, saved themes and session DB; actual VTE installed UI;
-live free-provider reply. User confirmed installed RC14 opens in Ptyxis.
-Source ref 0dcd3d5fc452343d400b9de876d2dc10883f9519; license FSL-1.1-MIT retained.
-See docs/release-1.0.0rc14.md and docs/review-1.0.0rc14.md.
-
-Published v1.0.0-rc.14 from ed674520f2138994cd6b040cc55cd7c46e4b3283.
-Release run 43620769354 and verify run 43620769150 succeeded, including native
-Crush UI/tools and actual VTE plus all previous engine gates. Downloaded release
-wheel/source hashes match SHA256SUMS. Local RC14 is installed; user confirmed
-Crush opens in Ptyxis. Requested release complete; monitor acceptance feedback.
-Preserve credentials, OMP/Claude sessions, .watch and background queues/services.
-Published release and verification results are recorded in docs/latest-build.md.
+Review: docs/review-1.0.0rc15.md. Final 208 tests/build, thin artifacts and engine asset staging PASS.
+Install final wheel, commit/push/tag v1.0.0-rc.15 and watch release
+CI. RC15 engine-manifest URLs require staged source assets in publishedrelease.
+No deletion; Git inputs and patch bundles unchanged. Do not repeat Jcode's RAM
+multipliers as Codelaboon measurements. Preserve priorengine/account behavior.

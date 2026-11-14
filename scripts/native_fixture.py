@@ -16,7 +16,7 @@ REPLY = "Fixture reply: accepted."
 
 
 @contextmanager
-def fixture(engine, setup=False, tools=False, development=False):
+def fixture(engine, setup=False, tools=False, development=False, responder=None):
     observed = []
     with tempfile.TemporaryDirectory(prefix="codelaboon-native-", ignore_cleanup_errors=True) as directory:
         project = Path(directory)
@@ -35,6 +35,9 @@ def fixture(engine, setup=False, tools=False, development=False):
 
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                if len(observed) >= 100:
+                    self.send_error(503, "Fixture request budget exceeded")
+                    return
                 observed.append(body)
                 read_name = next((tool.get("function", {}).get("name") for tool in body.get("tools", [])
                                   if tool.get("function", {}).get("name", "").lower() == ("view" if engine == "crush" else "read")), None)
@@ -44,12 +47,14 @@ def fixture(engine, setup=False, tools=False, development=False):
                 if tools and read and not found:
                     call = {"id": "fixture_read", "type": "function", "function": {
                         "name": read_name, "arguments": json.dumps({
-                            "path" if engine == "omp" else "file_path" if engine in ("claude", "crush") else "filePath": str(project / "marker.txt")})}}
+                            "path" if engine == "omp" else "file_path" if engine in ("claude", "crush", "jcode") else "filePath": str(project / "marker.txt")})}}
                     message = {"role": "assistant", "content": None, "tool_calls": [call]}
                     reason = "tool_calls"
                 else:
                     message = {"role": "assistant", "content": "Verified " + MARKER if found else REPLY}
                     reason = "stop"
+                if responder is not None:
+                    message, reason = responder(body, project)
                 self.send_response(200)
                 if not body.get("stream"):
                     self.send_header("Content-Type", "application/json")
@@ -60,7 +65,8 @@ def fixture(engine, setup=False, tools=False, development=False):
                 self.send_header("Content-Type", "text/event-stream")
                 self.end_headers()
                 if message.get("tool_calls"):
-                    message["tool_calls"][0]["index"] = 0
+                    for index, call in enumerate(message["tool_calls"]):
+                        call["index"] = index
                 for delta, finish in ((message, None), ({}, reason)):
                     chunk = {"id": "fixture", "object": "chat.completion.chunk", "created": int(time.time()),
                              "model": "fixture", "choices": [{"index": 0, "delta": delta, "finish_reason": finish}]}
@@ -79,13 +85,16 @@ def fixture(engine, setup=False, tools=False, development=False):
             '[kilo]\napi_key=""\nmodels=["kilo-auto/free"]\n' + base +
             '[pollinations]\napi_key=""\nmodels=["fixture"]\n' + base,
             encoding="utf-8")
-        env = dict(os.environ, CODELABOON_CONFIG_DIR=str(config), CODELABOON_NO_ANIMATION="1")
-        if engine in ("kilo", "claude", "crush"):
+        env = dict(os.environ, CODELABOON_CONFIG_DIR=str(config), CODELABOON_NO_ANIMATION="1",
+                   CODELABOON_DATA_DIR=str(project / "data"))
+        if engine in ("kilo", "claude", "crush", "jcode"):
             # Reuse a verified optional binary while keeping all auth/config isolated.
             from codelaboon.paths import config_dir
             marker = config_dir() / "runtime/native-clis" / engine / "current.json"
             if marker.is_file():
                 binary = Path(json.loads(marker.read_text())["executable"])
+                if engine == "jcode":
+                    env["CODELABOON_JCODE_BIN"] = str(binary)
                 env["PATH"] = str(binary.parent) + os.pathsep + env.get("PATH", "")
         if development:
             env["CODELABOON_DEV_RUNTIME"] = "1"

@@ -30,3 +30,18 @@ def config_dir() -> Path:
     if configured:
         return Path(configured)
     return home() / ".config" / "codelaboon"
+
+
+def cache_dir() -> Path:
+    """Rebuildable downloads/development files, outside project backups."""
+    explicit = os.environ.get('CODELABOON_CACHE_DIR', '').strip()
+    return Path(explicit) if explicit else Path(os.environ.get('XDG_CACHE_HOME') or home() / '.cache') / 'codelaboon'
+
+
+def development_dir() -> Path:
+    return Path(os.environ.get('CODELABOON_DEV_DIR') or cache_dir() / 'development')
+
+
+def data_dir() -> Path:
+    """Durable optional assets such as local model weights and release copies."""
+    return Path(os.environ.get('CODELABOON_DATA_DIR') or Path(os.environ.get('XDG_DATA_HOME') or home() / '.local/share') / 'codelaboon')

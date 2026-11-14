@@ -1,6 +1,6 @@
 """Import the runtime workspaces of pinned upstream releases, with provenance.
 
-Reference repositories must already be cloned under forks/. This never fetches,
+Reference repositories must already be cloned under the external development directory forks/. This never fetches,
 changes git history, or overwrites an existing import.
 """
 
@@ -12,6 +12,10 @@ import subprocess
 import tarfile
 
 ROOT = Path(__file__).resolve().parent.parent
+import sys
+sys.path.insert(0, str(ROOT))
+from codelaboon.paths import development_dir
+DEV = development_dir()
 SPECS = {
     "opencode": ("https://github.com/anomalyco/opencode", "v1.2.27", "opencode"),
     "oh-my-pi": ("https://github.com/can1357/oh-my-pi", "v13.18.0", "@oh-my-pi/pi-coding-agent"),
@@ -21,8 +25,8 @@ REVISIONS = {"opencode": "4ee426ba549131c4903a71dfb6259200467aca81",
 
 
 def import_source(name, url, ref, entry):
-    checkout = ROOT / "forks" / name
-    target = ROOT / "codelaboon" / "_vendor" / name
+    checkout = DEV / "forks" / name
+    target = DEV / "vendor" / name
     if target.exists():
         raise SystemExit(f"Refusing to overwrite {target}")
     revision = subprocess.check_output(
@@ -86,8 +90,8 @@ def import_source(name, url, ref, entry):
         (target / "UPSTREAM.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         patch = ROOT / "scripts" / "patches" / f"{name}.patch"
         if patch.is_file():
-            subprocess.run(["git", "apply", "--directory", str(target.relative_to(ROOT)), str(patch)],
-                           cwd=ROOT, check=True)
+            subprocess.run(["git", "apply", str(patch)],
+                           cwd=target, check=True)
         print(f"Imported {name} {revision}: {len(hashes)} files, {len(roots)} workspaces")
 
 

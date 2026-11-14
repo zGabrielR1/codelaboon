@@ -550,6 +550,9 @@ class CodelaboonCLI:
         subparsers.add_parser("omp", help="Open the optional OMP interface (automatic setup)")
         subparsers.add_parser("kilo", help="Open the optional official Kilo native CLI")
         subparsers.add_parser("claude", help="Open Claude Code on Codelaboon free models")
+        subparsers.add_parser("storage", help="Audit or relocate development/cache bulk outside the project")
+        subparsers.add_parser("swarm", help="Run a bounded lightweight Rust swarm on the free backend")
+        subparsers.add_parser("jcode", help="Open the optional lightweight Rust harness")
         subparsers.add_parser("crush", help="Open the optional Crush native UI on Codelaboon free models")
 
         # List providers command
@@ -625,7 +628,7 @@ class CodelaboonCLI:
 
         # TUI command
         tui_parser = subparsers.add_parser("tui", help="Native OpenCode/OMP source TUI")
-        tui_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush"], default="opencode", help=argparse.SUPPRESS)
+        tui_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush", "jcode"], default="opencode", help=argparse.SUPPRESS)
         tui_parser.add_argument("--setup", action="store_true", help="Install the selected fork's dependencies")
         tui_parser.add_argument("--profile", choices=["coding", "security"], default="coding")
         tui_parser.add_argument("--local-only", action="store_true", help="Use only local inference; disable cloud model fallback")
@@ -641,8 +644,8 @@ class CodelaboonCLI:
         install_parser.add_argument(
             "--no-path", action="store_true", help="Do not modify PATH"
         )
-        install_parser.add_argument("--skip-runtime", action="store_true")
-        install_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush"], default="opencode", help=argparse.SUPPRESS)
+        install_parser.add_argument("--prepare-runtime", action="store_true", help="Prepare the default engine now instead of on first use")
+        install_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush", "jcode"], default="opencode", help=argparse.SUPPRESS)
 
         update_parser = subparsers.add_parser(
             "update", help="Pull latest source changes and reinstall codelaboon"
@@ -653,8 +656,8 @@ class CodelaboonCLI:
         update_parser.add_argument(
             "--no-editable", action="store_true", help="Install as a regular package instead of editable"
         )
-        update_parser.add_argument("--skip-runtime", action="store_true")
-        update_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush"], default="opencode", help=argparse.SUPPRESS)
+        update_parser.add_argument("--prepare-runtime", action="store_true", help="Prepare the engine now instead of on first use")
+        update_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush", "jcode"], default="opencode", help=argparse.SUPPRESS)
 
         web_parser = subparsers.add_parser("web", help="Open the localhost web workspace")
         web_parser.add_argument("--port", type=int, default=8765)
@@ -671,7 +674,7 @@ class CodelaboonCLI:
             from codelaboon.install import install
 
             if not install(editable=args.editable, update_path=not args.no_path,
-                           runtime=not args.skip_runtime, engine=args.engine):
+                           runtime=args.prepare_runtime, engine=args.engine):
                 sys.exit(1)
             return
 
@@ -679,7 +682,7 @@ class CodelaboonCLI:
             from codelaboon.update import update
 
             if not update(editable=not args.no_editable, pull=not args.no_pull,
-                          runtime=not args.skip_runtime, engine=args.engine):
+                          runtime=args.prepare_runtime, engine=args.engine):
                 sys.exit(1)
             return
 
@@ -818,8 +821,16 @@ def main() -> None:
                 stream.reconfigure(errors="replace")
             except (OSError, ValueError):
                 pass
-    if sys.argv[1:2] and sys.argv[1] in ("omp", "kilo", "claude", "crush"):
+    if sys.argv[1:2] and sys.argv[1] in ("omp", "kilo", "claude", "crush", "jcode"):
         run_tui(sys.argv[1], sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['storage']:
+        from codelaboon.storage import main as storage_main
+        storage_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['swarm']:
+        from codelaboon.swarm import main as swarm_main
+        swarm_main(sys.argv[2:])
         return
     if sys.argv[1:2] == ['work']:
         from codelaboon.work import main as work_main

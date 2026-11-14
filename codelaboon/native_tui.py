@@ -15,7 +15,7 @@ import tempfile
 
 import requests
 
-from codelaboon.paths import config_dir
+from codelaboon.paths import config_dir, development_dir
 
 VENDOR = Path(__file__).resolve().parent / "_vendor"
 ENGINES = {"opencode": "opencode", "omp": "oh-my-pi"}
@@ -28,7 +28,7 @@ def bun_executable():
     found = shutil.which("bun")
     if found:
         return found
-    local = Path(__file__).resolve().parent.parent / ".runtime/node_modules/bun/bin"
+    local = development_dir() / "runtime/node_modules/bun/bin"
     executable = local / ("bun.exe" if os.name == "nt" else "bun")
     if executable.is_file():
         return str(executable)
@@ -62,16 +62,16 @@ def ensure_bun():
 
 def source_root(engine):
     name = ENGINES[engine]
-    direct = VENDOR / name
+    direct = development_dir() / "vendor" / name
     if os.environ.get("CODELABOON_DEV_RUNTIME") == "1" and (direct / "UPSTREAM.json").is_file():
         return direct
-    archive = VENDOR / f"{name}.tar.gz"
-    if not archive.is_file():
-        raise RuntimeError(f"Missing packaged {name} sources; reinstall codelaboon.")
-    digest = hashlib.sha256(archive.read_bytes()).hexdigest()[:16]
-    destination = config_dir() / "runtime" / f"{name}-{digest}"
+    from codelaboon.engine_assets import record, archive_for
+    info = record(engine)
+    destination = direct if os.environ.get("CODELABOON_DEV_RUNTIME") == "1" else (
+        config_dir() / "runtime" / f"{name}-{info['sha256'][:16]}")
     if not (destination / "UPSTREAM.json").is_file():
         destination.parent.mkdir(parents=True, exist_ok=True)
+        archive = archive_for(engine)
         with tempfile.TemporaryDirectory(prefix=f".{name}-", dir=destination.parent) as temporary:
             staging = Path(temporary) / "source"
             staging.mkdir()
@@ -88,7 +88,7 @@ def source_root(engine):
 
 
 def setup(engine):
-    if engine in ("claude", "kilo", "crush"):
+    if engine in ("claude", "kilo", "crush", "jcode"):
         from codelaboon.external_engines import setup as install_external
         return install_external(engine)
     root = source_root(engine)
@@ -183,7 +183,7 @@ def omp_config(rows, url):
 
 
 def launch(engine="opencode", arguments=(), profile="coding", local_only=False, theme=None):
-    if engine in ("claude", "kilo", "crush"):
+    if engine in ("claude", "kilo", "crush", "jcode"):
         from codelaboon.external_engines import launch as launch_external
         return launch_external(engine, arguments, profile, local_only)
     from codelaboon.cli import CodelaboonCLI

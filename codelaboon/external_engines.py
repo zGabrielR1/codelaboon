@@ -20,6 +20,7 @@ from codelaboon.paths import config_dir
 CLAUDE_RELEASES = "https://downloads.claude.ai/claude-code-releases"
 KILO_VERSION = "7.8.27"
 CRUSH_VERSION = "0.101.0"
+JCODE_VERSION = "0.99.1"
 
 
 def target(engine):
@@ -29,7 +30,7 @@ def target(engine):
         system, arch = systems[platform.system()], architectures[platform.machine()]
     except KeyError as error:
         raise RuntimeError("This platform does not have a supported native CLI build") from error
-    if engine == "crush":
+    if engine in ("crush", "jcode"):
         return f"{system}-{arch}"
     musl = system == "linux" and platform.libc_ver()[0] == "musl"
     if engine == "claude" and system == "windows":
@@ -48,7 +49,7 @@ def metadata(url):
 
 
 def setup(engine):
-    if engine not in ("kilo", "claude", "bun", "crush"):
+    if engine not in ("kilo", "claude", "bun", "crush", "jcode"):
         raise ValueError("Unknown optional engine")
     directory = config_dir() / "runtime" / "native-clis" / engine
     directory.mkdir(parents=True, exist_ok=True)
@@ -63,6 +64,20 @@ def setup(engine):
         url = f"{CLAUDE_RELEASES}/{version}/{system}/claude" + (".exe" if os.name == "nt" else "")
         digest = release["checksum"]
         algorithm = "sha256"
+    elif engine == "jcode":
+        version = JCODE_VERSION
+        operating_system, architecture = system.split("-", 1)
+        operating_system = "macos" if operating_system == "darwin" else operating_system
+        architecture = "x86_64" if architecture == "x64" else "aarch64"
+        filename = f"jcode-{operating_system}-{architecture}.tar.gz"
+        base = f"https://github.com/1jehuang/jcode/releases/download/v{version}"
+        with requests.get(base + "/SHA256SUMS", timeout=(10, 30)) as response:
+            response.raise_for_status()
+            digest = next((line.split()[0] for line in response.text.splitlines()
+                           if len(line.split()) == 2 and line.split()[1] == filename), "")
+        if not re.fullmatch(r"[a-fA-F0-9]{64}", digest):
+            raise RuntimeError("Jcode release has no valid checksum for this platform")
+        algorithm, url = "sha256", base + "/" + filename
     elif engine == "crush":
         version = CRUSH_VERSION
         system_name, architecture = system.split("-", 1)
@@ -115,6 +130,11 @@ def setup(engine):
             with tarfile.open(download) as archive:
                 archive.extractall(content, filter="data")
         candidates = [file for file in content.rglob(binary_name) if file.is_file()]
+        if engine == "jcode" and not candidates:
+            native = list(content.rglob("jcode-*.exe" if os.name == "nt" else "jcode-*.bin"))
+            if len(native) == 1:
+                native[0].rename(content / binary_name)
+                candidates = [content / binary_name]
         if len(candidates) != 1:
             raise RuntimeError(f"Expected one {engine} executable in the verified package")
         relative = candidates[0].relative_to(content)
@@ -131,7 +151,9 @@ def setup(engine):
 
 
 def executable(engine):
-    existing = shutil.which(engine)
+    if engine == "jcode" and os.environ.get("CODELABOON_JCODE_BIN"):
+        return str(Path(os.environ["CODELABOON_JCODE_BIN"]).resolve())
+    existing = None if engine == "jcode" else shutil.which(engine)
     if existing and engine == "crush":
         try:
             with Path(existing).open("rb") as stream:
@@ -168,7 +190,7 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
     cli = CodelaboonCLI()
     cli.load_providers()
     providers = {"local": cli.providers["local"]} if local_only else cli.providers
-    if engine in ("claude", "crush") and not local_only:
+    if engine in ("claude", "crush", "jcode") and not local_only:
         from codelaboon.native_gateway import FREE_COMPATIBLE
         providers = {name: provider for name, provider in providers.items()
                      if name in FREE_COMPATIBLE or name == "local"}
@@ -176,6 +198,9 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
         rows = gateway.models(startup=True)
         if not rows:
             raise RuntimeError("No model is listed for this session")
+        if engine == "jcode":
+            from codelaboon.jcode_engine import launch as launch_jcode
+            return launch_jcode(binary, arguments, profile, local_only, rows, url, gateway.token)
         if engine == "crush":
             from codelaboon.crush_engine import launch as launch_crush
             return launch_crush(binary, arguments, profile, local_only, rows, url, gateway.token)

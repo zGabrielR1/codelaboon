@@ -1,3 +1,19 @@
+## 1.0.0rc15 - 2026-11-14
+
+- Keep OpenCode as the default UI; ship a small core with pinned engine metadata.
+  Fetch verified OpenCode/OMP assets and engine dependencies on first use, or
+  prepare OpenCode at install time with `--prepare-runtime`.
+- Move development sources/clones/builds outside project backups. Add preview-first
+  `storage audit` and non-destructive `storage compact --apply`, with tracked-file,
+  destination and live-process guards plus move journals.
+- Add optional verified Jcode v0.99.1 Rust execution and bounded native swarms over
+  one Codelaboon gateway. Default background builders use Jcode. Keep acceptance
+  checks independent, budgeted and logged.
+- Unload the service-owned local router model while idle and reload for queued
+  tasks. Preserve external router processes, accounts, queues and legacy history.
+- Verify real OpenCode VTE rendering/history, native Rust file tools and a native
+  two-worker swarm. Publish engine bundles separately; enforce a 1 MiB core limit.
+
 ## 1.0.0rc14 - 2026-11-14
 
 - Add `codelaboon crush`: official Crush v0.101.0 native UI, automatically

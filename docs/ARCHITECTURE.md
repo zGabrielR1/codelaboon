@@ -10,8 +10,8 @@ The older Textual implementation below remains a reference implementation.
 
 A declarative prompt-engineering harness for free AI model access. It wraps free model access into a self-perpetuating lifecycle: any CLI session bootstraps state, operates under a master prompt, verifies adversarially, improves the provider configurations themselves, and condenses context for the next session.
 
-Python source code with a small runtime dependency set (`requests`, Textual and
-PyJWT) and no build service.
+Python source code with a small runtime dependency set (`requests` and PyJWT;
+Textual is optional) and no build service.
 
 ## Layout
 
@@ -185,3 +185,7 @@ The architecture is designed for easy extension:
 - **New Verification**: Add new verification checks
 
 Each extension follows the existing patterns and conventions.
+
+RC15 separates the lean core, engine assets and external development trees.
+OpenCode remains the interactive default; native Jcode handles bounded swarms and
+background building. See [lean runtime operations](lean-runtime.md).

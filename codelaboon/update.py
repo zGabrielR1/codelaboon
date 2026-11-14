@@ -37,7 +37,7 @@ def _run(command: list[str], cwd: Path) -> tuple[int, str]:
     return completed.returncode, output
 
 
-def update(editable: bool = True, pull: bool = True, runtime: bool = True, engine="opencode") -> bool:
+def update(editable: bool = True, pull: bool = True, runtime: bool = False, engine="opencode") -> bool:
     """Update from the current source checkout and reinstall.
 
     Returns True on success.
@@ -124,7 +124,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     pull = "--no-pull" not in argv
     engine = argv[argv.index("--engine") + 1] if "--engine" in argv else "opencode"
     return 0 if update(editable=editable, pull=pull,
-                       runtime="--skip-runtime" not in argv, engine=engine) else 1
+                       runtime="--prepare-runtime" in argv, engine=engine) else 1
 
 
 if __name__ == "__main__":

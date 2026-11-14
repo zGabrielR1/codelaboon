@@ -17,7 +17,7 @@ def specification(config, system=None):
     argv = [sys.executable, "-m", "codelaboon.service", str(Path(config).resolve())]
     if any("\n" in item or "\r" in item for item in argv):
         raise ValueError("Service paths must not contain line breaks")
-    source = str(Path(__file__).resolve().parent.parent)
+    source = str(Path(config).resolve().parent)
     if system == "Linux":
         def quote(value):
             return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('%', '%%').replace('$', '$$') + '"'

@@ -186,8 +186,8 @@ The server binds only to loopback and requires a session token for chat requests
 
 The terminal workspace supports Ctrl+P for providers, Ctrl+O for models,
 Ctrl+N/Ctrl+L for a new chat, Ctrl+S for saved sessions, Ctrl+B to toggle the
-sidebar and Ctrl+K to replace an account key. Textual is installed with the
-application so the default command works after installation.
+sidebar and Ctrl+K to replace an account key. The default interface uses OpenCode; Textual is available through the optional
+`tui` extra for the legacy interface.
 
 ## Quick start
 
@@ -239,7 +239,7 @@ From the source checkout:
 python3 -m codelaboon install
 ```
 
-This installs the package for the current user (including the Textual TUI) and
+This installs the core package for the current user and
 adds pip's user script directory to your `PATH`:
 
 - **Windows** — updates the user `Path` registry value and broadcasts the
@@ -335,7 +335,7 @@ sessions and context compaction. The Python process keeps provider credentials
 and forwards the native wire protocols through a token-protected loopback gateway.
 
 ```bash
-python3 -m codelaboon install           # installs package, prepares Bun and the TUI
+python3 -m codelaboon install           # small core; engine dependencies fetched on first use
 codelaboon                             # native OpenCode UI in the current project
 codelaboon omp                         # OMP; dependencies install automatically
 codelaboon kilo                        # optional official Kilo CLI and provider gateway
@@ -346,8 +346,9 @@ codelaboon tui --profile security       # authorized pentesting workflow
 codelaboon tui --local-only             # local inference, with no cloud model fallback
 ```
 
-The installer prepares production dependencies and downloads checksum-verified Bun
-1.4.4 if needed; Node/npm are not required. First launch also repairs missing setup.
+First launch fetches the selected engine and its production dependencies, including
+checksum-verified Bun 1.4.4 when needed. Node/npm are not required. Use
+`codelaboon install --prepare-runtime` to prepare OpenCode during installation.
 Provider discovery has a one-second startup budget and uses cached/default models
 while refreshing in the background. Skipped optional packages for other platforms
 are normal. Once set up, local inference can use Ollama or llama.cpp's OpenAI endpoint.
@@ -595,8 +596,8 @@ codelaboon/
 └── CURRENTTASK            # Active objective tracker
 ```
 
-`forks/` contains reference clones used during development and is excluded from
-the release (see `.gitignore`).
+Reference clones and development runtimes live outside the checkout under
+`~/.cache/codelaboon/development`. See [lean storage and swarms](docs/lean-runtime.md).
 
 ## Contributing
 

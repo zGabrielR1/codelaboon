@@ -440,3 +440,22 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   from `ed67452`; release `43620769354` and verify `43620769150` succeeded, including
   native Crush UI/tools/VTE and all existing engines. Downloaded wheel/source
   checksums verified. Installed user acceptance confirmed; requested RC complete.
+
+### Session 2026-11-14 — RC15 lean storage and lightweight swarms
+
+- User chose OpenCode UI with lightweight swarm/background execution. Kept the
+  working UI and all prior optional engines; added verified native Jcode v0.99.1.
+- Core distributions now carry a pinned asset manifest; OpenCode/OMP bundles
+  publish separately. First-use dependencies are automatic; prefetch is optional.
+- Moved bulk development trees, references, release copies, local weights and
+  history outside ppp without deletion. Checkout measured 3.9 GB → 29 MB; initial
+  thin wheel 173 KiB. Preserved the three legacy tasks in external legacy history.
+- Restarted the empty background service with canonical state and rewritten local
+  model paths. Idle service measured ~35 MiB with model unloaded; work reloads it.
+- Native two-worker file reads/reports and hard-cap rejection pass. Default
+  background builders now use Rust, with independent supervisor verification.
+- Added storage/checksum/lifecycle/acceptance regressions, thin-package CI guard,
+  native swarm CI, documentation and RC15 adversarial review. Actual OpenCode VTE
+  rendering/reply/Up recall and file-tool gateway checks pass after relocation.
+- Next: final build/reinstall and 208-test run, then commit/tag/publish only after
+  complete native release gates. Do not claim upstream RAM ratios as our results.

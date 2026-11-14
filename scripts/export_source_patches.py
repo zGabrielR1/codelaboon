@@ -7,11 +7,15 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
+import sys
+sys.path.insert(0, str(ROOT))
+from codelaboon.paths import development_dir
+DEV = development_dir()
 DESTINATION = ROOT / "scripts/patches"
 DESTINATION.mkdir(exist_ok=True)
 
 for name in ("opencode", "oh-my-pi"):
-    source = ROOT / "codelaboon/_vendor" / name
+    source = DEV / "vendor" / name
     manifest = json.loads((source / "UPSTREAM.json").read_text(encoding="utf-8"))
     changes = {}
     for path, digest in manifest["upstream_sha256"].items():
@@ -20,7 +24,7 @@ for name in ("opencode", "oh-my-pi"):
         after = (source / path).read_bytes()
         if hashlib.sha256(after).hexdigest() == digest:
             continue
-        before = subprocess.check_output(["git", "-C", str(ROOT / "forks" / name),
+        before = subprocess.check_output(["git", "-C", str(DEV / "forks" / name),
                                           "show", manifest["revision"] + ":" + path])
         if hashlib.sha256(before).hexdigest() != digest:
             raise ValueError("Pinned original hash mismatch: " + path)

@@ -7,17 +7,21 @@ from pathlib import Path
 import tarfile
 
 ROOT = Path(__file__).resolve().parent.parent
+import sys
+sys.path.insert(0, str(ROOT))
+from codelaboon.paths import development_dir
+DEV = development_dir()
 
 
 def bundle(name):
-    source = ROOT / "codelaboon/_vendor" / name
+    source = DEV / "vendor" / name
     manifest = json.loads((source / "UPSTREAM.json").read_text(encoding="utf-8"))
     paths = sorted(set(manifest["upstream_sha256"]) | {"UPSTREAM.json"})
     manifest["fork_sha256"] = {
         path: hashlib.sha256((source / path).read_bytes()).hexdigest()
         for path, digest in manifest["upstream_sha256"].items()
         if hashlib.sha256((source / path).read_bytes()).hexdigest() != digest}
-    output = source.parent / f"{name}.tar.gz"
+    output = ROOT / "codelaboon/_vendor" / f"{name}.tar.gz"
     temporary = output.with_suffix(".tmp")
     with temporary.open("wb") as raw, gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0) as zipped:
         with tarfile.open(fileobj=zipped, mode="w") as archive:
