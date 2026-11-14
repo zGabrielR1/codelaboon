@@ -37,7 +37,7 @@ def _run(command: list[str], cwd: Path) -> tuple[int, str]:
     return completed.returncode, output
 
 
-def update(editable: bool = True, pull: bool = True) -> bool:
+def update(editable: bool = True, pull: bool = True, runtime: bool = True, engine="opencode") -> bool:
     """Update from the current source checkout and reinstall.
 
     Returns True on success.
@@ -70,13 +70,15 @@ def update(editable: bool = True, pull: bool = True) -> bool:
             code, output = _run(["git", "pull", "--ff-only"], root)
             git_output = output
             if code != 0:
-                # Not fatal: user may have local changes or no upstream; continue reinstall.
                 short = output.splitlines()[-1] if output else "skipped"
-                return True, f"skipped ({short[:80]})"
+                return False, short[:80]
             first = output.splitlines()[0] if output else "up to date"
             return True, first[:80]
 
-        _step("Pull latest changes", do_pull)
+        ok, _ = _step("Pull latest changes", do_pull)
+        if not ok:
+            print("Update stopped. Resolve the pull failure, or use --no-pull to reinstall local changes.")
+            return False
     elif pull:
         _step("Pull latest changes", lambda: (True, "not a git checkout"))
 
@@ -102,6 +104,11 @@ def update(editable: bool = True, pull: bool = True) -> bool:
             print("  " + "\n  ".join(tail.splitlines()))
         return False
 
+    if runtime:
+        from codelaboon.install import setup_runtime
+        if not setup_runtime(engine):
+            return False
+
     scripts = user_scripts_dir()
     print()
     print(f"  codelaboon updated from: {root}")
@@ -115,7 +122,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     editable = "--no-editable" not in argv
     pull = "--no-pull" not in argv
-    return 0 if update(editable=editable, pull=pull) else 1
+    engine = argv[argv.index("--engine") + 1] if "--engine" in argv else "opencode"
+    return 0 if update(editable=editable, pull=pull,
+                       runtime="--skip-runtime" not in argv, engine=engine) else 1
 
 
 if __name__ == "__main__":

@@ -1,5 +1,13 @@
 # ARCHITECTURE — codelaboon
 
+The default terminal now executes a pinned OpenCode source fork. An alternate
+Oh My Pi source engine shares the Python provider gateway. Source bundles include
+licenses and provenance; dependencies and credentials are runtime-only. The gateway
+preserves tools and streaming in chat/Responses/Anthropic/Google protocols.
+See [native runtime architecture and operations](native-runtime.md) for the current
+UI, free routing, local/security profiles, installation and OS-managed workers.
+The older Textual implementation below remains a reference implementation.
+
 A declarative prompt-engineering harness for free AI model access. It wraps free model access into a self-perpetuating lifecycle: any CLI session bootstraps state, operates under a master prompt, verifies adversarially, improves the provider configurations themselves, and condenses context for the next session.
 
 Python source code with a small runtime dependency set (`requests`, Textual and

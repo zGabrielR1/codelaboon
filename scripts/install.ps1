@@ -7,8 +7,15 @@
 # %APPDATA%\Python\PythonX.Y\Scripts to the user Path registry value.
 $ErrorActionPreference = "Stop"
 
-$Root = Split-Path -Parent $PSScriptRoot
+$Root = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { "" }
 $Python = if ($env:PYTHON) { $env:PYTHON } else { "python" }
+if (-not $Root -or -not (Test-Path (Join-Path $Root "pyproject.toml"))) {
+    $Root = if ($env:CODELABOON_SOURCE_DIR) { $env:CODELABOON_SOURCE_DIR } else { Join-Path $env:LOCALAPPDATA "codelaboon\source" }
+    if (-not (Test-Path (Join-Path $Root ".git"))) {
+        & git clone https://github.com/zGabrielR1/codelaboon.git $Root
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
+}
 
 Push-Location $Root
 try {

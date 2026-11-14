@@ -1,4 +1,38 @@
+## 1.0.0rc10 - 2026-11-13
+
+- Keep OpenCode and OMP as the actual native UI codebases. Add Kilo Code's native
+  charcoal/yellow palette and an OMP palette adaptation, with upstream MIT notice
+  and revision/hash provenance. Saved native theme choices remain respected;
+  `tui --theme NAME` selects an explicit native theme.
+- Keep OMP logs, sessions, settings and themes inside the Codelaboon profile,
+  including isolated background-worker profiles. Use the native condensed
+  changelog and avoid checking for an unrelated OMP binary update by default.
+- Add repeatable terminal integration checks at 80/160 columns for both engines:
+  welcome, model response, prompt recall, themes and settings; wide OpenCode
+  also checks delegated/background sidebar sections. Check OMP session/log paths.
+- Gate GitHub publication on both native UIs, their upstream type checks, real
+  file-tool round trips, Python tests and source-bundle integrity. Preserve
+  terminal evidence as CI artifacts and require the tag/package versions to match.
+- Add replay-checked source patch export and packaged source hash verification.
+
 ## 1.0.0rc9 - 2026-11-13
+
+- Execute pinned OpenCode and Oh My Pi source runtimes with preserved upstream
+  themes, tools, sessions, prompt recall, animations and context compaction.
+  Add animated Codelaboon branding and delegated/background work to the native sidebar.
+- Package provenance-listed runtime sources and reproducible patches; verify OMP's
+  native addon integrity and extract installed sources atomically.
+- Preserve chat, Responses, Anthropic and Gemini tool protocols through an
+  authenticated loopback gateway. Add Freebuff admission, free-route cooldowns,
+  explicit OpenRouter free selection, Groq/Cerebras catalogues and local models.
+- Add local-only inference and an authorized security profile. Exclude Gemini API
+  keys and Qoder Cloud PATs from automatic free selection. Prefer Qoder HTTP
+  whenever a PAT is configured. Add official standalone Our Free Model controls.
+- Add user systemd/Scheduled Task/LaunchAgent registration, persistent empty queues,
+  worker availability probes and routing health metadata. Native background builders
+  use the packaged source runtime without a separately installed OpenCode executable.
+- Prepare Bun/runtime dependencies during install/update, respect virtualenvs and
+  externally managed Python, fix Fish/bootstrap installers, and stop on failed pulls.
 
 - Make the CLI TUI the default interface: running `codelaboon` with no
   command opens a terminal workspace modelled on Claude Code, OpenCode, Codex

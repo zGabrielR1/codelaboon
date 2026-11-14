@@ -11,6 +11,7 @@ import urllib.error
 import urllib.request
 
 from codelaboon.watch import terminate
+from codelaboon.paths import config_dir
 
 
 def router_ready():
@@ -28,11 +29,13 @@ def serve(config_path):
     config = json.loads(config_path.read_text(encoding='utf-8'))
     runtime = (config_path.parent / config['runtime']).resolve()
     runtime.mkdir(parents=True, exist_ok=True)
-    local = source / '.watch/local'
+    local = source / '.watch/local' if (source / '.watch/local').is_dir() else config_dir() / 'runtime/local'
     local.mkdir(parents=True, exist_ok=True)
     name = 'llama-server.exe' if os.name == 'nt' else 'llama-server'
-    executable = Path(config.get('local_executable') or shutil.which(name) or local / 'llama' / name)
-    model = local / 'router.gguf'
+    linux = local / 'llama-linux/llama-b12360/llama-server'
+    executable = Path(config.get('local_executable') or shutil.which(name) or
+                      (linux if os.name != 'nt' and linux.is_file() else local / 'llama' / name))
+    model = Path(config.get('local_model') or local / 'router.gguf')
     if not router_ready() and (not executable.is_file() or not model.is_file()):
         raise FileNotFoundError('Install a native llama-server and .watch/local/router.gguf, '
                                 'or start an external local-router server on port 18765. '

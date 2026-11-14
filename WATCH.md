@@ -1,5 +1,12 @@
 # Persistent runner
 
+> Current runtime: use `codelaboon work init` and `codelaboon work enable` for
+> OS-managed startup (Linux user systemd with lingering, Windows Scheduled Task,
+> macOS LaunchAgent). Native builders now use the bundled OpenCode source and
+> its provider gateway. See [the current guide](docs/native-runtime.md).
+> The dated operational notes below describe the earlier detached-process setup.
+
+
 For a local routing model with all planning/building delegated to cloud workers,
 see [CLOUD-WATCH.md](CLOUD-WATCH.md) and `examples/watch-cloud.json`.
 

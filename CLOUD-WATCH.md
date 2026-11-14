@@ -1,5 +1,12 @@
 # Local orchestration, cloud planning and building
 
+> Current runtime: use `codelaboon work init` and `codelaboon work enable` for
+> OS-managed startup (Linux user systemd with lingering, Windows Scheduled Task,
+> macOS LaunchAgent). Native builders now use the bundled OpenCode source and
+> its provider gateway. See [the current guide](docs/native-runtime.md).
+> The dated operational notes below describe the earlier detached-process setup.
+
+
 The local Qwen3 0.6B model receives only task IDs, project paths, stage names and
 available cloud harness IDs. It returns a validated job index. It has no tools
 and never gets source code, writes plans or builds the project. A fixed state

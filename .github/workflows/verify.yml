@@ -9,6 +9,8 @@ permissions:
   contents: read
 
 jobs:
+  native:
+    uses: ./.github/workflows/native-ui.yml
   test:
     runs-on: ubuntu-latest
     strategy:

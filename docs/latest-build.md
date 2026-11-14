@@ -1,22 +1,17 @@
-# Latest build: 1.0.0rc8
+# Latest release candidate: 1.0.0rc10
 
-Local release candidate built on 2026-11-08. Artifacts and SHA-256 checksums
-are in `releases/`; this build has not been published or tagged remotely.
+RC10 verifies the actual native OpenCode/OMP interfaces and adds a Kilo-derived
+palette through their own theme systems. It also fixes OMP profile routing and
+startup defaults. See [RC10 notes](release-1.0.0rc10.md) and the
+[native runtime guide](native-runtime.md).
 
-Includes WusRouter live discovery, browser signup and account-key switching;
-native Qoder Cloud Agents support for PAT users without a local CLI; and a
-responsive whale ASCII TUI welcome screen.
+Validation covers 178 Python tests, both engines' type checks, actual file-tool
+round trips, and terminal checks at 80/160 columns for welcome, response, prompt
+recall and theme/settings menus. Wide OpenCode checks delegated/background work;
+OMP checks profile-local sessions and logs. Bundle hashes and patch replay are
+verified. CI repeats native checks on fresh packaged sources before publication.
 
-Low-level fixes cover atomic private configuration writes, concurrent updates,
-stale TUI requests after switching accounts, bounded UTF-8 event parsing,
-recoverable Qoder errors, and source-archive verification.
-
-Live WusRouter public discovery was checked. Authenticated inference requires
-provider credentials; Qoder Cloud Agents also needs access, quota and an
-existing environment. Account availability and free-tier eligibility have not
-been established by offline tests.
-
-Validation: 132 tests pass from the extracted source archive. Both the checkout
-and source archive pass `make check` and structural verification. The wheel is
-installed and smoke-tested outside the checkout, and both artifacts have SHA-256
-checksums in `releases/SHA256SUMS`.
+The tag workflow for `v1.0.0-rc.10` is the publication authority: it publishes the
+wheel, source archive and SHA256SUMS only after required checks pass. Runtime
+credentials, dependencies, sessions and model weights are excluded from release
+artifacts. Existing background service/queue data is preserved.

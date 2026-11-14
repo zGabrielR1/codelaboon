@@ -23,6 +23,7 @@ worth everything.
 """
 
 from dataclasses import dataclass
+import os
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
@@ -109,6 +110,11 @@ def _availability(model: FreeModel, providers: Dict[str, object]) -> float:
         usable = False
     if not usable:
         return 0.0
+    if model.provider == "gemini" and (getattr(provider, "api_key", "").strip()
+            or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
+        return 0.0  # AI Studio keys do not establish free Code Assist access.
+    if model.provider == "qoder" and getattr(provider, "_pat", lambda: "")():
+        return 0.0  # Cloud Agents PAT usage can consume credits.
     roster = _roster(provider)
     if model.model in roster:
         return 1.0
@@ -123,7 +129,12 @@ def _availability(model: FreeModel, providers: Dict[str, object]) -> float:
 def ranked(providers: Dict[str, object]) -> List[FreeModel]:
     """Rank every usable free model by availability, intelligence and speed."""
     scored = []
-    for index, entry in enumerate(CATALOG):
+    catalog = list(CATALOG)
+    for name, provider in providers.items():
+        discover = getattr(provider, "free_models", None)
+        if discover and provider.validate_api_key():
+            catalog.extend(FreeModel(name, model, 8.0, 8.0) for model in discover())
+    for index, entry in enumerate(catalog):
         availability = _availability(entry, providers)
         if availability <= 0:
             continue

@@ -32,6 +32,8 @@ class WatchTests(unittest.TestCase):
                 run(config, once=True)
                 state = json.loads((root / '.watch/state.json').read_text())
                 self.assertEqual(state['done'], ['one'])
+                self.assertEqual(state['health']['planner']['succeeded'], 1)
+                self.assertEqual(state['health']['builder']['succeeded'], 1)
                 self.assertNotIn('secret source context', json.dumps(router.call_args_list[0].args))
 
     def test_local_failure_never_dispatches_cloud(self):
@@ -85,6 +87,29 @@ class WatchTests(unittest.TestCase):
             count = len(list((root / '.watch').glob('*/result.json')))
             run(config, once=True)
             self.assertEqual(len(list((root / '.watch').glob('*/result.json'))), count)
+
+    def test_unavailable_harness_is_excluded_from_local_router_candidates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / 'config.json'
+            config.write_text(json.dumps({
+                'orchestrator': {'model': 'router'},
+                'harnesses': [
+                    {'id': 'offline', 'location': 'cloud', 'stages': ['plan', 'build'],
+                     'available_argv': ['{python}', '-c', 'raise SystemExit(1)'],
+                     'argv': [sys.executable, '-c', 'raise RuntimeError("must not run")']},
+                    {'id': 'online', 'location': 'cloud', 'stages': ['plan', 'build'],
+                     'argv': [sys.executable, '-c', 'print("usable plan")']}],
+                'tasks': [{'id': 'one', 'project': '.', 'prompt': 'private task',
+                           'verify_argv': [[sys.executable, '-c', 'pass']]}]}))
+            with patch('codelaboon.local_router.choose', return_value=0) as router:
+                run(config, once=True)
+            candidates = router.call_args.args[1]
+            self.assertEqual({item['harness'] for item in candidates}, {'online'})
+            self.assertNotIn('private task', json.dumps(candidates))
+            state = json.loads((root / '.watch/state.json').read_text())
+            self.assertIn('one', state['plans'])
+            self.assertNotIn('offline', state['health'])
 
     def test_timeout(self):
         with tempfile.TemporaryDirectory() as directory:

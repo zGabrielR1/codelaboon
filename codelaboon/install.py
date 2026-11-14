@@ -14,12 +14,14 @@ updated and a settings-change broadcast is sent; new terminals pick it up.
 
 import itertools
 import os
+import shlex
 import shutil
 import subprocess
 import sys
 import sysconfig
 import threading
 import time
+import venv
 from pathlib import Path
 from typing import Callable, List, Optional
 
@@ -117,6 +119,8 @@ def package_root() -> Path:
 
 def user_scripts_dir() -> Path:
     """The directory pip --user puts the console script in."""
+    if sys.prefix != sys.base_prefix:
+        return Path(sysconfig.get_path("scripts"))
     scheme = "nt_user" if os.name == "nt" else "posix_user"
     try:
         path = sysconfig.get_path("scripts", scheme=scheme)
@@ -140,7 +144,17 @@ def install_package(
     target = str(root)
     if extra:
         target += f"[{extra}]"
-    command = [sys.executable, "-m", "pip", "install", "--user", "--progress-bar", "off"]
+    interpreter = sys.executable
+    private = None
+    if sys.prefix == sys.base_prefix and (Path(sysconfig.get_path("stdlib")) / "EXTERNALLY-MANAGED").exists():
+        from codelaboon.paths import config_dir
+        private = config_dir() / "runtime/python"
+        interpreter = str(private / ("Scripts/python.exe" if os.name == "nt" else "bin/python"))
+        if not Path(interpreter).is_file():
+            venv.EnvBuilder(with_pip=True).create(private)
+    command = [interpreter, "-m", "pip", "install", "--progress-bar", "off"]
+    if sys.prefix == sys.base_prefix and private is None:
+        command.append("--user")
     if editable:
         command.append("-e")
     command.append(target)
@@ -149,9 +163,26 @@ def install_package(
             command, capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         output = (completed.stdout or "") + (completed.stderr or "")
+        if completed.returncode == 0 and private:
+            _link_private_command(private)
         return completed.returncode, output.strip()
     completed = subprocess.run(command, check=False)
+    if completed.returncode == 0 and private:
+        _link_private_command(private)
     return completed.returncode, ""
+
+
+def _link_private_command(environment):
+    directory = user_scripts_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    if os.name == "nt":
+        shutil.copy2(environment / "Scripts/codelaboon.exe", directory / "codelaboon.exe")
+    else:
+        target = directory / "codelaboon"
+        temporary = directory / ".codelaboon-install"
+        temporary.unlink(missing_ok=True)
+        temporary.symlink_to(environment / "bin/codelaboon")
+        temporary.replace(target)
 
 
 def _posix_profiles() -> List[Path]:
@@ -167,8 +198,10 @@ def _posix_profiles() -> List[Path]:
 def add_to_posix_path(directory: Path) -> List[Path]:
     """Append an idempotent export line to the shell profiles that exist."""
     updated: List[Path] = []
-    line = f'export PATH="{directory}:$PATH"  {MARKER}'
     for profile in _posix_profiles():
+        quoted = shlex.quote(str(directory))
+        line = (f"fish_add_path {quoted}  {MARKER}" if profile.suffix == ".fish"
+                else f'export PATH={quoted}:"$PATH"  {MARKER}')
         try:
             text = profile.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -238,7 +271,7 @@ def on_path(directory: Path) -> bool:
     return any(os.path.normcase(entry) == wanted for entry in os.environ.get("PATH", "").split(os.pathsep))
 
 
-def install(editable: bool = False, update_path: bool = True) -> bool:
+def install(editable: bool = False, update_path: bool = True, runtime: bool = True, engine="opencode") -> bool:
     interactive = callable(getattr(sys.stdout, "isatty", None)) and sys.stdout.isatty()
     interactive = interactive and not os.environ.get("CODELABOON_PLAIN_INSTALL")
     directory = user_scripts_dir()
@@ -268,6 +301,9 @@ def install(editable: bool = False, update_path: bool = True) -> bool:
                 print("\n" + _paint("pip output:", _DIM))
                 print(_paint(tail, _DIM))
             print(_paint("\n  PATH was not changed.", _YELLOW))
+            return False
+
+        if runtime and not setup_runtime(engine):
             return False
 
         changed = False
@@ -301,6 +337,8 @@ def install(editable: bool = False, update_path: bool = True) -> bool:
     if code != 0:
         print("pip install failed; PATH was not changed.")
         return False
+    if runtime and not setup_runtime(engine):
+        return False
 
     changed = False
     if update_path:
@@ -322,11 +360,22 @@ def install(editable: bool = False, update_path: bool = True) -> bool:
     return True
 
 
+def setup_runtime(engine="opencode"):
+    from codelaboon.native_tui import setup
+    def prepare():
+        setup(engine)
+        return True, engine
+    ok, _ = _step("Prepare source TUI", prepare)
+    return ok
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     editable = "--editable" in argv or "-e" in argv
     update_path = "--no-path" not in argv
-    return 0 if install(editable=editable, update_path=update_path) else 1
+    engine = argv[argv.index("--engine") + 1] if "--engine" in argv else "opencode"
+    return 0 if install(editable=editable, update_path=update_path,
+                        runtime="--skip-runtime" not in argv, engine=engine) else 1
 
 
 if __name__ == "__main__":

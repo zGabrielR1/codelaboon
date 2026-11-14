@@ -1,20 +1,23 @@
-2026-11-13: CLI-TUI-first product pass.
-`codelaboon` with no command is the terminal workspace, modelled on Claude Code,
-OpenCode, Codex CLI and Pi. It opens on `free (Auto)` (availability 55%,
-intelligence 30%, speed 15%, send-time failover) and uses the launch directory
-as the project root. Picker Up/Down/PageUp/PageDown and composer prompt history
-work without a mouse. ChatGPT sign-in follows the documented OAuth headers and
-surfaces real error codes. `codelaboon install` installs for the current user
-and adds the script directory to PATH.
+2026-11-13: Publish RC10 with verified native OpenCode/OMP UIs.
 
-State: focused free-auto/TUI tests (16) and ChatGPT tests (9) pass. Gemini and
-Claude provider/auth suites (31 tests) pass, and `doctor` reports both
-importable. Added the keyless Pollinations provider; live `chat pollinations`
-and `chat free free` both succeed. README, ARCHITECTURE, PROGRESS and CHANGELOG
-are updated. Next: run the full suite and `scripts/verify.sh`, then validate
-live ChatGPT/Gemini/Claude sign-in with real accounts and confirm the installed
-`codelaboon` command from a new terminal.
+User requires the same upstream UI codebases, with Codelaboon backend/fork
+additions. Kilo CLI is the design reference, not a Python UI replacement.
 
-Prior objective (kept for context): RC8 local release artifacts, WusRouter and
-Qoder Cloud Agents; authenticated provider validation still pending. The local
-routing/cloud worker service (`.watch/watch-active.json`) is idle and preserved.
+Implemented: exact native Kilo theme asset plus OMP dark/light palette adaptation,
+MIT notice/provenance; saved native theme preferences; explicit --theme;
+OMP absolute profile root and profile-local logs/sessions; condensed changelog
+and no unrelated binary-update check by default. Existing native runtime/provider,
+local/security and OS-worker integrations from RC9 are carried into RC10.
+
+Validation: 178 Python tests, native types, actual tool round trips and real tmux
+UI checks at 80/160 columns. The release workflow repeats checks on fresh bundled
+sources, records terminal evidence and requires tag/package versions to match.
+Source bundles and replay-checked patches are committed release inputs.
+
+Publish tag: v1.0.0-rc.10. Use the GitHub release workflow and release page as the
+remote publication status. Never claim publication before that workflow succeeds.
+Local RC8/RC9 artifacts remain preserved in ignored releases/.
+
+The Linux background service remains enabled/running with lingering. Its queue
+is empty (.runtime/work.json). Preserve the legacy .watch queue and credentials.
+Real provider quota and Windows/macOS host checks remain separate environment work.

@@ -34,6 +34,164 @@ from textual.widgets import Button, Footer, Input, Label, ListItem, ListView, Ri
 from codelaboon.cli import CodelaboonCLI
 
 
+THEMES = {
+    "default": {
+        "bg": "#161618", "surface": "#111113", "surface_alt": "#1c1c20",
+        "border": "#2a2a30", "border_soft": "#2f2f36", "fg": "#eeeeee",
+        "muted": "#9a9aa5", "dim": "#7d7d88", "accent": "#73daca",
+        "accent_alt": "#7aa2f7", "highlight": "#2a2a31", "error": "#e06c75",
+        "warn": "#e5c07b", "success": "#98c379", "user_border": "#344957",
+        "assistant_border": "#73daca", "overlay": "#000000aa",
+    },
+    "nord": {
+        "bg": "#2e3440", "surface": "#242933", "surface_alt": "#3b4252",
+        "border": "#434c5e", "border_soft": "#4c566a", "fg": "#eceff4",
+        "muted": "#d8dee9", "dim": "#81a1c1", "accent": "#88c0d0",
+        "accent_alt": "#81a1c1", "highlight": "#3b4252", "error": "#bf616a",
+        "warn": "#ebcb8b", "success": "#a3be8c", "user_border": "#5e81ac",
+        "assistant_border": "#88c0d0", "overlay": "#1b1f27cc",
+    },
+    "gruvbox": {
+        "bg": "#282828", "surface": "#1d2021", "surface_alt": "#32302f",
+        "border": "#504945", "border_soft": "#665c54", "fg": "#ebdbb2",
+        "muted": "#d5c4a1", "dim": "#a89984", "accent": "#fabd2f",
+        "accent_alt": "#83a598", "highlight": "#3c3836", "error": "#fb4934",
+        "warn": "#fe8019", "success": "#b8bb26", "user_border": "#458588",
+        "assistant_border": "#fabd2f", "overlay": "#000000aa",
+    },
+    "catppuccin": {
+        "bg": "#1e1e2e", "surface": "#181825", "surface_alt": "#313244",
+        "border": "#45475a", "border_soft": "#585b70", "fg": "#cdd6f4",
+        "muted": "#bac2de", "dim": "#9399b2", "accent": "#cba6f7",
+        "accent_alt": "#89b4fa", "highlight": "#313244", "error": "#f38ba8",
+        "warn": "#f9e2af", "success": "#a6e3a1", "user_border": "#89b4fa",
+        "assistant_border": "#cba6f7", "overlay": "#11111bcc",
+    },
+    "kanagawa": {
+        "bg": "#1f1f28", "surface": "#16161d", "surface_alt": "#2a2a37",
+        "border": "#363646", "border_soft": "#54546d", "fg": "#dcd7ba",
+        "muted": "#c8c093", "dim": "#727169", "accent": "#7e9cd8",
+        "accent_alt": "#957fb8", "highlight": "#2a2a37", "error": "#c34043",
+        "warn": "#c0a36e", "success": "#76946a", "user_border": "#7fb4ca",
+        "assistant_border": "#7e9cd8", "overlay": "#0d0d14cc",
+    },
+    "solarized": {
+        "bg": "#002b36", "surface": "#073642", "surface_alt": "#073642",
+        "border": "#586e75", "border_soft": "#657b83", "fg": "#eee8d5",
+        "muted": "#93a1a1", "dim": "#839496", "accent": "#2aa198",
+        "accent_alt": "#268bd2", "highlight": "#094352", "error": "#dc322f",
+        "warn": "#b58900", "success": "#859900", "user_border": "#268bd2",
+        "assistant_border": "#2aa198", "overlay": "#001f27cc",
+    },
+    "evergreen": {
+        "bg": "#0f1f17", "surface": "#0b1712", "surface_alt": "#183126",
+        "border": "#244637", "border_soft": "#2f5b48", "fg": "#dcefe4",
+        "muted": "#b7d4c3", "dim": "#7ea893", "accent": "#6bcf9b",
+        "accent_alt": "#3fbf7f", "highlight": "#1a3328", "error": "#e06c75",
+        "warn": "#d7b56d", "success": "#7fd962", "user_border": "#2f7a5b",
+        "assistant_border": "#6bcf9b", "overlay": "#06100ccc",
+    },
+    "sakura": {
+        "bg": "#1f1a1d", "surface": "#181316", "surface_alt": "#2a2126",
+        "border": "#3f3038", "border_soft": "#56414d", "fg": "#f6e9ee",
+        "muted": "#e4cfd8", "dim": "#b89aa8", "accent": "#f4a7c1",
+        "accent_alt": "#e07aa5", "highlight": "#33272d", "error": "#f06a8a",
+        "warn": "#e7c080", "success": "#9fd3a6", "user_border": "#8e5a72",
+        "assistant_border": "#f4a7c1", "overlay": "#120d10cc",
+    },
+}
+
+THEME_ALIASES = {
+    "catpuccin": "catppuccin",
+    "gruvbox-dark": "gruvbox",
+    "solarized-dark": "solarized",
+    "default-dark": "default",
+}
+
+
+def normalize_theme_name(name: str) -> str:
+    key = (name or "").strip().lower()
+    return THEME_ALIASES.get(key, key)
+
+
+def theme_palette(name: str) -> dict:
+    return THEMES.get(normalize_theme_name(name), THEMES["default"]).copy()
+
+
+def app_css(p: dict) -> str:
+    return f"""
+    Screen {{ background: {p['bg']}; color: {p['fg']}; }}
+    #body {{ height: 1fr; }}
+    #main {{ width: 1fr; padding: 1 3; }}
+    #sidebar {{
+        width: 38; background: {p['surface']}; padding: 1 2;
+        border-left: solid {p['border']};
+    }}
+    #topbar {{ height: 1; color: {p['dim']}; margin-bottom: 1; }}
+    #status {{ height: 1; color: {p['muted']}; margin-bottom: 1; }}
+    #chat {{ height: 1fr; background: {p['bg']}; padding-right: 1; }}
+    #home {{ height: 1fr; min-height: 10; content-align: center bottom; color: {p['accent']}; padding-bottom: 1; }}
+    #prompt {{
+        background: {p['surface']}; border: tall {p['border_soft']};
+        border-left: tall {p['accent']}; padding: 0 1; height: 5; margin-top: 1;
+    }}
+    #prompt:focus {{ border: tall {p['accent_alt']}; border-left: tall {p['accent']}; }}
+    #hint {{ height: 1; color: {p['dim']}; margin-top: 1; }}
+    .home #chat {{ display: none; }}
+    .home #hint {{ height: 2; }}
+
+    #sb-title {{ color: {p['accent']}; text-style: bold; height: 1; margin-bottom: 1; }}
+    .sb-section {{ color: {p['dim']}; text-style: bold; height: 1; margin-top: 1; }}
+    .sb-label {{ color: {p['dim']}; height: 1; }}
+    .sb-value {{ color: {p['fg']}; height: auto; margin-bottom: 0; }}
+    .sb-accent {{ color: {p['accent']}; height: auto; }}
+    .sb-muted {{ color: {p['muted']}; height: auto; }}
+    .sb-ok {{ color: {p['success']}; }}
+    .sb-warn {{ color: {p['warn']}; }}
+    .sb-rule {{ height: 1; color: {p['border']}; }}
+    #session-info {{ display: none; }}
+    #providers, #models, .catalog-label {{ display: none; }}
+
+    Footer {{ background: {p['surface']}; color: {p['dim']}; }}
+    Footer > .footer--key {{ color: {p['accent']}; background: {p['surface']}; }}
+    Footer > .footer--description {{ color: {p['muted']}; background: {p['surface']}; }}
+    ListView {{ background: {p['surface']}; }}
+    ListView > ListItem.--highlight {{ background: {p['highlight']}; color: {p['fg']}; }}
+    """
+
+
+def modal_css(p: dict) -> str:
+    return f"""
+    Picker {{ align: center middle; background: {p['overlay']}; }}
+    #picker-dialog {{
+        width: 78; max-width: 96%; height: 28;
+        background: {p['surface']}; border: round {p['border_soft']}; padding: 1 2;
+    }}
+    #picker-title {{ height: 1; text-style: bold; color: {p['fg']}; }}
+    #picker-hint {{ height: 1; color: {p['dim']}; }}
+    #picker-search {{ height: 3; margin: 1 0; border: tall {p['border']}; }}
+    #picker-search:focus {{ border: tall {p['accent']}; }}
+    #picker-list {{ height: 1fr; background: {p['surface']}; }}
+    #picker-list > ListItem {{ padding: 0 1; }}
+    Picker ListView > ListItem.--highlight {{ background: {p['highlight']}; color: {p['fg']}; }}
+
+    ProviderKey {{ align: center middle; background: {p['overlay']}; }}
+    #key-dialog {{ width: 72; max-width: 96%; height: auto; padding: 2 3; background: {p['surface']}; border: round {p['border_soft']}; }}
+    #key-dialog Static {{ height: auto; margin-bottom: 1; color: {p['muted']}; }}
+    #key-dialog Label {{ color: {p['fg']}; text-style: bold; }}
+    #key-actions {{ height: 3; margin-top: 1; }}
+    #key-dialog Input {{ border: tall {p['border']}; }}
+    #key-dialog Input:focus {{ border: tall {p['accent']}; }}
+
+    ProviderLogin {{ align: center middle; background: {p['overlay']}; }}
+    #login-dialog {{ width: 68; max-width: 96%; height: auto; background: {p['surface']}; padding: 2 3; border: round {p['border_soft']}; }}
+    #login-dialog Label {{ color: {p['fg']}; text-style: bold; }}
+    #login-message {{ height: auto; margin: 1 0; color: {p['muted']}; }}
+    #login-error {{ height: auto; margin: 1 0; color: {p['error']}; }}
+    #login-actions {{ height: 3; }}
+    """
+
+
 class Picker(ModalScreen[str]):
     """Keyboard-first selection dialog used for providers, models and sessions."""
 
@@ -47,19 +205,7 @@ class Picker(ModalScreen[str]):
         Binding("pageup", "page_up", "Page up", show=False),
         Binding("pagedown", "page_down", "Page down", show=False),
     ]
-    DEFAULT_CSS = """
-    Picker { align: center middle; background: #000000aa; }
-    #picker-dialog {
-        width: 76; max-width: 96%; height: 26;
-        background: #111113; border: round #2f2f36; padding: 1 2;
-    }
-    #picker-title { height: 1; text-style: bold; color: #eeeeee; }
-    #picker-hint { height: 1; color: #7d7d88; }
-    #picker-search { height: 3; margin: 1 0; }
-    #picker-list { height: 1fr; background: #111113; }
-    #picker-list > ListItem { padding: 0 1; }
-    Picker ListView > ListItem.--highlight { background: #2a2a31; color: #ffffff; }
-    """
+    DEFAULT_CSS = modal_css(THEMES["default"])
 
     def __init__(self, title, choices):
         super().__init__()
@@ -148,12 +294,7 @@ class ProviderKey(ModalScreen[bool]):
     """Account-independent API key setup, including browser signup."""
 
     BINDINGS = [("escape", "dismiss", "Close")]
-    DEFAULT_CSS = """
-    ProviderKey { align: center middle; background: #000000aa; }
-    #key-dialog { width: 72; max-width: 96%; height: auto; padding: 2 3; background: #111113; border: round #2f2f36; }
-    #key-dialog Static { height: auto; margin-bottom: 1; }
-    #key-actions { height: 3; margin-top: 1; }
-    """
+    DEFAULT_CSS = modal_css(THEMES["default"])
 
     def __init__(self, provider):
         super().__init__()
@@ -205,13 +346,7 @@ class ProviderKey(ModalScreen[bool]):
 
 class ProviderLogin(ModalScreen[bool]):
     BINDINGS = [("escape", "cancel_login", "Close")]
-    DEFAULT_CSS = """
-    ProviderLogin { align: center middle; background: #000000aa; }
-    #login-dialog { width: 68; max-width: 96%; height: auto; background: #111113; padding: 2 3; border: round #2f2f36; }
-    #login-message { height: auto; margin: 1 0; }
-    #login-error { height: auto; margin: 1 0; color: #e06c75; }
-    #login-actions { height: 3; }
-    """
+    DEFAULT_CSS = modal_css(THEMES["default"])
 
     def __init__(self, provider: str = "chatgpt"):
         super().__init__()
@@ -258,26 +393,7 @@ class CodelaboonTuiApp(App[None]):
     TITLE = "codelaboon"
     SUB_TITLE = "model workspace"
 
-    CSS = """
-    Screen { background: #161618; color: #eeeeee; }
-    #body { height: 1fr; }
-    #main { width: 1fr; padding: 1 4; }
-    #sidebar { width: 34; background: #111113; padding: 2 3; border-left: solid #2a2a30; }
-    #topbar { height: 2; color: #9a9aa5; }
-    #session-info { height: auto; color: #a3a3ac; }
-    #providers, #models, .catalog-label { display: none; }
-    #status { height: 2; color: #a3a3ac; }
-    #chat { height: 1fr; background: #161618; }
-    #home { height: 1fr; min-height: 10; content-align: center bottom; color: #73daca; padding-bottom: 1; }
-    #prompt { background: #111113; border: none; border-left: solid #73daca; padding: 1 2; height: 5; }
-    #prompt:focus { border-left: solid #73daca; }
-    #hint { height: 2; padding-top: 1; color: #a3a3ac; }
-    .home #chat { display: none; }
-    .home #hint { height: 5; }
-    Footer { background: #161618; color: #7d7d88; }
-    ListView { background: #111113; }
-    ListView > ListItem.--highlight { background: #2a2a31; }
-    """
+    CSS = app_css(THEMES["default"])
 
     # NOTE: there is deliberately no ctrl+m binding. In terminals Ctrl+M is
     # carriage return (0x0D) — byte-for-byte identical to Enter — so Textual
@@ -292,6 +408,7 @@ class CodelaboonTuiApp(App[None]):
         ("ctrl+p", "focus_providers", "Providers"),
         ("ctrl+o", "focus_models", "Models"),
         ("ctrl+r", "refresh_models", "Refresh models"),
+        ("ctrl+t", "theme", "Theme"),
         ("ctrl+d", "run_doctor", "Doctor"),
         ("ctrl+q", "quit", "Quit"),
         Binding("escape", "interrupt", "Interrupt", show=False),
@@ -319,6 +436,82 @@ class CodelaboonTuiApp(App[None]):
         self._login_pending = False
         self._prompt_history: List[str] = []
         self._history_cursor: Optional[int] = None
+        self.theme_name = self._load_theme_name()
+        self.palette = theme_palette(self.theme_name)
+        self.CSS = app_css(self.palette)
+
+    # ── theming ─────────────────────────────────────────────────────────────
+
+    def _ui_config_path(self) -> Path:
+        return self.cli.config_dir / "ui.json"
+
+    def _load_theme_name(self) -> str:
+        try:
+            import json
+
+            data = json.loads(self._ui_config_path().read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                name = normalize_theme_name(str(data.get("theme", "default")))
+                if name in THEMES:
+                    return name
+        except Exception:
+            pass
+        return "default"
+
+    def _save_theme_name(self) -> None:
+        try:
+            import json
+
+            path = self._ui_config_path()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps({"theme": self.theme_name}, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def _themed(self, screen):
+        try:
+            screen.CSS = modal_css(self.palette)
+        except Exception:
+            pass
+        return screen
+
+    def _apply_theme(self, name: str, announce: bool = True) -> None:
+        original = name
+        name = normalize_theme_name(name)
+        if name not in THEMES:
+            if announce:
+                available = ", ".join(THEMES)
+                self.notify(f"Unknown theme '{original}'. Try: {available}", timeout=5)
+            name = "default"
+        self.theme_name = name
+        self.palette = theme_palette(name)
+        self.CSS = app_css(self.palette)
+        self._save_theme_name()
+        # Best-effort live stylesheet refresh across Textual versions.
+        for apply in (
+            lambda: self.stylesheet.read(self.CSS),
+            lambda: self.stylesheet.parse(self.CSS),
+            lambda: setattr(self.screen, "CSS", self.CSS) or self.screen.refresh_css(),
+            lambda: self.refresh_css(),
+        ):
+            try:
+                apply()
+            except Exception:
+                continue
+        try:
+            self.refresh(layout=True, repaint=True)
+        except Exception:
+            pass
+        self._update_status()
+        self._refresh_welcome()
+        if announce and name == normalize_theme_name(original):
+            self.notify(f"Theme: {name}", timeout=3)
+            self._log(f"theme> {name}")
+        elif announce and normalize_theme_name(original) not in THEMES and str(original).strip():
+            self._log(f"theme> {name} (fallback)")
 
     # ── layout ─────────────────────────────────────────────────────────────
 
@@ -335,6 +528,15 @@ class CodelaboonTuiApp(App[None]):
                     id="hint",
                 )
             with Vertical(id="sidebar"):
+                yield Static("▲ codelaboon", id="sb-title", markup=False)
+                yield Static("", id="sb-project", classes="sb-muted", markup=False)
+                yield Static("Session", classes="sb-section", markup=False)
+                yield Static("", id="sb-session", markup=False)
+                yield Static("Status", classes="sb-section", markup=False)
+                yield Static("", id="sb-status", markup=False)
+                yield Static("Shortcuts", classes="sb-section", markup=False)
+                yield Static("", id="sb-shortcuts", classes="sb-muted", markup=False)
+                # Hidden compatibility widgets (kept for existing logic/tests).
                 yield Static("New conversation", id="session-info", markup=False)
                 yield Label("Providers", classes="catalog-label")
                 yield ListView(id="providers")
@@ -382,6 +584,7 @@ class CodelaboonTuiApp(App[None]):
         self.call_after_refresh(self._refresh_welcome)
 
     def on_mount(self) -> None:
+        self._apply_theme(self.theme_name, announce=False)
         self.cli.load_providers()
         self.sub_title = str(self.project_dir)
         providers_list = self.query_one("#providers", ListView)
@@ -414,12 +617,14 @@ class CodelaboonTuiApp(App[None]):
 
     def _log(self, text: str) -> None:
         log = self.query_one("#chat", RichLog)
+        p = getattr(self, "palette", theme_palette("default"))
         if text.startswith("you> "):
-            log.write(Panel(Text(text[5:]), title="You", title_align="left", border_style="#344957", padding=(0, 1)))
+            log.write(Panel(Text(text[5:]), title="You", title_align="left", border_style=p["user_border"], padding=(0, 1)))
         elif text.startswith("assistant> "):
-            log.write(Panel(Markdown(text[11:]), title="Assistant", title_align="left", border_style="#73daca", padding=(1, 1)))
+            log.write(Panel(Markdown(text[11:]), title="Assistant", title_align="left", border_style=p["assistant_border"], padding=(1, 1)))
         else:
-            log.write(Text(text, style="#d48787" if text.startswith("error>") else "#8395a7"))
+            style = p["error"] if text.startswith("error>") else p["dim"]
+            log.write(Text(text, style=style))
 
     def _selected_provider(self) -> Optional[str]:
         return self._current_provider
@@ -432,15 +637,43 @@ class CodelaboonTuiApp(App[None]):
         model = self._current_model or "no model"
         turns = len([m for m in self.history if m["role"] == "user"])
         project = self.project_dir.name
+        state = "Responding…" if self._busy else "Ready"
+        theme = self.theme_name
+
+        # Backward-compatible text block (hidden, but kept coherent).
         self.query_one("#session-info", Static).update(
             f"{project}\n{self.project_dir}\n\n"
             f"Conversation\n\n{provider}\n{model}\n\n"
-            f"Context\n{turns} turns\n\n"
-            f"Status\n{'Responding...' if self._busy else 'Ready'}\n\n"
+            f"Context\n{turns} turn(s)\n\n"
+            f"Status\n{state}\nTheme\n{theme}\n\n"
             f"ctrl+p  provider\nctrl+o  model\nctrl+n  new chat\nctrl+s  sessions"
         )
         self.query_one("#status", Static).update(
-            f"{provider} · {model} · {turns} turn(s) this session"
+            f"{provider}  •  {model}  •  {turns} turn(s)"
+        )
+
+        def set_text(selector: str, text: str) -> None:
+            try:
+                self.query_one(selector, Static).update(text)
+            except Exception:
+                pass
+
+        set_text("#sb-project", f"{project}\n{self.project_dir}")
+        set_text(
+            "#sb-session",
+            f"Provider  {provider}\nModel     {model}\nTurns     {turns}",
+        )
+        set_text("#sb-status", f"{state}  ·  theme: {theme}")
+        set_text(
+            "#sb-shortcuts",
+            "ctrl+p  providers\n"
+            "ctrl+o  models\n"
+            "ctrl+n  new chat\n"
+            "ctrl+s  sessions\n"
+            "ctrl+t  theme\n"
+            "ctrl+b  sidebar\n"
+            "ctrl+d  doctor\n"
+            "/help   commands",
         )
 
     # ── providers and models ───────────────────────────────────────────────
@@ -618,6 +851,7 @@ class CodelaboonTuiApp(App[None]):
             "/doctor": self.action_run_doctor,
             "/update": self.action_update,
             "/retry": self.action_retry,
+            "/theme": self.action_theme,
             "/quit": self.action_quit,
         }
 
@@ -635,6 +869,7 @@ class CodelaboonTuiApp(App[None]):
             "/r": "/retry",
             "/p": "/project",
             "/k": "/key",
+            "/t": "/theme",
         }
 
     def _resolve_slash_command(self, text: str) -> str:
@@ -669,15 +904,22 @@ class CodelaboonTuiApp(App[None]):
         if text == "/key":
             self.action_provider_key()
             return
+        if text.startswith("/theme"):
+            parts = text.split(maxsplit=1)
+            if len(parts) == 2 and parts[1].strip():
+                self._apply_theme(parts[1].strip())
+            else:
+                self.action_theme()
+            return
         if text in commands:
             commands[text]()
             return
         if text == "/help":
             self._log(
-                "Commands: /models /connect /new /sessions /free /doctor /update /retry "
+                "Commands: /models /connect /new /sessions /free /doctor /update /retry /theme "
                 "/project /sidebar /export /key /quit  (aliases: /m /c /n /s /d /u /r /h /k)"
             )
-            self.notify("/models /connect /new /sessions /free /doctor /update /retry /help")
+            self.notify("/models /connect /new /sessions /free /doctor /update /retry /theme /help")
             return
         if text.startswith("/"):
             known = ", ".join(sorted(set(commands) | {"/help", "/key"}))
@@ -803,6 +1045,20 @@ class CodelaboonTuiApp(App[None]):
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")
         sidebar.display = not sidebar.display
+
+    def action_theme(self) -> None:
+        choices = []
+        for name in THEMES:
+            mark = " (current)" if name == self.theme_name else ""
+            label = name
+            if name == "catppuccin":
+                label = "catppuccin"
+            choices.append((name, f"{label}{mark}"))
+        self.push_screen(Picker("Select theme", choices), self._pick_theme)
+
+    def _pick_theme(self, name):
+        if name:
+            self._apply_theme(name)
 
     def action_new_conversation(self) -> None:
         self._save_conversation()

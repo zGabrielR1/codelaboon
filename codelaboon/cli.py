@@ -11,8 +11,12 @@ import os
 import stat
 import sys
 import subprocess
+import requests
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 try:
     from providers.base import BaseProvider
@@ -69,6 +73,10 @@ class CodelaboonCLI:
     def _get_provider_class(self, provider_name: str):
         """Get provider class based on provider name."""
         provider_mapping = {
+            "local": "providers.compatible.LocalProvider",
+            "openrouter_free": "providers.compatible.OpenRouterFreeProvider",
+            "groq": "providers.compatible.GroqProvider",
+            "cerebras": "providers.compatible.CerebrasProvider",
             "chatgpt": "providers.chatgpt.chatgpt_provider.ChatGPTProvider",
             "claude": "providers.claude.claude_provider.ClaudeProvider",
             "gemini": "providers.gemini.gemini_provider.GeminiProvider",
@@ -140,6 +148,7 @@ class CodelaboonCLI:
             "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
             "openrouter", "luna", "ourfree", "kilo", "pollinations",
             "wusrouter",
+            "local", "openrouter_free", "groq", "cerebras",
         ):
             try:
                 self._get_provider_class(provider_name)
@@ -537,11 +546,14 @@ class CodelaboonCLI:
 
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
         subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
+        subparsers.add_parser("ourfree", help="Run or connect the official standalone Our Free Model gateway")
 
         # List providers command
         providers_parser = subparsers.add_parser("providers", help="Provider management")
         providers_subparsers = providers_parser.add_subparsers(dest="providers_command")
         providers_subparsers.add_parser("list", help="List all providers")
+        health = providers_subparsers.add_parser("check", help="Check credential presence and catalogue access")
+        health.add_argument("--live", action="store_true", help="Request provider catalogues; does not test inference quota")
 
         # Models command
         models_parser = subparsers.add_parser("models", help="Model management")
@@ -608,7 +620,13 @@ class CodelaboonCLI:
         subparsers.add_parser("doctor", help="Diagnose installation and configuration")
 
         # TUI command
-        subparsers.add_parser("tui", help="Interactive terminal UI (needs the textual extra)")
+        tui_parser = subparsers.add_parser("tui", help="Native OpenCode/OMP source TUI")
+        tui_parser.add_argument("--engine", choices=["opencode", "omp"], default="opencode")
+        tui_parser.add_argument("--setup", action="store_true", help="Install the selected fork's dependencies")
+        tui_parser.add_argument("--profile", choices=["coding", "security"], default="coding")
+        tui_parser.add_argument("--local-only", action="store_true", help="Use only local inference; disable cloud model fallback")
+        tui_parser.add_argument("--theme", help="Native theme name; saved native theme selections are preserved by default")
+        tui_parser.add_argument("native_args", nargs=argparse.REMAINDER, help="Arguments after -- go to the native TUI")
 
         install_parser = subparsers.add_parser(
             "install", help="Install for the current user and add codelaboon to PATH"
@@ -619,6 +637,8 @@ class CodelaboonCLI:
         install_parser.add_argument(
             "--no-path", action="store_true", help="Do not modify PATH"
         )
+        install_parser.add_argument("--skip-runtime", action="store_true")
+        install_parser.add_argument("--engine", choices=["opencode", "omp"], default="opencode")
 
         update_parser = subparsers.add_parser(
             "update", help="Pull latest source changes and reinstall codelaboon"
@@ -629,6 +649,8 @@ class CodelaboonCLI:
         update_parser.add_argument(
             "--no-editable", action="store_true", help="Install as a regular package instead of editable"
         )
+        update_parser.add_argument("--skip-runtime", action="store_true")
+        update_parser.add_argument("--engine", choices=["opencode", "omp"], default="opencode")
 
         web_parser = subparsers.add_parser("web", help="Open the localhost web workspace")
         web_parser.add_argument("--port", type=int, default=8765)
@@ -644,14 +666,16 @@ class CodelaboonCLI:
         if args.command == "install":
             from codelaboon.install import install
 
-            if not install(editable=args.editable, update_path=not args.no_path):
+            if not install(editable=args.editable, update_path=not args.no_path,
+                           runtime=not args.skip_runtime, engine=args.engine):
                 sys.exit(1)
             return
 
         if args.command == "update":
             from codelaboon.update import update
 
-            if not update(editable=not args.no_editable, pull=not args.no_pull):
+            if not update(editable=not args.no_editable, pull=not args.no_pull,
+                          runtime=not args.skip_runtime, engine=args.engine):
                 sys.exit(1)
             return
 
@@ -662,6 +686,9 @@ class CodelaboonCLI:
         if args.command == "providers":
             if args.providers_command == "list":
                 self.list_providers()
+            elif args.providers_command == "check":
+                from codelaboon.provider_health import inspect
+                print(json.dumps(inspect(self.providers, args.live), indent=2))
             else:
                 providers_parser.print_help()
 
@@ -751,19 +778,30 @@ class CodelaboonCLI:
             serve(args.port, open_browser=not args.no_open)
 
         elif args.command == "tui":
-            run_tui()
+            if args.setup:
+                from codelaboon.native_tui import setup
+                try:
+                    setup(args.engine)
+                except (RuntimeError, OSError, ValueError, requests.RequestException, subprocess.CalledProcessError) as error:
+                    print(f"TUI setup failed: {error}", file=sys.stderr)
+                    sys.exit(2)
+            else:
+                arguments = args.native_args
+                if arguments[:1] == ["--"]:
+                    arguments = arguments[1:]
+                run_tui(args.engine, arguments, args.profile, args.local_only, args.theme)
 
 
-def run_tui() -> None:
-    """Launch the terminal UI, with a hint when its extra is missing."""
+def run_tui(engine="opencode", arguments=(), profile="coding", local_only=False, theme=None) -> None:
+    """Launch the actual source fork; never silently fall back to Textual."""
     try:
-        from codelaboon.tui import run_app
-    except ImportError:
-        print("The TUI needs the 'textual' package, which is an optional extra.")
-        print("Install it with:  python3 -m pip install 'codelaboon[tui]'")
-        print("or directly:       python3 -m pip install textual")
+        from codelaboon.native_tui import launch
+        code = launch(engine, arguments, profile, local_only, theme)
+    except (RuntimeError, OSError) as error:
+        print(str(error), file=sys.stderr)
         sys.exit(2)
-    run_app()
+    if code:
+        sys.exit(code)
 
 
 def main() -> None:
@@ -779,6 +817,10 @@ def main() -> None:
     if sys.argv[1:2] == ['work']:
         from codelaboon.work import main as work_main
         work_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['ourfree']:
+        from codelaboon.ourfree_service import main as ourfree_main
+        ourfree_main(sys.argv[2:])
         return
     cli = CodelaboonCLI()
     cli.run()

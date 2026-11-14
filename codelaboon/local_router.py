@@ -20,7 +20,8 @@ def choose(config, candidates):
             'messages': [
                 {'role': 'system', 'content':
                  'You are a routing controller only. Choose one listed job index. '
-                 'Prefer the earliest listed job for fair rotation. '
+                 'Choose a harness whose capabilities fit the stage. Prefer reliable '
+                 'workers with fewer failures, then the earliest listed job for fair rotation. '
                  'Do not plan, implement, review code, or invent work. Return JSON only. /no_think'},
                 {'role': 'user', 'content': json.dumps(candidates)}],
             'chat_template_kwargs': {'enable_thinking': False}}

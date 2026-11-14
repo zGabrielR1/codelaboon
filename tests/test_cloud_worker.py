@@ -14,7 +14,6 @@ class CloudWorkerTests(unittest.TestCase):
         process.stdout = io.StringIO(''.join(json.dumps(e) + '\n' for e in events))
         process.wait.return_value = code
         with tempfile.TemporaryDirectory() as directory, \
-                patch('codelaboon.cloud_worker.find_opencode', return_value='opencode.exe'), \
                 patch('subprocess.Popen', return_value=process):
             return agent('cloud/model', Path(directory) / 'prompt.md', Path(directory))
 

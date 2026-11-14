@@ -80,8 +80,8 @@ def run(config_path, once=False):
 def supervise(config, base, root, once):
     tasks = config['tasks']
     harnesses = config['harnesses']
-    if not tasks or not harnesses:
-        raise ValueError('At least one task and harness required')
+    if not harnesses:
+        raise ValueError('At least one harness required')
     for rows in (tasks, harnesses):
         ids = [row['id'] for row in rows]
         if len(set(ids)) != len(ids):
@@ -116,6 +116,7 @@ def supervise(config, base, root, once):
     state.setdefault('harness_cursor', 0)
     state.setdefault('plans', {})
     state.setdefault('last_attempts', {})
+    state.setdefault('health', {})
     idle = max(1, float(config.get('poll_seconds', 15)))
     while not (root / 'STOP').exists():
         if (root / 'PAUSE').exists():
@@ -145,6 +146,21 @@ def supervise(config, base, root, once):
         pending = [t for t in all_tasks.values() if t['id'] not in state['done']]
         eligible = [h for h in harnesses if
                     state['cooldowns'].get(h['id'], 0) <= time.time()]
+        available = []
+        for harness in eligible:
+            probe = harness.get('available_argv')
+            if probe:
+                try:
+                    values = {'python': sys.executable, 'runtime': str(root),
+                              'source': str(Path(__file__).resolve().parent.parent)}
+                    result = subprocess.run([part.format_map(values) for part in probe],
+                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+                    if result.returncode:
+                        continue
+                except (OSError, subprocess.TimeoutExpired, KeyError, TypeError):
+                    continue
+            available.append(harness)
+        eligible = available
         if not pending or not eligible:
             if once:
                 return
@@ -165,7 +181,9 @@ def supervise(config, base, root, once):
                 continue
             # Only routing metadata goes to the local model, never prompts or code.
             metadata = [{'task': t['id'], 'project': t['project'],
-                         'stage': s, 'harness': h['id']} for t, h, s in jobs]
+                         'stage': s, 'harness': h['id'], 'model': h.get('model', 'auto'),
+                         'health': state['health'].get(h['id'], {}),
+                         'capabilities': h.get('capabilities', [])} for t, h, s in jobs]
             try:
                 from codelaboon.local_router import choose
                 selection = choose(orchestrator, metadata)
@@ -230,6 +248,10 @@ def supervise(config, base, root, once):
                         break
         record.update(status='succeeded' if code == 0 else 'failed',
                       exit_code=code, finished=time.time())
+        health = state['health'].setdefault(harness['id'], {'succeeded': 0, 'failed': 0})
+        health['succeeded' if code == 0 else 'failed'] += 1
+        health['last_seconds'] = round(record['finished'] - record['started'], 2)
+        health['last_exit_code'] = code
         save(attempt / 'result.json', record)
         if code == 0:
             if stage == 'plan':

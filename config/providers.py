@@ -23,6 +23,10 @@ _config_lock = threading.RLock()
 def _default_config() -> Dict[str, Dict[str, Any]]:
     """Return the default (unconfigured) provider configuration."""
     return {
+        "local": {"api_key": "", "base_url": "http://127.0.0.1:11434/v1", "models": []},
+        "openrouter_free": {"api_key": "", "models": ["openrouter/free"]},
+        "groq": {"api_key": "", "models": []},
+        "cerebras": {"api_key": "", "models": []},
         "chatgpt": {
             "api_key": "",
             "models": [],

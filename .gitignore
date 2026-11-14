@@ -21,6 +21,13 @@ config/providers.toml
 
 # Reference clones (not part of this project)
 forks/
+upstream/
+.runtime/
+node_modules/
+*-source.tar.gz
+*.tsbuildinfo
+*.node
+codelaboon/_vendor/*/
 
 # Editor / OS noise
 .DS_Store

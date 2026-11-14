@@ -64,6 +64,14 @@ class WorkTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 work.add(root, 'instruction', [], config)
 
+    def test_initialized_empty_queue_can_wait_without_dispatching(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = work.initialize(Path(directory) / 'work.json')
+            with patch('codelaboon.watch.execute') as execute:
+                run(config, once=True)
+            execute.assert_not_called()
+            self.assertEqual(work.status(config)['pending'], [])
+
 
 if __name__ == '__main__':
     unittest.main()

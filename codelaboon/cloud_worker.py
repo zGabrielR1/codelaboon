@@ -4,7 +4,6 @@ import contextlib
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 
@@ -12,28 +11,14 @@ if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
-def find_opencode():
-    if os.name != 'nt':
-        found = shutil.which('opencode')
-        if found:
-            return found
-        raise FileNotFoundError('Install native OpenCode and put opencode on PATH')
-    found = shutil.which('opencode.exe')
-    if found:
-        return found
-    # npm Windows shim launches this actual binary; avoid a shell for prompts.
-    profile = Path(os.environ.get('USERPROFILE', str(Path.home())))
-    binary = profile / 'AppData/Roaming/npm/node_modules/@opencode/cli/bin/opencode.exe'
-    if binary.is_file():
-        return str(binary)
-    found = shutil.which('opencode')
-    if found and not found.lower().endswith(('.cmd', '.bat', '.ps1')):
-        return found
-    raise FileNotFoundError('OpenCode executable not found; install it or add its binary to PATH')
-
-
 def completion(provider, model, prompt):
     from codelaboon.cli import CodelaboonCLI
+    if provider == 'free':
+        from codelaboon import free_auto
+        with contextlib.redirect_stdout(sys.stderr):
+            cli = CodelaboonCLI()
+            cli.load_providers()
+        return free_auto.chat(cli.providers, [{'role': 'user', 'content': prompt}], max_tokens=4096)[1]
     if provider == 'kilo':
         # Keyless pool: do not read or create any account configuration.
         from providers.kilo.kilo_provider import KiloProvider
@@ -51,11 +36,11 @@ def completion(provider, model, prompt):
 
 def agent(model, prompt_file, runtime):
     environment = os.environ.copy()
+    environment['CODELABOON_NATIVE_DIR'] = str(runtime / 'opencode')
     for kind in ('DATA', 'STATE', 'CACHE', 'CONFIG'):
         environment['XDG_' + kind + '_HOME'] = str(runtime / 'opencode' / kind.lower())
-    environment['OPENCODE_CONFIG'] = str(Path(__file__).resolve().parent.parent /
-                                       'examples/cloud-opencode.json')
-    process = subprocess.Popen([find_opencode(), 'run', '--standalone', '--format', 'json',
+    source = Path(__file__).resolve().parent
+    process = subprocess.Popen([sys.executable, str(source / 'cli.py'), 'tui', '--', 'run', '--format', 'json',
                                 '--model', model, '--file', str(prompt_file),
                                 'Execute the attached task specification.'],
                                stdout=subprocess.PIPE, stderr=sys.stderr, text=True,

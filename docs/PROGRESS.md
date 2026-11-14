@@ -54,7 +54,8 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 **ACTIVE**
 
-Validate the `kilo` lane against the live gateway and ship `v0.6.0`.
+Validate the native source runtime release and installed artifacts; maintain the
+OS-managed local routing/background worker. See the 2026-11-13 native-runtime entry.
 
 ## Shipped Features
 
@@ -300,3 +301,72 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   evaluating `Path.home()`; auth tests now run with a cleared environment.
   POSIX permission assertions are conditional on `os.name == "posix"`.
   Live account inference still needs real Google/Anthropic credentials.
+
+### Session 2026-11-13 — restored native runtimes and OS-managed orchestration
+
+- Restored pinned OpenCode and OMP clones plus the official Our Free Model
+  source. Imported runtime workspaces, preserved upstream executable modes,
+  pinned revision checks, licenses and original/modified file hashes. Exported
+  reproducible patches and packaged source bundles for installation.
+- Replaced the default launch with actual OpenCode source execution, explicitly
+  loading Solid's renderer preload when the project differs from the runtime
+  directory. Source runs retain the pinned version for compatible plugin loading;
+  the compile-only libc symbol now has a source-safe watcher fallback.
+- Added native whale branding, OMP activity frames, delegated child sessions and
+  live worker status in the sidebar. Verified native theme selection and Up-arrow
+  recall in a real tmux terminal with a local fixture provider.
+- Added loopback transport preserving chat/Responses/Anthropic/Google tools and
+  streams, Gemini account envelopes and Freebuff admission metadata. Added local,
+  OpenRouter-free, Groq and Cerebras providers; native Auto rotates compatible free
+  lanes. API-key Gemini and Qoder Cloud PATs cannot enter free Auto. Qoder PATs
+  always use HTTP even when an optional CLI is present. Added redacted catalogue
+  checks and official standalone Our Free Model setup/start/connect commands.
+- Added local-only inference and a packaged authorized-pentesting profile. Small
+  local context budgets have reduced compaction reserves. Local inference ignores
+  proxies and redirects; local-only routing does not sandbox tool networking.
+- Improved virtualenv/externally-managed Python installation, Fish PATH syntax,
+  piped shell/PowerShell bootstraps, runtime/Bun setup and failed-pull behavior.
+- Added systemd user/Scheduled Task/LaunchAgent registration, empty persistent
+  queues, worker availability probes and health/timing routing metadata. Background
+  builders use the source runtime, with no external OpenCode binary requirement.
+- Linux service is enabled and running, with lingering enabled after logout.
+  `.runtime/work.json` is a separate empty queue; the legacy `.watch` data was
+  preserved. A real local Qwen routing request returned a valid candidate.
+- Validation: 176 Python tests; structure/syntax and shell syntax; OpenCode
+  typecheck; OMP check:ts (Biome + types); actual file-tool round trips for both
+  engines using local fixture models. Wheel/source packages carry the fork sources
+  and patches while excluding secrets, dependencies, runtime state and model weights.
+- Adversarial review addressed source-vs-project renderer setup, version drift,
+  compile-only globals, local proxy leakage, paid route exclusion, wire-level tool
+  preservation, interrupted extraction, source-mode preservation and stale installer
+  assertions. Tests distinguish catalogue visibility from inference eligibility.
+- Remaining environment checks: Windows/macOS service execution and real
+  Claude/Gemini/Qoder inference. Existing ChatGPT/Freebuff sessions expose model
+  listings; no quota claim follows. No remote publication or commits were made.
+- Future runs: read docs/native-runtime.md and CURRENTTASK. Keep the service idle
+  until concrete tasks with checks are queued. Build source archives after changing
+  any fork patch, and verify installed artifacts outside the checkout.
+
+### Session 2026-11-13 — RC10 native UI verification and publishing
+
+- Inspected Kilo CLI revision 85eb887a7560f452211bcd382eafe8cb2f8df497. It confirms
+  the upstream-fork pattern: shared native UI with theme/extension additions.
+  Kept both source renderers/editors intact and added the exact native Kilo theme,
+  OMP native palette adaptations and preserved license/revision/hash provenance.
+- Added a native --theme launch option while respecting saved selections.
+  Fixed OMP config-root resolution for absolute profile paths and contained its
+  sessions/logs/themes in the Codelaboon profile. Used native condensed changelog
+  and binary-update-check defaults instead of replacing the welcome component.
+- Added repeatable real tmux checks for both engines at 80/160 columns: welcome,
+  fixture response, prompt recall, native theme/settings menus, wide OpenCode
+  delegated/background sidebar and OMP profile-local logs/session persistence.
+  Shared the fixture server with the existing actual file-tool round-trip checks.
+- Added replay-checked patch export, complete bundle hash verification, and a
+  reusable native CI matrix. GitHub release publication now waits for native UI,
+  native types/tools, Python and source/tag checks before publishing artifacts.
+- 178 Python tests pass locally; native type checks and all four terminal cases
+  pass. No cloud inference quota is inferred from these fixture checks. Publishing
+  status is tracked by the v1.0.0-rc.10 tag workflow/release page.
+- Future runs: retain upstream renderers and minimize UI patches. Run smoke_ui.py
+  --setup --types from a source artifact to exercise the same path as CI. Read
+  docs/release-1.0.0rc10.md for source revisions, coverage and environment limits.

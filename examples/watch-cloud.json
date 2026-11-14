@@ -15,7 +15,7 @@
     },
     {
       "id": "kilo-builder", "location": "cloud", "stages": ["build"],
-      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--agent", "--model", "codelaboon-kilo/kilo-auto/free", "--runtime", "{runtime}", "{prompt_file}"],
+      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--agent", "--model", "codelaboon/kilo/kilo-auto/free", "--runtime", "{runtime}", "{prompt_file}"],
       "timeout_seconds": 1800, "cooldown_seconds": 3600
     },
     {
@@ -25,7 +25,7 @@
     },
     {
       "id": "pool-builder-backup", "location": "cloud", "stages": ["build"],
-      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--agent", "--model", "codelaboon-kilo/openrouter/free", "--runtime", "{runtime}", "{prompt_file}"],
+      "argv": ["{python}", "{source}/codelaboon/cloud_worker.py", "--agent", "--model", "codelaboon/kilo/openrouter/free", "--runtime", "{runtime}", "{prompt_file}"],
       "timeout_seconds": 1800, "cooldown_seconds": 3600
     }
   ],

@@ -85,7 +85,7 @@ class QoderProvider(BaseProvider):
 
     def _cloud(self):
         """Use native Cloud Agents when requested or when no CLI is installed."""
-        if self._pat() and (os.environ.get("CODELABOON_QODER_CLOUD") == "1" or not _binary()):
+        if self._pat():
             from providers.qoder.cloud import QoderCloud
             return QoderCloud(self._pat())
         return None

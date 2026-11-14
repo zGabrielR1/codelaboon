@@ -21,8 +21,8 @@ codelaboon follows PI harness principles:
   configured free lanes and picks the best available model automatically.
 - **Provider-agnostic**: one command structure for supported providers
 - **Declarative, self-documenting**: behavior is described by files in this repo
-- **Minimal dependencies**: Python 3.11+ and `requests`; configuration uses the
-  standard-library `tomllib`
+- **Runtime**: Python 3.11+, provider dependencies, and Bun for the native source
+  runtimes; configuration uses the standard-library `tomllib`
 - **Cross-platform**: Linux, macOS, and Windows
 
 ## `free (Auto)` — the default model
@@ -272,7 +272,7 @@ Scripted installers are available too:
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/…/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/zGabrielR1/codelaboon/main/scripts/install.sh | bash
 
 # Windows PowerShell
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
@@ -329,43 +329,48 @@ python3 -m codelaboon chat openrouter my-model "Hello" --temperature 0.2 --max-t
 
 ## Terminal UI (the main interface)
 
-Running `codelaboon` with no command opens the interactive terminal workspace,
-built on [Textual](https://github.com/Textualize/textual). It is a CLI TUI in
-the same family as Claude Code, OpenCode, Codex CLI and Pi: a centered home,
-searchable selection dialogs, a composer that stays at the bottom, and a
-session rail.
+Running `codelaboon` opens the pinned OpenCode source fork on `free (Auto)`.
+It runs OpenCode's own OpenTUI components, tool executor, themes, history,
+sessions and context compaction. The Python process keeps provider credentials
+and forwards the native wire protocols through a token-protected loopback gateway.
 
 ```bash
-codelaboon
-# or explicitly
-codelaboon tui
+python3 -m codelaboon install           # installs package, prepares Bun and the TUI
+codelaboon                             # native OpenCode UI in the current project
+codelaboon tui --engine omp --setup     # prepare the alternate Oh My Pi source runtime
+codelaboon tui --engine omp             # original OMP task/startup effects and tools
+codelaboon tui --theme codelaboon-kilo   # explicit native Kilo-derived palette
+codelaboon tui --profile security       # authorized pentesting workflow
+codelaboon tui --local-only             # local inference, with no cloud model fallback
 ```
 
-The TUI offers:
+Bun >=1.3.10 is required. The installer can install pinned Bun 1.4.4 through npm
+if Bun is absent; otherwise install Bun first. Runtime dependency setup downloads
+packages. Once set up, local inference can use Ollama or llama.cpp's OpenAI endpoint.
+Run `codelaboon configure local` to change its loopback base URL. Any installed model,
+including a locally chosen model with different refusal behavior, appears in the
+model picker. Model behavior depends on the selected weights. `--local-only`
+restricts inference routing; it does not sandbox tools or block their networking.
 
-- **`free (Auto)` by default** - just type; the best available free lane is
-  chosen and ranked candidates are tried in order if one is busy
-- **Prompt history** - `Up`/`Down` in the composer recalls previously sent
-  messages, so you can edit and resend
-- **Project awareness** - the directory you launched from is the project root
-  and is shown in the header, sidebar and saved sessions
-- **Provider browser** — all configured providers with their configured status
-- **Model catalogue** — the selected provider's models, refreshed live
-  (the `ourfree` catalogue is discovered from the gateway on every pick)
-- **Multi-turn chat** — type in the prompt box, `Enter` to send; the
-  conversation context is kept until you switch provider or model
-- **Diagnostics** — `ctrl+d` runs the same checks as `codelaboon doctor`
-  inline
+Fresh profiles start with a charcoal/yellow theme derived from the official Kilo
+CLI theme. Existing native theme choices are preserved. Both engines keep their
+own upstream editor, menus, tools and effects.
 
-Keys: `ctrl+p` providers · `ctrl+o` models (one list across providers;
-picking a model from another provider switches the provider too) ·
-`ctrl+n` / `ctrl+l` new chat · `ctrl+s` saved sessions · `ctrl+b` sidebar ·
-`ctrl+k` replace an account key · `ctrl+r` refresh models · `ctrl+d` doctor ·
-`esc` interrupt a request · `ctrl+q` quit. In every picker, `Up`/`Down`
-(or `PageUp`/`PageDown`) moves the highlight and `Enter` selects — no mouse
-required. (There is no `ctrl+m` binding: in terminals Ctrl+M is carriage
-return — byte-identical to Enter — so it can never be told apart from sending
-a message.)
+The native sidebar shows delegated child sessions, background-worker queue/status,
+context usage, tasks, changed files, MCP and LSP status. The welcome screen has an
+animated whale; task activity uses OMP's activity frames. `CODELABOON_NO_ANIMATION=1`
+disables welcome/installer animation; native animation settings control task effects.
+
+OpenCode keys: `Ctrl+P` commands; `Ctrl+X`, then `M` models, `T` themes, `B` sidebar,
+`L` sessions, `C` compact. `Up` in an empty composer recalls the last sent prompt;
+`Down` moves forward. `/connect` opens native provider setup. Python account login
+remains available as `codelaboon login chatgpt|claude|gemini|freebuff|qoder`.
+Python-configured ChatGPT, Claude, Gemini and Freebuff models are also exposed to the
+native runtimes with their respective wire protocols. Qoder Cloud Agents remains
+a separate remote agent/chat interface; it is not advertised as a local tool model.
+
+See [native runtime and worker guide](docs/native-runtime.md) for provenance,
+provider limits, background setup, security/local profiles and verification.
 
 ## Supported providers
 
@@ -395,8 +400,8 @@ check the provider module you are using.
 ### Our Free Model (free lane)
 
 The `ourfree` provider turns the dsh-our-free-model local gateway into an input
-for the model catalogue. Its models are **all free, with no usage cap** — the
-list leads with DeepSeek:
+for the model catalogue. Its free lanes remain subject to upstream quotas and availability. The
+offline fallback list leads with DeepSeek:
 
 | Model | ID |
 |-------|----|
@@ -599,24 +604,12 @@ project; no redistribution or commercial use without the owner's
 permission, and each provider's own terms continue to apply.
 
 
-### Terminal workspace flow
+### Native workspace flow
 
-The TUI opens on a centered composer with `free (Auto)` selected and the
-current directory as the project. Ctrl+P opens a searchable provider picker and
-Ctrl+O opens a searchable model picker; both respond to `Up`/`Down` and
-`Enter`. Selecting ChatGPT, Claude or Gemini without credentials offers the
-matching account sign-in inside the TUI; complete browser authorization and
-the model catalogue refreshes automatically.
-Later or Escape
-closes the dialog. An authorization already started continues in the background
-until completion or timeout.
-
-The right sidebar shows the active provider, model, conversation turns and
-request status. Ctrl+B toggles it; narrow terminals start with it hidden.
-Use `/connect`, `/models`, `/new`, `/sidebar`, or `/help` from the composer.
-The layout follows the local OpenCode fork?s centered home, selection dialogs
-and right session rail; codelaboon retains its own brand and Python runtime.
-
+The default workspace uses the native OpenCode keys and commands listed above.
+The launch directory is the project. Themes, prompt history and sessions persist
+under Codelaboon's native runtime directories. Use the command palette to change
+models, connect providers or change the theme.
 
 ### RC2: keep your work between sessions
 
@@ -646,9 +639,8 @@ The configured `models` list is only a fallback if discovery fails.
 
 A Personal Access Token can use the official
 [Cloud Agents HTTP API](https://docs.qoder.com/cloud-agents/quickstart)
-without any local Qoder binary or additional SDK. This route is selected when
-a PAT is configured and no CLI is on PATH; set `CODELABOON_QODER_CLOUD=1` to
-prefer it even with a CLI installed. Set `QODER_PERSONAL_ACCESS_TOKEN` or
+without any local Qoder binary or additional SDK. This route is selected whenever
+a PAT is configured, including when a CLI is already on PATH. Set `QODER_PERSONAL_ACCESS_TOKEN` or
 `QODER_PAT`, paste the PAT with `codelaboon configure qoder`, or select Qoder
 and press Ctrl+K in the TUI. The same model discovery and chat route serves
 CLI, TUI and web callers. Browser device sign-in continues to use the CLI lane.

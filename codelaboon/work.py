@@ -9,17 +9,40 @@ import time
 import uuid
 
 from codelaboon.watch import save
+from codelaboon.paths import config_dir
 
 SOURCE = Path(__file__).resolve().parent.parent
 
 
 def configuration(path=None):
     if path is None:
+        installed = config_dir() / 'work.json'
+        local = SOURCE / '.runtime/work.json'
         active = SOURCE / '.watch/watch-active.json'
-        path = active if active.exists() else SOURCE / 'examples/watch-cloud.json'
+        path = (installed if installed.exists() else local if local.exists()
+                else active if active.exists() else SOURCE / 'examples/watch-cloud.json')
     path = Path(path).resolve()
     config = json.loads(path.read_text(encoding='utf-8'))
     return path, config, (path.parent / config.get('runtime', '.watch')).resolve()
+
+
+def initialize(path=None):
+    target = Path(path).resolve() if path else config_dir() / 'work.json'
+    if target.exists():
+        raise ValueError('Worker configuration already exists: ' + str(target))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    worker = ['{python}', '{source}/codelaboon/cloud_worker.py', '--provider', 'free',
+              '--model', 'free', '--runtime', '{runtime}', '{prompt_file}']
+    builder = ['{python}', '{source}/codelaboon/cloud_worker.py', '--agent', '--model', 'codelaboon/free',
+               '--runtime', '{runtime}', '{prompt_file}']
+    save(target, {'runtime': 'work-runtime', 'poll_seconds': 15,
+        'orchestrator': {'url': 'http://127.0.0.1:18765/v1/chat/completions', 'model': 'local-router'},
+        'harnesses': [
+            {'id': 'free-planner', 'location': 'cloud', 'stages': ['plan'], 'argv': worker},
+            {'id': 'source-builder', 'location': 'cloud', 'stages': ['build'], 'argv': builder}],
+        'tasks': []})
+    print('Created ' + str(target))
+    return target
 
 
 def running(root):
@@ -160,7 +183,7 @@ def logs(path=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', nargs='?', default='menu',
-                        choices=['menu', 'start', 'stop', 'pause', 'resume', 'status', 'logs', 'add'])
+                        choices=['menu', 'init', 'enable', 'disable', 'start', 'stop', 'pause', 'resume', 'status', 'logs', 'add'])
     parser.add_argument('instruction', nargs='?')
     parser.add_argument('--config')
     parser.add_argument('--project')
@@ -168,7 +191,17 @@ def main(argv=None):
     parser.add_argument('--checks-json', help='Exact JSON array of argument arrays')
     parser.add_argument('--json', action='store_true')
     args = parser.parse_args(argv)
-    if args.action == 'menu':
+    if args.action == 'init':
+        initialize(args.config)
+    elif args.action == 'enable':
+        from codelaboon.autostart import enable
+        path, _, root = configuration(args.config)
+        (root / 'STOP').unlink(missing_ok=True)
+        print('Autostart registered: ' + str(enable(path)))
+    elif args.action == 'disable':
+        from codelaboon.autostart import disable
+        disable()
+    elif args.action == 'menu':
         menu(args.config)
     elif args.action == 'start':
         start(args.config)

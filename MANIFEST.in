@@ -1,4 +1,5 @@
 include README.md
+include .gitattributes
 include WATCH.md
 include CLOUD-WATCH.md
 include LICENSE
@@ -18,3 +19,9 @@ global-exclude __pycache__
 global-exclude *.py[cod]
 
 recursive-include codelaboon/static *.html *.css *.js *.svg
+recursive-include codelaboon/_vendor *.tar.gz
+recursive-include codelaboon/prompts *.md
+recursive-include codelaboon/themes *.json KILO-LICENSE
+recursive-include scripts/patches *.patch
+prune codelaboon/_vendor/opencode
+prune codelaboon/_vendor/oh-my-pi

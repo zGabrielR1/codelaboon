@@ -84,6 +84,7 @@ class ConfigTests(unittest.TestCase):
             {
                 "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
                 "openrouter", "luna", "ourfree", "kilo", "pollinations",
+                "local", "openrouter_free", "groq", "cerebras",
                 "wusrouter",
             },
         )
@@ -564,21 +565,21 @@ class DecisionModelTests(unittest.TestCase):
 class TuiTests(unittest.IsolatedAsyncioTestCase):
     """Headless tests for the Textual TUI."""
 
-    def test_tui_command_without_the_extra_exits_with_a_hint(self):
-        with mock.patch.dict("sys.modules", {"codelaboon.tui": None}):
+    def test_tui_command_without_sources_exits_with_a_hint(self):
+        with mock.patch("codelaboon.native_tui.launch", side_effect=RuntimeError("Missing packaged opencode sources; reinstall codelaboon.")):
             with mock.patch("sys.argv", ["codelaboon", "tui"]):
-                with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+                with mock.patch("sys.stderr", new_callable=io.StringIO) as out:
                     with self.assertRaises(SystemExit) as exited:
                         CodelaboonCLI().run()
         self.assertEqual(exited.exception.code, 2)
-        self.assertIn("textual", out.getvalue())
+        self.assertIn("reinstall codelaboon", out.getvalue())
 
     @unittest.skipUnless(TEXTUAL_AVAILABLE, "textual is not installed")
     async def test_mount_lists_providers_and_models(self):
         app = CodelaboonTuiApp()
         async with app.run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(len(app._provider_names), 13)
+            self.assertEqual(set(app._provider_names), {"free", *app.cli.providers})
             if app._models_worker is not None:
                 await app._models_worker.wait()
             await pilot.pause()

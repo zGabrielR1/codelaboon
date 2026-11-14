@@ -14,5 +14,11 @@ if ! command -v "$PYTHON" >/dev/null 2>&1; then
 	PYTHON=python
 fi
 
+if [[ ! -f "$ROOT/pyproject.toml" ]]; then
+    ROOT="${CODELABOON_SOURCE_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/codelaboon/source}"
+    if [[ ! -d "$ROOT/.git" ]]; then
+        git clone https://github.com/zGabrielR1/codelaboon.git "$ROOT"
+    fi
+fi
 cd "$ROOT"
 exec "$PYTHON" -m codelaboon install "$@"

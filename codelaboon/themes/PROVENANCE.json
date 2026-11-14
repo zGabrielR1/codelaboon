@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/Kilo-Org/kilocode",
+  "revision": "85eb887a7560f452211bcd382eafe8cb2f8df497",
+  "source_path": "packages/tui/src/theme/assets/kilo.json",
+  "source_sha256": "e91412bc02f5dcc4d791f2ac4247ee06c1006d9e10730cb3161cb2da72a9ce81",
+  "license": "KILO-LICENSE",
+  "opencode": "Exact native Kilo theme asset, renamed for discovery",
+  "omp": "Native OMP theme using Kilo dark/light palette and upstream OMP theme keys"
+}
