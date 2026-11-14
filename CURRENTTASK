@@ -14,6 +14,9 @@ Verified: 191 tests, native Claude UI/picker and real Read tool loop without an
 Anthropic account, plus a live free-provider reply from an empty project. Added
 Claude UI/tool CI gates. See docs/release-1.0.0rc13.md and review-1.0.0rc13.md.
 Installed RC13 wheel locally; user confirmed: "Yes, it opens on free" without
-Claude sign-in. Next: commit/tag/publish after required checks. Do not claim
-publication before release CI succeeds. Preserve all existing sessions/credentials,
+Claude sign-in. Published v1.0.0-rc.13 from 2c4fbcd0ba42e72691b1e13bd5702edebce5a936.
+Release run 43614265583 and verify run 43614265809 succeeded, including native
+Claude UI/tool checks, OpenCode/OMP/Kilo and actual VTE. Downloaded release
+wheel/sdist hashes match SHA256SUMS. This requested RC is complete.
+Next: monitor acceptance feedback and provider availability. Preserve all existing sessions/credentials,
 OMP profiles, .watch and background queues. Native cost displays are estimates.

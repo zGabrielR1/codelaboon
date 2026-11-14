@@ -418,3 +418,8 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 
 - Installed RC13 wheel locally; user confirmed native Claude opens on free without
   account login ("Yes, it opens on free").
+
+- Published [RC13](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.13)
+  from `2c4fbcd`: release run `43614265583` and verify run `43614265809` succeeded,
+  including native Claude UI/tools and all existing engine/VTE gates. Downloaded
+  wheel/source checksums verified. User acceptance confirmed; requested RC complete.
