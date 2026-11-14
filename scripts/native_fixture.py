@@ -16,7 +16,7 @@ REPLY = "Fixture reply: accepted."
 
 
 @contextmanager
-def fixture(engine, setup=False, tools=False):
+def fixture(engine, setup=False, tools=False, development=False):
     observed = []
     with tempfile.TemporaryDirectory(prefix="codelaboon-native-", ignore_cleanup_errors=True) as directory:
         project = Path(directory)
@@ -71,10 +71,22 @@ def fixture(engine, setup=False, tools=False):
         thread.start()
         config = project / "config"
         config.mkdir()
+        base = f'base_url="http://127.0.0.1:{server.server_port}/v1"\n'
         (config / "providers.toml").write_text(
-            '[local]\napi_key=""\nmodels=[]\n' + f'base_url="http://127.0.0.1:{server.server_port}/v1"\n',
+            '[local]\napi_key=""\nmodels=[]\n' + base +
+            '[kilo]\napi_key=""\nmodels=["kilo-auto/free"]\n' + base +
+            '[pollinations]\napi_key=""\nmodels=["fixture"]\n' + base,
             encoding="utf-8")
         env = dict(os.environ, CODELABOON_CONFIG_DIR=str(config), CODELABOON_NO_ANIMATION="1")
+        if engine in ("kilo", "claude"):
+            # Reuse a verified optional binary while keeping all auth/config isolated.
+            from codelaboon.paths import config_dir
+            marker = config_dir() / "runtime/native-clis" / engine / "current.json"
+            if marker.is_file():
+                binary = Path(json.loads(marker.read_text())["executable"])
+                env["PATH"] = str(binary.parent) + os.pathsep + env.get("PATH", "")
+        if development:
+            env["CODELABOON_DEV_RUNTIME"] = "1"
         try:
             if setup:
                 result = subprocess.run([sys.executable, str(ROOT / "codelaboon/cli.py"), "tui", "--engine", engine,

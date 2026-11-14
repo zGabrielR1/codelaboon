@@ -370,3 +370,16 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Future runs: retain upstream renderers and minimize UI patches. Run smoke_ui.py
   --setup --types from a source artifact to exercise the same path as CI. Read
   docs/release-1.0.0rc10.md for source revisions, coverage and environment limits.
+
+
+### Session 2026-11-14 — RC11 Fedora startup repair
+
+- Fixed normal OpenCode startup stalls; bounded provider discovery and cached
+  metadata, skipped duplicate empty plugin installs, unified setup/cache paths.
+- Production dependencies, optional Textual, automatic verified Bun without npm.
+- Added official optional Kilo/Claude native engines; preserved working OMP.
+- 183 tests, OpenCode types, bundle/structure checks, installed default UI,
+  OMP/Kilo native UI/tool checks, Claude onboarding and standalone Bun bootstrap.
+- Lesson: local-only UI checks missed the normal startup defect. CI now tests the
+  installed normal path from a fresh profile and optional native Kilo tools.
+- Publication target: v1.0.0-rc.11; remote workflow is the publication authority.

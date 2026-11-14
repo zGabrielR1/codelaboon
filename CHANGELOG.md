@@ -1,3 +1,15 @@
+## 1.0.0rc11 - 2026-11-14
+
+- Fix default OpenCode startup: bound provider discovery, cache model metadata,
+  avoid launch-time model downloads and duplicate empty plugin installations.
+- Use the same packaged runtime cache for setup and installed commands; repair
+  incomplete setup automatically. Keep OpenCode as the default without a picker.
+- Install production dependencies with shared Bun storage. Download verified Bun
+  automatically without requiring Node/npm. Keep Textual in the optional extra.
+- Add optional official Kilo and Claude Code native CLIs with verified downloads.
+  Kilo uses the provider gateway; Claude Code retains upstream account sign-in.
+- Cover normal OpenCode startup in CI, including slow/offline catalogue tests.
+
 ## 1.0.0rc10 - 2026-11-13
 
 - Keep OpenCode and OMP as the actual native UI codebases. Add Kilo Code's native

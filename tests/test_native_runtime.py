@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 import plistlib
 import tempfile
+import threading
+import time
 import unittest
 from unittest.mock import MagicMock, patch
 import xml.etree.ElementTree as ET
@@ -28,6 +30,37 @@ class Provider:
 
 
 class GatewayTests(unittest.TestCase):
+    def test_startup_uses_cached_models_while_discovery_stalls(self):
+        release = threading.Event()
+        provider = Provider()
+        provider.list_models = lambda: (release.wait(5), ["fresh"])[1]
+        with tempfile.TemporaryDirectory() as directory, patch(
+                "codelaboon.native_gateway.config_dir", return_value=Path(directory)):
+            cache = Path(directory) / "native-models.json"
+            cache.write_text(json.dumps({"local:" + provider.base_url: [
+                {"id": "local/cached", "name": "Cached model", "api": "chat"}]}))
+            gateway = Gateway({"local": provider})
+            try:
+                started = time.monotonic()
+                rows = gateway.start_catalogue(budget=0.05)
+                self.assertLess(time.monotonic() - started, 0.5)
+                self.assertEqual(rows[0]["id"], "local/cached")
+            finally:
+                gateway.closed.set()
+                release.set()
+
+    def test_startup_with_corrupt_cache_still_exposes_seeded_models(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+                "codelaboon.native_gateway.config_dir", return_value=Path(directory)):
+            (Path(directory) / "native-models.json").write_text("broken JSON")
+            provider = Provider()
+            provider.list_models = MagicMock(side_effect=requests.Timeout("offline"))
+            gateway = Gateway({"kilo": provider})
+            rows = gateway.models(startup=True)
+            self.assertEqual({row["id"] for row in rows}, {"free", "kilo/kilo-auto/free"})
+            self.assertEqual(gateway.discovery_errors["kilo"], "Timeout")
+            gateway.closed.set()
+
     def test_tool_messages_and_sse_pass_through_without_text_conversion(self):
         body = {"model": "kilo/tool-model", "stream": True,
                 "messages": [{"role": "assistant", "tool_calls": [{"id": "call-1", "type": "function",
@@ -204,3 +237,34 @@ class InstallationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OptionalEngineTests(unittest.TestCase):
+    def test_bad_native_download_never_becomes_executable(self):
+        from codelaboon.external_engines import setup
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.iter_content.return_value = [b"corrupt-download"]
+        with tempfile.TemporaryDirectory() as directory, patch(
+                "codelaboon.external_engines.config_dir", return_value=Path(directory)), patch(
+                "codelaboon.external_engines.metadata", return_value={"dist": {
+                    "tarball": "https://example.invalid/native.tgz", "integrity": "sha512-incorrect"}}), patch(
+                "codelaboon.external_engines.requests.get", return_value=response):
+            with self.assertRaisesRegex(RuntimeError, "checksum mismatch"):
+                setup("kilo")
+            self.assertFalse(list(Path(directory).rglob("current.json")))
+            self.assertFalse(list(Path(directory).rglob("kilo.exe")))
+
+    def test_claude_keeps_upstream_auth_and_arguments(self):
+        from codelaboon.external_engines import launch
+        with patch("codelaboon.external_engines.executable", return_value="/native/claude"), patch(
+                "codelaboon.external_engines.subprocess.call", return_value=0) as run:
+            self.assertEqual(launch("claude", ["auth", "login"]), 0)
+            run.assert_called_once_with(["/native/claude", "auth", "login"])
+
+    def test_missing_bun_installs_without_node_or_npm(self):
+        from codelaboon.native_tui import ensure_bun
+        with patch("codelaboon.native_tui.bun_executable", side_effect=RuntimeError("missing")), patch(
+                "codelaboon.external_engines.setup", return_value=Path("/native/bun")) as install:
+            self.assertEqual(ensure_bun(), "/native/bun")
+            install.assert_called_once_with("bun")

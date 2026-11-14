@@ -238,6 +238,22 @@
              </box>
              <box>
                <text fg={theme.text}>
+--- a/packages/opencode/src/config/config.ts
++++ b/packages/opencode/src/config/config.ts
+@@ -333,6 +333,13 @@
+   }
+ 
+   export async function needsInstall(dir: string) {
++    if (process.env.CODELABOON_RUNTIME === "1") {
++      const pkg = await Filesystem.readJson<{ dependencies?: Record<string, string> }>(path.join(dir, "package.json"))
++        .catch(() => undefined)
++      // An empty config directory is not a plugin project. Do not install a
++      // second SDK tree just to show the Codelaboon frontend.
++      if (!Object.keys(pkg?.dependencies ?? {}).some((name) => name !== "@opencode-ai/plugin")) return false
++    }
+     // Some config dirs may be read-only.
+     // Installing deps there will fail; skip installation in that case.
+     const writable = await isWritable(dir)
 --- a/packages/opencode/src/file/watcher.ts
 +++ b/packages/opencode/src/file/watcher.ts
 @@ -36,7 +36,7 @@

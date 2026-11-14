@@ -7,7 +7,11 @@ Credentials remain in Python; each launch gets a private loopback token.
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
+from pathlib import Path
+import queue
 import secrets
+import tempfile
 import threading
 import time
 from urllib.parse import unquote, urlsplit
@@ -15,6 +19,7 @@ from urllib.parse import unquote, urlsplit
 import requests
 
 from codelaboon import free_auto
+from codelaboon.paths import config_dir
 
 COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter", "nvidia", "luna", "chatgpt",
               "local", "openrouter_free", "groq", "cerebras", "wusrouter", "claude", "gemini", "freebuff"}
@@ -29,10 +34,14 @@ class Gateway:
         self.catalog = None
         self.local = requests.Session()
         self.local.trust_env = False
+        self.closed = threading.Event()
+        self.discovery_errors = {}
 
-    def models(self):
+    def models(self, startup=False):
         if self.catalog is not None:
             return self.catalog
+        if startup:
+            return self.start_catalogue()
         rows = ([{"id": "free", "name": "free (Auto)", "api": "chat"}]
                 if FREE_COMPATIBLE.intersection(self.providers) else [])
         for name, provider in self.providers.items():
@@ -51,6 +60,77 @@ class Gateway:
                              "responses" if subscription else "chat")} for model in models)
         self.catalog = rows
         return rows
+
+    def start_catalogue(self, budget=1.0):
+        """Render promptly, even when provider discovery/auth endpoints stall."""
+        cache = config_dir() / "native-models.json"
+        try:
+            saved = json.loads(cache.read_text(encoding="utf-8")) if cache.stat().st_size < 2_000_000 else {}
+        except (OSError, ValueError):
+            saved = {}
+        entries = {}
+        pending = queue.Queue()
+        lock = threading.Lock()
+        complete = threading.Event()
+        free = [{"id": "free", "name": "free (Auto)", "api": "chat"}] if FREE_COMPATIBLE.intersection(self.providers) else []
+        def key(name, provider):
+            return name + ":" + getattr(provider, "base_url", "")
+        for name, provider in self.providers.items():
+            if name not in COMPATIBLE or not provider.validate_api_key():
+                continue
+            api = {"claude": "anthropic", "gemini": "google"}.get(name, "chat")
+            if name == "chatgpt" and not (provider.api_key.strip() or os.environ.get("OPENAI_API_KEY")):
+                api = "responses"
+            cached = saved.get(key(name, provider), []) if isinstance(saved, dict) else []
+            valid = [row for row in cached if isinstance(row, dict) and
+                     isinstance(row.get("id"), str) and row["id"].startswith(name + "/") and
+                     isinstance(row.get("name"), str) and row.get("api") == api] if isinstance(cached, list) else []
+            roster = getattr(provider, "models", None) or getattr(provider, "default_models", [])
+            entries[name] = valid or [{"id": name + "/" + model, "name": model, "api": api}
+                                      for model in roster if isinstance(model, str)]
+            pending.put((name, provider, api))
+        def snapshot():
+            return free + [row for rows in entries.values() for row in rows]
+        self.catalog = snapshot()
+        remaining = pending.qsize()
+        if not remaining:
+            return self.catalog
+        def worker():
+            nonlocal remaining
+            while not self.closed.is_set():
+                try:
+                    name, provider, api = pending.get_nowait()
+                except queue.Empty:
+                    return
+                try:
+                    models = provider.list_models()
+                    labels = getattr(provider, "model_names", {})
+                    rows = [{"id": name + "/" + model, "name": labels.get(model, model), "api": api}
+                            for model in models if isinstance(model, str)]
+                    with lock:
+                        entries[name] = rows
+                        self.catalog = snapshot()
+                        if not self.closed.is_set():
+                            saved_key = {key(n, self.providers[n]): value for n, value in entries.items()}
+                            cache.parent.mkdir(parents=True, exist_ok=True)
+                            descriptor, temporary = tempfile.mkstemp(prefix=".models-", dir=cache.parent)
+                            try:
+                                with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                                    json.dump(saved_key, stream)
+                                os.replace(temporary, cache)
+                            finally:
+                                Path(temporary).unlink(missing_ok=True)
+                except Exception as error:
+                    self.discovery_errors[name] = type(error).__name__
+                finally:
+                    with lock:
+                        remaining -= 1
+                        if remaining == 0:
+                            complete.set()
+        for _ in range(min(4, remaining)):
+            threading.Thread(target=worker, daemon=True, name="model-discovery").start()
+        complete.wait(budget)
+        return list(self.catalog)
 
     def routes(self, model):
         if model == "free":
@@ -252,6 +332,7 @@ def serve(providers):
     try:
         yield gateway, f"http://127.0.0.1:{server.server_port}/v1"
     finally:
+        gateway.closed.set()
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)

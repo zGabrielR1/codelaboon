@@ -134,7 +134,7 @@ def user_scripts_dir() -> Path:
 
 def install_package(
     editable: bool = False,
-    extra: Optional[str] = "tui",
+    extra: Optional[str] = None,
     quiet: bool = False,
 ) -> tuple[int, str]:
     """Run ``pip install --user`` against the current source checkout."""

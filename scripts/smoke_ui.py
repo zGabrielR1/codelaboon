@@ -12,11 +12,13 @@ import uuid
 from native_fixture import ROOT, REPLY, fixture
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--engine", choices=["opencode", "omp"], required=True)
+parser.add_argument("--engine", choices=["opencode", "omp", "kilo"], required=True)
 parser.add_argument("--width", type=int, default=160)
 parser.add_argument("--height", type=int, default=44)
 parser.add_argument("--setup", action="store_true")
+parser.add_argument("--installed", action="store_true", help="Exercise the installed entry point outside the checkout")
 parser.add_argument("--types", action="store_true", help="Run the engine's own type checks in the prepared source")
+parser.add_argument("--normal-startup", action="store_true", help="Exercise normal cloud-enabled initialization, using fixture inference")
 args = parser.parse_args()
 if not shutil.which("tmux"):
     parser.error("tmux is required for terminal integration checks")
@@ -57,7 +59,7 @@ def text(value):
     time.sleep(0.25)
 
 
-with fixture(args.engine, args.setup) as (project, env, observed):
+with fixture(args.engine, args.setup, development=args.types) as (project, env, observed):
     if args.types:
         helper = ("import json,sys; from codelaboon.native_tui import source_root,bun_executable; "
                   "print(json.dumps([str(source_root(sys.argv[1])),bun_executable()]))")
@@ -67,15 +69,18 @@ with fixture(args.engine, args.setup) as (project, env, observed):
         subprocess.run([bun, "run", check], cwd=directory, env=env, check=True, timeout=180)
     command = ["env", f"CODELABOON_CONFIG_DIR={env['CODELABOON_CONFIG_DIR']}",
                "CODELABOON_NO_ANIMATION=1", "COLORTERM=truecolor",
-               sys.executable, str(ROOT / "codelaboon/cli.py"), "tui", "--engine", args.engine,
-               "--local-only"]
-    if args.width == 80:
+               *([shutil.which("codelaboon")] if args.installed else [sys.executable, str(ROOT / "codelaboon/cli.py")]),
+               "tui", "--engine", args.engine,
+               *([] if args.normal_startup else ["--local-only"])]
+    if args.normal_startup:
+        command.extend(["--", "--model", "codelaboon/local/fixture"])
+    if args.width == 80 and not args.normal_startup and args.engine != "kilo":
         command.extend(["--theme", "codelaboon-kilo"])
     try:
         tmux("-f", "/dev/null", "new-session", "-d", "-s", "native", "-x", str(args.width),
              "-y", str(args.height), "-c", str(project), shlex.join(command))
         tmux("set-option", "-t", "native", "remain-on-exit", "on")
-        wait("home", lambda value: "fixture" in value and ("c o d e l a b o o n" in value if args.engine == "opencode" else "omp" in value.lower()))
+        wait("home", lambda value: "fixture" in value and ("c o d e l a b o o n" in value if args.engine == "opencode" else ("tab agents" in value if args.engine == "kilo" else "omp" in value.lower())))
         # Type and submit separately so terminal paste coalescing cannot swallow Enter.
         prompt = "native-ui-history-check"
         text(prompt)
@@ -91,12 +96,12 @@ with fixture(args.engine, args.setup) as (project, env, observed):
             wait("sidebar", lambda value: "Delegated work" in value and "Background agent" in value)
         key("C-e")
         key("C-u")
-        if args.engine == "opencode":
+        if args.engine in ("opencode", "kilo"):
             key("C-p")
             wait("commands", lambda value: "Commands" in value and "Search" in value)
             text("theme")
             key("Enter")
-            wait("themes", lambda value: "Themes" in value and "codelaboon-kilo" in value)
+            wait("themes", lambda value: "Themes" in value and ("kilo" if args.engine == "kilo" else "codelaboon-kilo") in value)
         else:
             text("/settings")
             key("Enter")

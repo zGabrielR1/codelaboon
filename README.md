@@ -337,22 +337,29 @@ and forwards the native wire protocols through a token-protected loopback gatewa
 ```bash
 python3 -m codelaboon install           # installs package, prepares Bun and the TUI
 codelaboon                             # native OpenCode UI in the current project
-codelaboon tui --engine omp --setup     # prepare the alternate Oh My Pi source runtime
-codelaboon tui --engine omp             # original OMP task/startup effects and tools
+codelaboon omp                         # OMP; dependencies install automatically
+codelaboon kilo                        # optional official Kilo CLI and provider gateway
+codelaboon claude                      # optional official Claude Code; native sign-in
 codelaboon tui --theme codelaboon-kilo   # explicit native Kilo-derived palette
 codelaboon tui --profile security       # authorized pentesting workflow
 codelaboon tui --local-only             # local inference, with no cloud model fallback
 ```
 
-Bun >=1.3.10 is required. The installer can install pinned Bun 1.4.4 through npm
-if Bun is absent; otherwise install Bun first. Runtime dependency setup downloads
-packages. Once set up, local inference can use Ollama or llama.cpp's OpenAI endpoint.
+The installer prepares production dependencies and downloads checksum-verified Bun
+1.4.4 if needed; Node/npm are not required. First launch also repairs missing setup.
+Provider discovery has a one-second startup budget and uses cached/default models
+while refreshing in the background. Skipped optional packages for other platforms
+are normal. Once set up, local inference can use Ollama or llama.cpp's OpenAI endpoint.
 Run `codelaboon configure local` to change its loopback base URL. Any installed model,
 including a locally chosen model with different refusal behavior, appears in the
 model picker. Model behavior depends on the selected weights. `--local-only`
 restricts inference routing; it does not sandbox tools or block their networking.
 
-Fresh profiles start with a charcoal/yellow theme derived from the official Kilo
+Kilo and Claude Code install only when requested. Claude Code runs the official
+unmodified client, uses its own authentication, and requires an eligible account
+or API billing. It is not a source fork or an automatic free-provider route.
+
+Fresh OpenCode/OMP profiles start with a charcoal/yellow theme derived from the official Kilo
 CLI theme. Existing native theme choices are preserved. Both engines keep their
 own upstream editor, menus, tools and effects.
 

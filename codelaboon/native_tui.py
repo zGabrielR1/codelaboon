@@ -42,25 +42,28 @@ def bun_executable():
     alternate = installed.with_name("bun.exe")
     if os.name != "nt" and alternate.is_file() and os.access(alternate, os.X_OK):
         return str(alternate)
-    raise RuntimeError("The source TUI needs Bun >=1.3.10. Install Bun, then run codelaboon tui --setup.")
+    marker = config_dir() / "runtime/native-clis/bun/current.json"
+    try:
+        candidate = Path(json.loads(marker.read_text())["executable"])
+        if candidate.is_relative_to(marker.parent) and candidate.is_file():
+            return str(candidate)
+    except (OSError, ValueError, KeyError):
+        pass
+    raise RuntimeError("Bun has not been installed")
 
 
 def ensure_bun():
     try:
         return bun_executable()
     except RuntimeError:
-        npm = shutil.which("npm")
-        if not npm:
-            raise RuntimeError("Install Bun >=1.3.10 or Node.js with npm, then retry the installer.")
-        subprocess.run([npm, "install", "--prefix", str(config_dir() / "runtime/bun"),
-                        "--no-audit", "--no-fund", "bun@1.4.4"], check=True)
-        return bun_executable()
+        from codelaboon.external_engines import setup as install_native
+        return str(install_native("bun"))
 
 
 def source_root(engine):
     name = ENGINES[engine]
     direct = VENDOR / name
-    if (direct / "UPSTREAM.json").is_file():
+    if os.environ.get("CODELABOON_DEV_RUNTIME") == "1" and (direct / "UPSTREAM.json").is_file():
         return direct
     archive = VENDOR / f"{name}.tar.gz"
     if not archive.is_file():
@@ -85,12 +88,17 @@ def source_root(engine):
 
 
 def setup(engine):
+    if engine in ("claude", "kilo"):
+        from codelaboon.external_engines import setup as install_external
+        return install_external(engine)
     root = source_root(engine)
     bun = ensure_bun()
     version = subprocess.check_output([bun, "--version"], text=True).strip().split(".")
     if tuple(int(part) for part in version[:3]) < (1, 3, 10):
         raise RuntimeError("The source TUI requires Bun >=1.3.10")
-    command = [bun, "install", "--ignore-scripts", "--backend", "copyfile", "--linker", "hoisted"]
+    command = [bun, "install", "--ignore-scripts", "--linker", "hoisted"]
+    if os.environ.get("CODELABOON_DEV_RUNTIME") != "1":
+        command.append("--production")
     # Importing only runtime workspaces changes the root manifest. Bun must
     # reconcile the upstream lockfile with that reduced workspace on setup.
     subprocess.run(command, cwd=root, check=True)
@@ -98,7 +106,25 @@ def setup(engine):
         install_omp_native(root)
         subprocess.run([bun, "scripts/generate-docs-index.ts"],
                        cwd=root / "packages/coding-agent", check=True)
-    (root / ".codelaboon-ready").write_text("ready\n", encoding="utf-8")
+    if engine == "opencode":
+        # Seed model metadata at installation, never by blocking the first render.
+        models = root / ".codelaboon-models.json"
+        try:
+            response = requests.get("https://models.dev/api.json", timeout=(5, 10))
+            response.raise_for_status()
+            data = response.json()
+        except (requests.RequestException, ValueError):
+            data = {}
+        models.write_text(json.dumps(data), encoding="utf-8")
+    (root / ".codelaboon-ready").write_text(json.dumps({"format": 2, "engine": engine,
+        "development": os.environ.get("CODELABOON_DEV_RUNTIME") == "1"}) + "\n", encoding="utf-8")
+
+
+def ready(root):
+    try:
+        return json.loads((root / ".codelaboon-ready").read_text()).get("format") == 2
+    except (OSError, ValueError, AttributeError):
+        return False
 
 
 def install_omp_native(root):
@@ -157,13 +183,17 @@ def omp_config(rows, url):
 
 
 def launch(engine="opencode", arguments=(), profile="coding", local_only=False, theme=None):
+    if engine in ("claude", "kilo"):
+        from codelaboon.external_engines import launch as launch_external
+        return launch_external(engine, arguments, profile, local_only)
     from codelaboon.cli import CodelaboonCLI
     from codelaboon.native_gateway import serve
 
     root = source_root(engine)
+    if not ready(root):
+        print(f"Preparing {engine} runtime (first launch only)...", file=sys.stderr)
+        setup(engine)
     bun = bun_executable()
-    if not (root / ".codelaboon-ready").is_file():
-        raise RuntimeError(f"Run codelaboon tui --engine {engine} --setup once to install the source TUI dependencies.")
     project = Path.cwd().resolve()
     cli = CodelaboonCLI()
     cli.load_providers()
@@ -173,14 +203,14 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
             from codelaboon.install import _step
             result = []
             def discover():
-                result.extend(gateway.models())
+                result.extend(gateway.models(startup=True))
                 return True, engine
             ok, message = _step("Load coding workspace", discover)
             if not ok:
                 raise RuntimeError(message)
             rows = result
         else:
-            rows = gateway.models()
+            rows = gateway.models(startup=True)
         if local_only and not rows:
             raise RuntimeError("No local model is listed. Start Ollama/llama.cpp and configure the local provider.")
         default = rows[0]["id"] if local_only else "free"
@@ -203,6 +233,12 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
                 config["instructions"] = [str(Path(__file__).parent / "prompts/security.md")]
             env["OPENCODE_CONFIG_CONTENT"] = json.dumps(config)
             env["OPENCODE_DISABLE_AUTOUPDATE"] = "true"
+            env["OPENCODE_DISABLE_MODELS_FETCH"] = "true"
+            env["OPENCODE_DISABLE_DEFAULT_PLUGINS"] = "true"
+            env["CODELABOON_RUNTIME"] = "1"
+            snapshot = root / ".codelaboon-models.json"
+            if snapshot.is_file():
+                env["OPENCODE_MODELS_PATH"] = str(snapshot)
             state = Path(env.get("CODELABOON_NATIVE_DIR") or config_dir() / "native")
             native_themes.install(engine, state / "config/opencode")
             for kind in ("CONFIG", "DATA", "STATE", "CACHE"):

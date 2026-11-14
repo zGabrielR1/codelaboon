@@ -181,3 +181,28 @@ return its tool result to the model. They exercise source execution and gateway
 compatibility without spending cloud inference quota. They require engine setup
 and may populate first-run SDK caches. The offline suite also checks provider
 protocol boundaries, paid-route exclusion and platform autostart specifications.
+
+
+## Startup and optional native CLIs (RC11)
+
+`codelaboon` always opens OpenCode; installation has no engine picker. Setup and
+installed entry points use the same archive-hash runtime cache. Missing setup is
+repaired on launch. Production dependencies use Bun's normal shared cache; Python
+Textual remains available in `.[tui]` for the legacy reference interface and tests.
+A missing Bun runtime is downloaded from the official npm package with SHA-512
+verification, without Node/npm. Provider discovery waits at most one second before
+using cached/default models. Remote model metadata is fetched during setup rather
+than first render. Native custom plugins may still perform their own setup.
+
+`codelaboon omp` retains the source-forked OMP interface. `codelaboon kilo` downloads
+the official Kilo 7.8.27 native binary and connects its native UI/tools to the
+Codelaboon gateway. `codelaboon claude` downloads the official stable Claude Code
+binary, verifies its published SHA-256 and preserves native authentication and
+sessions. Claude Code is proprietary; this integration does not modify or bundle
+its client or grant free inference. Run `codelaboon claude auth login` to sign in.
+These optional CLIs each add their native binary only when requested (roughly
+250–300 MB on Linux x64); they do not install their development monorepos.
+
+Development source directories are used only with `CODELABOON_DEV_RUNTIME=1`;
+normal commands consume the verified packaged source archives. Existing sessions,
+credentials, OMP profiles and background queues are preserved during upgrades.

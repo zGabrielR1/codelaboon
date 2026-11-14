@@ -6,7 +6,7 @@ import sys
 from native_fixture import ROOT, MARKER, fixture
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--engine", choices=["opencode", "omp"], default="opencode")
+parser.add_argument("--engine", choices=["opencode", "omp", "kilo"], default="opencode")
 parser.add_argument("--setup", action="store_true")
 args = parser.parse_args()
 

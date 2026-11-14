@@ -34,6 +34,9 @@ jobs:
         run: python scripts/verify_bundles.py
       - name: Check native types and terminal behavior
         run: python scripts/smoke_ui.py --engine ${{ matrix.engine }} --width ${{ matrix.width }} --setup --types
+      - name: Check normal startup without local-only shortcuts
+        if: matrix.engine == 'opencode' && matrix.width == 160
+        run: python scripts/smoke_ui.py --engine opencode --width 160 --normal-startup --installed
       - name: Check a real file-tool round trip
         if: matrix.width == 160
         run: python scripts/smoke_native.py --engine ${{ matrix.engine }} --setup
@@ -42,5 +45,36 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.engine }}-${{ matrix.width }}
+          path: .runtime/ui-qa/
+          if-no-files-found: warn
+
+  optional-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install wrapper and terminal dependencies
+        run: |
+          python -m pip install .
+          if ! command -v tmux >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y tmux
+          fi
+      - name: Verify official native downloads
+        run: |
+          python -m codelaboon kilo --version
+          python -m codelaboon claude --version
+      - name: Verify Kilo interface and tools with local inference
+        run: |
+          python scripts/smoke_ui.py --engine kilo --width 160
+          python scripts/smoke_native.py --engine kilo
+      - name: Preserve terminal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: optional-native
           path: .runtime/ui-qa/
           if-no-files-found: warn
