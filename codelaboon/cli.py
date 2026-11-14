@@ -552,7 +552,7 @@ class CodelaboonCLI:
         subparsers.add_parser("claude", help="Open Claude Code on Codelaboon free models")
         subparsers.add_parser("storage", help="Audit or relocate development/cache bulk outside the project")
         subparsers.add_parser("swarm", help="Run a bounded lightweight Rust swarm on the free backend")
-        subparsers.add_parser("jcode", help="Open the optional lightweight Rust harness")
+        subparsers.add_parser("jcode", help="Open the native Jcode UI (Rust, automatic setup, free backend)")
         subparsers.add_parser("crush", help="Open the optional Crush native UI on Codelaboon free models")
 
         # List providers command

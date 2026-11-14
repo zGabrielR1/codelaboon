@@ -82,6 +82,9 @@ jobs:
       - name: Verify lightweight Rust worker
         run: |
           python scripts/smoke_jcode.py
+          python scripts/smoke_jcode_ui.py
+          python scripts/smoke_continuous_swarm.py
+          python scripts/smoke_swarm_service.py
           python scripts/smoke_swarm.py
       - name: Verify Crush native UI and tools
         run: |

@@ -5,12 +5,19 @@ from pathlib import Path
 import shlex
 import uuid
 import time
+import sys
+
+if __package__ in (None, ''):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from codelaboon.paths import data_dir
 
 
 def execute(task, workers=4, timeout=1800, checks=(), model='free'):
     if not task.strip() or not 1 <= workers <= 1000 or timeout <= 0:
         raise ValueError('Provide a task, 1–1000 workers, and a positive timeout')
+    if not all(isinstance(command, (list, tuple)) and command and
+               all(isinstance(part, str) for part in command) for command in checks):
+        raise ValueError('Acceptance checks must be nonempty argument lists')
     from codelaboon.cli import CodelaboonCLI
     from codelaboon.external_engines import executable
     from codelaboon.jcode_engine import run
@@ -38,7 +45,11 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free'):
             from codelaboon.watch import execute as checked_command
             output = home / ('check-' + str(len(results)) + '.log')
             remaining = deadline - time.monotonic()
-            check_code = checked_command(command, Path.cwd(), output, remaining) if remaining > 0 else 124
+            try:
+                check_code = checked_command(command, Path.cwd(), output, remaining) if remaining > 0 else 124
+            except OSError as error:
+                output.write_text(str(error) + '\n')
+                check_code = 127
             results.append({'argv': command, 'exit_code': check_code, 'log': str(output)})
             if check_code:
                 code = check_code
@@ -49,12 +60,107 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free'):
     return code
 
 
-def main(arguments=None):
+def enqueue(task, workers=4, timeout=1800, checks=(), model='free', controller='local',
+            interval=60, cycles=0, config=None, project=None):
+    from codelaboon import work
+    from codelaboon.work_queue import validate_swarm
+    options = validate_swarm(dict(workers=workers, timeout=timeout, model=model,
+                                  controller=controller, interval=interval, cycles=cycles))
+    if not checks:
+        raise ValueError('Continuous swarms require at least one independent --check command')
+    from codelaboon.paths import config_dir
+    target = Path(config) if config else config_dir()/'work.json'
+    if not target.exists():
+        work.initialize(target)
+    _, _, runtime = work.configuration(target)
+    if work.running(runtime):
+        info = runtime/'service-info.json'
+        features = json.loads(info.read_text()).get('features', []) if info.exists() else []
+        if 'continuous-swarm' not in features:
+            raise ValueError('The running worker predates continuous swarms. Use work stop, wait until stopped, '
+                             'then work start after upgrading; no task was queued.')
+    task_id = work.add(project or Path.cwd(), task, checks, target, swarm=options)
+    work.start(target)
+    print('Continuous swarm: ' + task_id + ' | controller: ' + controller)
+    print('Use swarm --status, --pause ID, --resume ID or --stop ID. work enable persists across reboots.')
+    return task_id
+
+
+def control(action, task_id, config=None):
+    from codelaboon.work import configuration
+    from codelaboon.work_queue import controls
+    _, value, root = configuration(config)
+    tasks = list(value.get('tasks', []))
+    tasks.extend(json.loads(path.read_text()) for path in (root/'inbox').glob('*.json'))
+    if not any(task['id'] == task_id and task.get('swarm') for task in tasks):
+        raise ValueError('Unknown swarm ID: ' + task_id)
+    directory = controls(root, task_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    if action == 'resume':
+        if (directory/'STOP').exists():
+            raise ValueError('This swarm was stopped. Queue a new swarm to restart it.')
+        (directory/'PAUSE').unlink(missing_ok=True)
+    else:
+        (directory/('PAUSE' if action == 'pause' else 'STOP')).touch()
+    print(action.capitalize() + ': ' + task_id + '. Active cycles and checks finish first.')
+
+
+def _main(arguments=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('task')
+    parser.add_argument('task', nargs='?')
+    parser.add_argument('--task-file', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--workers', type=int, default=4)
     parser.add_argument('--timeout', type=int, default=1800)
     parser.add_argument('--model', default='free')
-    parser.add_argument('--check', action='append', default=[], help='Acceptance command; repeat for multiple checks')
+    parser.add_argument('--check', action='append', default=[], help='Independent acceptance command; repeat for multiple checks')
+    parser.add_argument('--continuous', action='store_true', help='Queue recurring verified cycles in the background supervisor')
+    parser.add_argument('--controller', choices=['local', 'worker'], default='local')
+    parser.add_argument('--interval', type=int, default=60, help='Seconds between continuous cycles')
+    parser.add_argument('--cycles', type=int, default=0, help='Successful cycle limit; 0 continues until stopped')
+    parser.add_argument('--config', help='Background worker configuration')
+    parser.add_argument('--project', type=Path, help='Project for a continuous swarm; defaults to current directory')
+    parser.add_argument('--json', action='store_true', help='Machine-readable status')
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument('--status', action='store_true')
+    actions.add_argument('--pause', metavar='ID')
+    actions.add_argument('--resume', metavar='ID')
+    actions.add_argument('--stop', metavar='ID')
     args = parser.parse_args(arguments)
-    raise SystemExit(execute(args.task, args.workers, args.timeout, [shlex.split(item) for item in args.check], args.model))
+    if args.status or args.pause or args.resume or args.stop:
+        if args.task or args.task_file or args.continuous:
+            parser.error('Status/control actions do not accept a task')
+        if args.status:
+            from codelaboon.work import status
+            result = status(args.config)
+            result['pending'] = [task for task in result['pending'] if task.get('swarm')]
+            print(json.dumps(result, indent=2) if args.json else
+                  '\n'.join([f"Service: {'running' if result['running'] else 'stopped'}"] +
+                  [f"{t['id']} | {t['swarm']['controller']} | cycles={t['cycles_completed']} | "
+                   f"{'stopped' if t['stopped'] else 'paused' if t['paused'] else 'scheduled'}" for t in result['pending']]))
+        else:
+            action = next(name for name in ('pause', 'resume', 'stop') if getattr(args, name))
+            control(action, getattr(args, action), args.config)
+        return
+    if bool(args.task) == bool(args.task_file):
+        parser.error('Provide one task or --task-file')
+    task = args.task_file.read_text(encoding='utf-8') if args.task_file else args.task
+    checks = [shlex.split(item) for item in args.check]
+    if args.continuous:
+        enqueue(task, args.workers, args.timeout, checks, args.model, args.controller,
+                args.interval, args.cycles, args.config, args.project)
+        return
+    if args.project or args.config:
+        parser.error('--project/--config belong to continuous mode or status/controls')
+    raise SystemExit(execute(task, args.workers, args.timeout, checks, args.model))
+
+
+def main(arguments=None):
+    try:
+        return _main(arguments)
+    except (OSError, ValueError, RuntimeError) as error:
+        print('Swarm: ' + str(error), file=sys.stderr)
+        raise SystemExit(2)
+
+
+if __name__ == '__main__':
+    main()

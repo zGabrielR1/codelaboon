@@ -78,13 +78,21 @@ def status(path=None):
         if result.get('status') == 'running':
             active.append({'task': result['task'], 'stage': result['stage'],
                            'harness': result['harness'], 'logs': str(item.parent)})
+    from codelaboon.work_queue import controls
+    def task_status(task):
+        control = controls(root, task['id'])
+        return {'id': task['id'], 'project': task['project'],
+                'stage': 'build' if task['id'] in state.get('plans', {}) or task.get('swarm', {}).get('controller') == 'worker' else 'plan',
+                'swarm': task.get('swarm'), 'cycles_completed': state.get('cycles', {}).get(task['id'], 0),
+                'next_run': state.get('next_run', {}).get(task['id'], 0),
+                'paused': (control/'PAUSE').exists(), 'stopped': (control/'STOP').exists()}
     alive = running(root)
-    return {'running': alive, 'stop_requested': (root / 'STOP').exists(),
+    info = root/'service-info.json'
+    service_info = json.loads(info.read_text()) if info.exists() else {}
+    return {'running': alive, 'service': service_info, 'stop_requested': (root / 'STOP').exists(),
             'paused': (root / 'PAUSE').exists(), 'config': str(path),
             'runtime': str(root), 'completed': len(done),
-            'pending': [{'id': task['id'], 'project': task['project'],
-                         'stage': 'build' if task['id'] in state.get('plans', {}) else 'plan'}
-                        for task in tasks if task['id'] not in done],
+            'pending': [task_status(task) for task in tasks if task['id'] not in done],
             'active_or_interrupted_attempts': active,
             'cooldowns': {key: round(until - time.time()) for key, until in
                           state.get('cooldowns', {}).items() if until > time.time()}}
@@ -112,8 +120,13 @@ def control(action, path=None):
         print('Resumed scheduling. Use work start if the service is stopped.')
 
 
-def add(project, instruction, checks, path=None):
-    path, _, root = configuration(path)
+def add(project, instruction, checks, path=None, swarm=None):
+    path, config, root = configuration(path)
+    if swarm is not None:
+        from codelaboon.work_queue import validate_swarm
+        validate_swarm(swarm)
+        if swarm['controller'] == 'local' and not config.get('orchestrator'):
+            raise ValueError('Local-controlled swarms require an orchestrator in work configuration')
     project = Path(project).resolve()
     if not project.is_dir():
         raise ValueError('Project directory does not exist')
@@ -124,6 +137,8 @@ def add(project, instruction, checks, path=None):
     task_id = 'instruction-' + uuid.uuid4().hex
     task = {'id': task_id, 'project': str(project), 'prompt': instruction,
             'verify_argv': checks}
+    if swarm is not None:
+        task['swarm'] = swarm
     inbox = root / 'inbox'
     inbox.mkdir(parents=True, exist_ok=True)
     save(inbox / (task_id + '.json'), task)
@@ -140,7 +155,10 @@ def inspect(path=None):
     for attempt in result['active_or_interrupted_attempts']:
         print('Attempt: {task} / {stage} / {harness}\nLogs: {logs}'.format_map(attempt))
     for task in result['pending']:
-        print('Queued: {id} / {stage} / {project}'.format_map(task))
+        label = 'Stopped' if task['stopped'] else 'Paused' if task['paused'] else 'Queued'
+        print((label + ': {id} / {stage} / {project}').format_map(task))
+        if task.get('swarm'):
+            print('  Swarm: ' + task['swarm']['controller'] + ' | verified cycles: ' + str(task['cycles_completed']))
     if result['cooldowns']:
         print('Cloud cooldowns (seconds): ' + json.dumps(result['cooldowns']))
     print('Runtime: ' + result['runtime'])

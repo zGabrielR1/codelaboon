@@ -467,3 +467,28 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   wheel. Source distribution 293190 bytes. Real cold OpenCode/OMP HTTP downloads
   succeeded from the installed thin package with an empty temporary cache.
   Requested RC complete; await user feedback. No user data deleted.
+
+
+### Session 2026-11-14 — RC16 continuous swarms and native Jcode UI
+
+- Connected native swarms to the existing durable supervisor. Added continuous
+  local-model or worker control, successful cycle limits, due times/backoff,
+  independent verification budgets and per-objective pause/resume/stop/status.
+- Kept worker-controlled jobs independent of the local router. Shared readiness
+  rules unload idle models and preserve scheduler fairness during local outages.
+  Added bounded prior progress for plain planners and native coordinators.
+- Completed Jcode as an interactive engine: stable project profiles, display
+  preferences, native session resume, unlimited interactive lifetime and owned
+  native server cleanup. Default UI remains OpenCode.
+- Fixed skipped verification in plain queued tasks and literal command arguments.
+  Added supervisor feature detection before enqueueing on an old live process;
+  TERM/HUP cleanup unwinds owned child groups.
+- 223 unit tests pass in external development environment. Native Jcode UI reply,
+  session resume/server exit, two real swarm cycles across supervisor reload and
+  an actual background service with CLI pause/resume/status/checks all pass.
+- Installed local RC16 and restarted only the confirmed-empty user service.
+  Actual installed OpenCode VTE rendering/reply/Up recall passes. Core wheel
+  remains below180KiB; source checkout stays29MB, with no new runtime dependency.
+- Reviewed docs/review-1.0.0rc16.md. Next: commit/tag/publish RC16, wait for complete
+  native gates, verify release checksums/cold assets, then install published wheel.
+  No real user work objective has been queued or started by this session.

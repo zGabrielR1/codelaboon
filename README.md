@@ -341,6 +341,7 @@ codelaboon omp                         # OMP; dependencies install automatically
 codelaboon kilo                        # optional official Kilo CLI and provider gateway
 codelaboon claude                      # Claude Code UI on free (Auto); no Claude subscription
 codelaboon crush                       # official Crush UI on free (Auto); automatic setup
+codelaboon jcode                       # native Rust UI; free backend, persistent project sessions
 codelaboon tui --theme codelaboon-kilo   # explicit native Kilo-derived palette
 codelaboon tui --profile security       # authorized pentesting workflow
 codelaboon tui --local-only             # local inference, with no cloud model fallback
@@ -673,3 +674,25 @@ through the CLI. Live authenticated inference still needs account verification.
 
 The TUI welcome screen now includes a whale and an ASCII Codelaboon wordmark,
 with a compact layout for narrow terminals.
+
+### Continuous swarms (RC16)
+
+The background supervisor can repeat verified swarm cycles until you stop it:
+
+```bash
+codelaboon swarm "Improve performance while preserving behavior" --continuous \
+  --controller local --workers 4 --check 'python3 -m unittest discover -s tests'
+codelaboon swarm --status
+codelaboon swarm --pause ID
+codelaboon swarm --resume ID
+codelaboon swarm --stop ID
+```
+
+`local` uses the local model to route planning and swarm-building cycles. Choose
+`--controller worker` for a native coordinator that directs the swarm without a
+local model. `--interval 60` is the default delay between cycles; `--cycles 0`
+continues indefinitely. Acceptance checks are mandatory in continuous mode.
+`codelaboon work enable` enables the supervisor at login/boot. Pause/stop lets the
+active cycle finish, including checks. OpenCode remains the default interface;
+`codelaboon jcode` opens the optional native Jcode UI with saved project sessions.
+See [continuous swarm operations](docs/lean-runtime.md#continuous-swarms-rc16).

@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import sys
+import signal
 import time
 import urllib.error
 import urllib.request
@@ -31,7 +32,9 @@ def pending_work(config, runtime):
         state = json.loads((runtime / 'state.json').read_text()) if (runtime / 'state.json').exists() else {}
         tasks = list(config.get('tasks', []))
         tasks.extend(json.loads(path.read_text()) for path in (runtime / 'inbox').glob('*.json'))
-        return any(task['id'] not in state.get('done', []) for task in tasks)
+        from codelaboon.work_queue import ready
+        return any(ready(task, state, runtime) and task.get('swarm', {}).get('controller') != 'worker'
+                   for task in tasks)
     except (OSError, ValueError, KeyError, TypeError):
         return True  # Let the supervisor diagnose malformed state; do not silently drop work.
 
@@ -72,6 +75,10 @@ def serve(config_path):
             awake = ctypes.windll.kernel32.SetThreadExecutionState
             awake(0x80000001)  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED; allow display sleep.
         (runtime / 'service.pid').write_text(str(os.getpid()))
+        from codelaboon import __version__
+        from codelaboon.watch import save
+        save(runtime/'service-info.json', {'version': __version__, 'pid': os.getpid(),
+                                           'features': ['continuous-swarm']})
         with (local / 'service-server.log').open('ab') as server_log, \
                 (runtime / 'supervisor.log').open('ab') as worker_log:
             while not (runtime / 'STOP').exists():
@@ -129,6 +136,11 @@ def background(config_path):
 
 
 def main():
+    def stopped(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stopped)
+    if os.name != 'nt':
+        signal.signal(signal.SIGHUP, stopped)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('config')
     parser.add_argument('--background', action='store_true')

@@ -1,19 +1,26 @@
-2026-11-14: RC15 COMPLETE — published and exact release wheel installed locally.
+2026-11-14: RC16 — continuous swarms and full native Jcode UI; IN PROGRESS.
 
-Release https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.15
-Feature commit db3bb970aab699a1cbc2ee7edc462063b4a8ebfb.
-Verify43629827877 and release43629831664 succeeded:208tests, all native UIs,
-OpenCode/Crush VTE, native Rust file tools and two-worker swarm/cap rejection.
-Published wheel177843bytes; sdist293190bytes; engine bundles separate. Allpublished
-SHA256SUMS verified; actual cold engine downloads from installed wheel PASS.
+User wants nonstop swarms under local-model or worker coordination, Jcode engine
+UI, and general improvements. RC15 remains published baseline; no actual user
+jobs queued by this session. Preserve user service/config/accounts/history.
 
-OpenCode remains default interactive UI. Jcode supplies lightweight native swarms
-and default background builders. Idle service unloads owned router model.
-Checkout3.9GB->29MB through preservation/relocation, not deletion. Bulk dev sources
-and clones now ~/.cache/codelaboon/development. Canonical active configuration,
-state and optional model ~/.config/codelaboon. Legacy3-task work history preserved
-under ~/.local/share/codelaboon/legacy-watch. Two external move journals recorded.
-Empty user service restarted and active. No credentials, queues or historylost.
+Implemented --continuous, --controller local|worker, --interval, --cycles,
+per-job --status/--pause/--resume/--stop via durable work queue. Local model routes
+plan/build cycles; worker coordinator bypasses local router. Verified cycles recur,
+checks share build budget, failures back off. Due/pause rules shared with router
+model demand. An old running worker cannot silently consume new jobs; feature
+capability guard asks for a graceful upgrade restart before queuing.
 
-Docs:docs/lean-runtime.md and docs/review-1.0.0rc15.md. Await user feedback;
-do not repeat upstream RAM ratios as Codelaboon measurements.
+Jcode alias already existed; now actual native UI has durable per-project sessions,
+resume/prefs, no 30-minute UI limit, and owned native server cleanup/profile locks.
+Native UI reply/resume/cleanup and two real swarm cycles across supervisor reload
+PASS. New unit cases cover persistence, control modes, failures/budgets, literal
+check arguments and offline-local fairness. Version bumped 1.0.0rc16. Final223 tests, review, thin build/install, native background/UI/resume/cleanup
+and installed OpenCode VTE PASS. Empty user service upgraded/restarted. Need
+commit/tag/publish RC16, full release CI, published hashes/cold asset checks and
+exact published wheel install. Engine manifest now points to RC16 source assets.
+
+Checkout stays29MB. New sources only in /tmp/codelaboon-jcode-rc16; never add large
+clones/dependencies back to ppp. External buildenv at
+~/.cache/codelaboon/development/runtime/buildenv. GH CLI may need restoring under
+/tmp from official v2.103.3 release with checksums. No subagents spawned.

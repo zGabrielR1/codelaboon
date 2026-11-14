@@ -43,7 +43,7 @@ class WorkTests(unittest.TestCase):
                 run(config)
             state = json.loads((root / 'runtime/state.json').read_text())
             self.assertEqual(len(state['done']), 2)
-            self.assertEqual(len(calls), 2)
+            self.assertEqual(len(calls), 3)  # Both tasks plus the queued task acceptance command.
 
     def test_pause_and_resume_preserve_queue(self):
         with tempfile.TemporaryDirectory() as directory:

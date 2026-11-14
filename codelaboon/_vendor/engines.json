@@ -5,13 +5,13 @@
       "name": "opencode",
       "sha256": "b77e02b1a1af097065651883bf22b59c2b63ceb1c0720be8de1b4757bbaaccf5",
       "asset": "codelaboon-engine-opencode-b77e02b1a1af0970.tar.gz",
-      "url": "https://github.com/zGabrielR1/codelaboon/releases/download/v1.0.0-rc.15/codelaboon-engine-opencode-b77e02b1a1af0970.tar.gz"
+      "url": "https://github.com/zGabrielR1/codelaboon/releases/download/v1.0.0-rc.16/codelaboon-engine-opencode-b77e02b1a1af0970.tar.gz"
     },
     "omp": {
       "name": "oh-my-pi",
       "sha256": "a7cc120d3c91088826dc71307a1643aa22d2dd54296fc2f0528703c2d45e1a40",
       "asset": "codelaboon-engine-oh-my-pi-a7cc120d3c910888.tar.gz",
-      "url": "https://github.com/zGabrielR1/codelaboon/releases/download/v1.0.0-rc.15/codelaboon-engine-oh-my-pi-a7cc120d3c910888.tar.gz"
+      "url": "https://github.com/zGabrielR1/codelaboon/releases/download/v1.0.0-rc.16/codelaboon-engine-oh-my-pi-a7cc120d3c910888.tar.gz"
     }
   }
 }

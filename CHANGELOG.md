@@ -1,3 +1,19 @@
+## 1.0.0rc16 - 2026-11-14
+
+- Add continuous durable swarms with local-model routing or native worker
+  coordination, verified cycle counts, interval/backoff, optional cycle limits,
+  and per-objective pause/resume/stop/status controls.
+- Reuse the 24/7 supervisor and independent acceptance checks. Persist due times
+  and progress across restarts; share each build's budget with its checks.
+  Worker-controlled swarms do not load the local router model.
+- Make the Jcode UI a complete optional engine: durable project profiles, native
+  session resume, display preferences, owned-server cleanup and no headless UI
+  timeout. OpenCode remains the default.
+- Run queued acceptance commands consistently and preserve literal command
+  arguments. Prevent offline local jobs from starving native coordinator jobs;
+  reject continuous queues on an outdated running supervisor before writing them.
+- Add native Jcode UI/resume/cleanup and two-cycle swarm restart CI checks.
+
 ## 1.0.0rc15 - 2026-11-14
 
 - Keep OpenCode as the default UI; ship a small core with pinned engine metadata.

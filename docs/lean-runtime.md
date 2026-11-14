@@ -95,3 +95,69 @@ claim their 48x/20x ratios for this integration. Large local models, provider
 latency, context length, tools and chosen engine still determine practical cost
 and quality. Default worker limits are conservative; thousands of concurrent
 sessions are not a tested hardware guarantee.
+
+## Continuous swarms (RC16)
+
+One-shot `swarm TASK` remains bounded. `--continuous` queues a durable objective
+in the existing background supervisor; it does not open an endless conversation
+or leave all worker processes resident between cycles.
+
+```bash
+codelaboon swarm "Improve this project within its existing requirements" \
+  --continuous --controller worker --workers 4 --interval 60 --timeout 1800 \
+  --check 'python3 -m unittest discover -s tests'
+codelaboon swarm --status --json
+codelaboon swarm --pause ID
+codelaboon swarm --resume ID
+codelaboon swarm --stop ID
+```
+
+- `--controller local` (default): the local router selects planning/build jobs;
+  free planning produces a plan and a native coordinator delegates the build.
+  Each accepted cycle gets a fresh plan for the next increment. Requires the
+  configured local router/server and model.
+- `--controller worker`: the native coordinator directs workers and decides the
+  next useful increment from the objective and previous progress. This path does
+  not load or depend on the local model. An offline local-controlled job cannot
+  indefinitely starve worker-controlled jobs in the same supervisor.
+
+Both modes use the free model gateway's failover. Cycles are serial in the durable
+supervisor; workers within a swarm run in parallel. Existing non-swarm tasks can
+share the queue. Work stays within the objective, references prior attempt logs,
+respects project instructions, and does not authorize deployment or publication.
+
+`--cycles 0` means unlimited successful cycles. A positive value finishes after
+that many independently verified cycles. `--interval` defaults to 60 seconds
+between build attempts, while failures also get harness cooldowns. A build and
+its independent checks share `--timeout`; the separate local planning stage has
+its harness budget. A failed or timed-out check never increments verified cycles.
+Queues, plans, results, cycle counts and due times survive supervisor restarts.
+
+The command starts the background supervisor if needed. `work enable` registers
+it for future logins/boots; an existing registered service remains registered.
+After an upgrade, an old running worker must finish and restart before it can
+accept continuous jobs. The command detects missing worker capabilities before
+writing a new job. Use `work stop`, wait for `work status` to report stopped, then
+`work start` (or restart the OS-managed service after an idle upgrade).
+
+Per-swarm pause/stop controls take effect after the active attempt and acceptance
+checks. `work pause`/`work stop` control the whole supervisor. Per-swarm resume does
+not override a global pause. Stopped objectives are terminal; queue a new objective
+to restart them. `--status --json` shows cycles, next due time, pause/stop state and
+attempt logs. History is preserved under the external runtime/data directories;
+continuous operation naturally accumulates results outside the backed-up source.
+
+### Jcode as an interactive engine
+
+`codelaboon jcode` is the native Jcode interface, already wired to Codelaboon's
+free backend. It now keeps one private project profile under
+`~/.local/share/codelaboon/jcode/projects/<project-hash>`. Native sessions and
+display preferences survive relaunches; `codelaboon jcode --resume` uses its native
+resume picker. Managed provider settings refresh for each gateway launch without
+replacing display preferences. A profile lock prevents concurrent UI launches in
+the same project from overwriting each other's gateway configuration.
+
+Interactive mode has no headless 30-minute timeout. Each UI launch starts and
+owns its native server, then stops it when the UI closes. Private sockets and
+profiles avoid attaching to a personal Jcode daemon. Native file-tool, UI reply,
+saved-session resume and server cleanup are tested. OpenCode remains the default.

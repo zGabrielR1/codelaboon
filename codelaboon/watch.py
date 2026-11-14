@@ -5,8 +5,11 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import signal
 import time
 import uuid
+
+from codelaboon.work_queue import ready, swarm_harness, validate_swarm
 
 
 def save(path, data):
@@ -42,6 +45,16 @@ def terminate(process):
         except ProcessLookupError:
             pass
     process.wait()
+
+
+def progress_tail(directory, limit=12000):
+    try:
+        with (Path(directory)/'output.log').open('rb') as stream:
+            stream.seek(0, os.SEEK_END)
+            stream.seek(max(0, stream.tell()-limit))
+            return stream.read(limit).decode('utf-8', errors='replace')
+    except OSError:
+        return '(Previous output unavailable; inspect the saved attempt directory.)'
 
 
 def execute(argv, cwd, output, timeout):
@@ -127,6 +140,8 @@ def supervise(config, base, root, once):
     state.setdefault('plans', {})
     state.setdefault('last_attempts', {})
     state.setdefault('health', {})
+    state.setdefault('cycles', {})
+    state.setdefault('next_run', {})
     idle = max(1, float(config.get('poll_seconds', 15)))
     while not (root / 'STOP').exists():
         if (root / 'PAUSE').exists():
@@ -146,6 +161,8 @@ def supervise(config, base, root, once):
                                    all(isinstance(part, str) for part in check)
                                    for check in task['verify_argv'])):
                     raise ValueError('Invalid queued task')
+                if 'swarm' in task:
+                    validate_swarm(task['swarm'])
                 queued.append(task)
             except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
                 print(f'Ignoring invalid inbox file {item.name}: {error}', flush=True)
@@ -153,7 +170,7 @@ def supervise(config, base, root, once):
         for task in queued:
             if task['id'] not in all_tasks:
                 all_tasks[task['id']] = task
-        pending = [t for t in all_tasks.values() if t['id'] not in state['done']]
+        pending = [t for t in all_tasks.values() if ready(t, state, root)]
         eligible = [h for h in harnesses if
                     state['cooldowns'].get(h['id'], 0) <= time.time()]
         available = []
@@ -171,25 +188,37 @@ def supervise(config, base, root, once):
                     continue
             available.append(harness)
         eligible = available
-        if not pending or not eligible:
+        if not pending or (not eligible and not any(t.get("swarm") for t in pending)):
             if once:
                 return
             time.sleep(min(idle, 30))
             continue
         pending = pending[state['task_cursor'] % len(pending):] + pending[:state['task_cursor'] % len(pending)]
-        eligible = eligible[state['harness_cursor'] % len(eligible):] + eligible[:state['harness_cursor'] % len(eligible)]
-        stage = 'task'
-        if orchestrator:
-            jobs = [(t, h, 'build' if t['id'] in state['plans'] else 'plan')
-                    for t in pending for h in eligible
-                    if ('build' if t['id'] in state['plans'] else 'plan') in h.get('stages', [])]
-            jobs = jobs[:16]  # Bound the tiny local model's routing context.
-            if not jobs:
-                if once:
-                    return
-                time.sleep(min(idle, 30))
-                continue
-            # Only routing metadata goes to the local model, never prompts or code.
+        if eligible:
+            eligible = eligible[state['harness_cursor'] % len(eligible):] + eligible[:state['harness_cursor'] % len(eligible)]
+        jobs = []
+        for candidate in pending:
+            swarm = candidate.get('swarm')
+            if swarm and (swarm['controller'] == 'worker' or candidate['id'] in state['plans']):
+                custom = swarm_harness(candidate)
+                if state['cooldowns'].get(custom['id'], 0) <= time.time():
+                    jobs.append((candidate, custom, 'build'))
+            else:
+                stage = ('build' if candidate['id'] in state['plans'] else 'plan') if orchestrator else 'task'
+                if swarm and not orchestrator:
+                    raise ValueError('Local-controlled swarms require a local orchestrator configuration')
+                jobs.extend((candidate, h, stage) for h in eligible
+                            if not orchestrator or stage in h.get('stages', []))
+        if not jobs:
+            if once:
+                return
+            time.sleep(min(idle, 30))
+            continue
+        direct = lambda job: job[0].get('swarm', {}).get('controller') == 'worker' or not orchestrator
+        if direct(jobs[0]):
+            task, harness, stage = jobs[0]
+        else:
+            jobs = [job for job in jobs if not direct(job)][:16]
             metadata = [{'task': t['id'], 'project': t['project'],
                          'stage': s, 'harness': h['id'], 'model': h.get('model', 'auto'),
                          'health': state['health'].get(h['id'], {}),
@@ -202,29 +231,36 @@ def supervise(config, base, root, once):
                 print('Local router unavailable; no cloud dispatch: ' + str(error), flush=True)
                 if once:
                     raise
+                state['task_cursor'] += 1  # An offline local router must not starve worker-controlled jobs.
+                save(state_path, state)
                 time.sleep(min(idle, 30))
                 continue
             task, harness, stage = jobs[selection]
-        else:
-            task, harness = pending[0], eligible[0]
         project = (base / task['project']).resolve()
         attempt = root / str(uuid.uuid4())
         attempt.mkdir()
         prompt = attempt / 'prompt.md'
         content = task['prompt']
-        if orchestrator:
+        if task.get('swarm'):
+            content += ('\n\nContinuous objective, verified cycle ' + str(state['cycles'].get(task['id'], 0)+1) +
+                        '. Review previous progress and make the next useful increment. Do not redo completed work. '
+                        'Keep work within this objective; verify changes and report progress and blockers.')
+        if stage in ('plan', 'build'):
             content = ('Stage: ' + stage + '\nProject: ' + str(project) + '\n\n' + content +
                        '\n\nRespect project instructions. Do not deploy, publish, or commit. ')
             if stage == 'plan':
                 content += ('Produce a concrete implementation plan and acceptance checks. '
                             'Do not implement or edit files. Output only the plan.\n')
             else:
-                plan = Path(state['plans'][task['id']])
-                content += '\nCloud-authored plan:\n' + plan.read_text(encoding='utf-8')
+                if task['id'] in state['plans']:
+                    plan = Path(state['plans'][task['id']])
+                    content += '\nCloud-authored plan:\n' + plan.read_text(encoding='utf-8')
                 content += '\nImplement the plan and run these checks:\n' + json.dumps(task['verify_argv'])
             previous = state['last_attempts'].get(task['id'])
             if previous:
                 content += '\nPrevious attempt logs (inspect if needed): ' + previous
+                if task.get('swarm'):
+                    content += '\nBounded previous progress summary:\n' + progress_tail(previous)
         prompt.write_text(content, encoding='utf-8')
         values = {'python': sys.executable, 'project': str(project),
                   'source': str(Path(__file__).resolve().parent.parent),
@@ -235,27 +271,32 @@ def supervise(config, base, root, once):
                   'started': time.time(), 'status': 'running'}
         save(attempt / 'result.json', record)
         print(f"Running {task['id']} with {harness['id']}", flush=True)
+        build_started = time.monotonic()
         try:
             code = execute(argv, project, attempt / 'output.log',
                            max(1, float(harness.get('timeout_seconds', 1800))))
         except OSError as error:
             (attempt / 'output.log').write_text(str(error), encoding='utf-8')
             code = 127
-        if code == 0 and orchestrator:
+        if code == 0 and stage in ('plan', 'build'):
             output = attempt / 'output.log'
             if not output.exists() or not output.read_text(encoding='utf-8', errors='replace').strip():
                 code = 125
-            elif stage == 'build':
-                for number, check in enumerate(task['verify_argv']):
-                    try:
-                        code = execute([part.format_map(values) for part in check], project,
-                                       attempt / f'check-{number}.log',
-                                       max(1, float(task.get('verify_timeout_seconds', 600))))
-                    except OSError as error:
-                        (attempt / f'check-{number}.log').write_text(str(error), encoding='utf-8')
-                        code = 127
-                    if code:
-                        break
+        if code == 0 and stage != 'plan':
+            for number, check in enumerate(task.get('verify_argv', [])):
+                try:
+                    remaining = (task['swarm']['timeout'] - (time.monotonic()-build_started)
+                                 if task.get('swarm') else float(task.get('verify_timeout_seconds', 600)))
+                    if remaining <= 0:
+                        code = 124
+                        (attempt / f'check-{number}.log').write_text('Cycle time budget exhausted')
+                    else:
+                        code = execute(check, project, attempt / f'check-{number}.log', remaining)
+                except OSError as error:
+                    (attempt / f'check-{number}.log').write_text(str(error), encoding='utf-8')
+                    code = 127
+                if code:
+                    break
         record.update(status='succeeded' if code == 0 else 'failed',
                       exit_code=code, finished=time.time())
         health = state['health'].setdefault(harness['id'], {'succeeded': 0, 'failed': 0})
@@ -267,10 +308,17 @@ def supervise(config, base, root, once):
             if stage == 'plan':
                 state['plans'][task['id']] = str(attempt / 'output.log')
             else:
-                state['done'].append(task['id'])
+                state['cycles'][task['id']] = state['cycles'].get(task['id'], 0) + 1
+                swarm = task.get('swarm')
+                if swarm and (not swarm['cycles'] or state['cycles'][task['id']] < swarm['cycles']):
+                    state['plans'].pop(task['id'], None)
+                else:
+                    state['done'].append(task['id'])
         else:
             state['cooldowns'][harness['id']] = time.time() + max(
                 1, float(harness.get('cooldown_seconds', 3600)))
+        if task.get('swarm') and stage != 'plan':
+            state['next_run'][task['id']] = time.time() + task['swarm']['interval']
         state['last_attempts'][task['id']] = str(attempt)
         state['task_cursor'] += 1
         state['harness_cursor'] += 1
@@ -281,6 +329,11 @@ def supervise(config, base, root, once):
 
 
 def main():
+    def stopped(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stopped)
+    if os.name != 'nt':
+        signal.signal(signal.SIGHUP, stopped)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('config')
     parser.add_argument('--once', action='store_true')
