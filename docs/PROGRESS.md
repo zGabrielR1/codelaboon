@@ -492,3 +492,12 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Reviewed docs/review-1.0.0rc16.md. Next: commit/tag/publish RC16, wait for complete
   native gates, verify release checksums/cold assets, then install published wheel.
   No real user work objective has been queued or started by this session.
+
+- Published [RC16](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.16)
+  from `3284c87f2801c9202275d1df183d42fedc386bc7`. Verify `43642855045` and
+  release `43642857338` succeeded, including all new native UI/background gates.
+  Verified every published SHA-256 and installed the exact 183654-byte wheel.
+  Cold OpenCode/OMP HTTP downloads from the installed RC16 manifest passed.
+  User service restarted idle, with continuous-swarm capabilities and autostart
+  still enabled. Checkout measures about30MB after the new commit/build.
+  Requested RC complete. No real user objective was queued or started.

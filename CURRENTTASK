@@ -1,26 +1,20 @@
-2026-11-14: RC16 — continuous swarms and full native Jcode UI; IN PROGRESS.
+2026-11-14: RC16 COMPLETE — published and exact release wheel installed locally.
 
-User wants nonstop swarms under local-model or worker coordination, Jcode engine
-UI, and general improvements. RC15 remains published baseline; no actual user
-jobs queued by this session. Preserve user service/config/accounts/history.
+Release https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.16
+Feature commit3284c87f2801c9202275d1df183d42fedc386bc7.
+Verify43642855045 and release43642857338 SUCCESS:223tests onPython3.11-3.13,
+all native interfaces/VTE, Jcode native UI/resume/server cleanup, native swarm
+limits, two-cycle supervisor restart and real background CLI pause/resume/status.
+Published wheel183654bytes; source317702bytes. Every checksum verified. Cold
+OpenCode/OMP downloads from installed RC16 engine manifest PASS.
 
-Implemented --continuous, --controller local|worker, --interval, --cycles,
-per-job --status/--pause/--resume/--stop via durable work queue. Local model routes
-plan/build cycles; worker coordinator bypasses local router. Verified cycles recur,
-checks share build budget, failures back off. Due/pause rules shared with router
-model demand. An old running worker cannot silently consume new jobs; feature
-capability guard asks for a graceful upgrade restart before queuing.
+New continuous swarm mode: local or worker controller, interval/cycle limits,
+independent budgeted checks, durable progress, per-job pause/resume/stop/status.
+User service upgraded/restarted only while empty. It advertises continuous-swarm
+capability and remains enabled for login/boot. NO real user jobs queued or started.
+Jcode now has persistent project UI profiles and owned servers; OpenCode default.
+No new runtime dependencies; source checkout~30MB. Preserve external models,
+accounts and histories. Bulk dev dirs remain outside ppp from RC15 relocation.
 
-Jcode alias already existed; now actual native UI has durable per-project sessions,
-resume/prefs, no 30-minute UI limit, and owned native server cleanup/profile locks.
-Native UI reply/resume/cleanup and two real swarm cycles across supervisor reload
-PASS. New unit cases cover persistence, control modes, failures/budgets, literal
-check arguments and offline-local fairness. Version bumped 1.0.0rc16. Final223 tests, review, thin build/install, native background/UI/resume/cleanup
-and installed OpenCode VTE PASS. Empty user service upgraded/restarted. Need
-commit/tag/publish RC16, full release CI, published hashes/cold asset checks and
-exact published wheel install. Engine manifest now points to RC16 source assets.
-
-Checkout stays29MB. New sources only in /tmp/codelaboon-jcode-rc16; never add large
-clones/dependencies back to ppp. External buildenv at
-~/.cache/codelaboon/development/runtime/buildenv. GH CLI may need restoring under
-/tmp from official v2.103.3 release with checksums. No subagents spawned.
+Docs:docs/lean-runtime.md, docs/review-1.0.0rc16.md, docs/PROGRESS.md.
+Await user feedback; do not claim upstream RAM ratios as our measurements.
