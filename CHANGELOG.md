@@ -1,3 +1,14 @@
+## 1.0.0rc13 - 2026-11-14
+
+- Start Claude Code on Codelaboon free (Auto), without Anthropic login or a Claude
+  subscription. Prepare an isolated profile and free-only native model picker.
+- Bridge Anthropic Messages to free OpenAI-compatible providers, preserving text,
+  images, tool schemas/calls/results, streaming, usage and provider failures.
+- Retain project trust and native tool permissions. Keep provider credentials in
+  the loopback backend; do not reuse personal Claude credentials for this engine.
+- Add native Claude UI/model-picker and real file-tool checks without an Anthropic
+  account, plus adapter and account-isolation regression tests.
+
 ## 1.0.0rc12 - 2026-11-14
 
 - Fix OpenCode's blank screen in Fedora Ptyxis/GNOME Terminal. Fast terminal

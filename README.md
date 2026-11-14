@@ -339,7 +339,7 @@ python3 -m codelaboon install           # installs package, prepares Bun and the
 codelaboon                             # native OpenCode UI in the current project
 codelaboon omp                         # OMP; dependencies install automatically
 codelaboon kilo                        # optional official Kilo CLI and provider gateway
-codelaboon claude                      # optional official Claude Code; native sign-in
+codelaboon claude                      # Claude Code UI on free (Auto); no Claude subscription
 codelaboon tui --theme codelaboon-kilo   # explicit native Kilo-derived palette
 codelaboon tui --profile security       # authorized pentesting workflow
 codelaboon tui --local-only             # local inference, with no cloud model fallback
@@ -355,9 +355,13 @@ including a locally chosen model with different refusal behavior, appears in the
 model picker. Model behavior depends on the selected weights. `--local-only`
 restricts inference routing; it does not sandbox tools or block their networking.
 
-Kilo and Claude Code install only when requested. Claude Code runs the official
-unmodified client, uses its own authentication, and requires an eligible account
-or API billing. It is not a source fork or an automatic free-provider route.
+Kilo and Claude Code install only when requested. `codelaboon claude` starts the
+unmodified Claude Code client on Codelaboon's `free (Auto)` gateway, with a free-only
+model picker and an isolated profile. It prepares local onboarding preferences
+and gateway authentication automatically; no Claude account/subscription is needed.
+Project trust and native tool permissions remain active. Free providers serve the
+inference; provider availability and quotas still apply. The separate
+`codelaboon login claude` provider continues to use Anthropic account/API access.
 
 Fresh OpenCode/OMP profiles start with a charcoal/yellow theme derived from the official Kilo
 CLI theme. Existing native theme choices are preserved. Both engines keep their

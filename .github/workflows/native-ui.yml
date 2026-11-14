@@ -74,6 +74,10 @@ jobs:
         run: |
           python scripts/smoke_ui.py --engine kilo --width 160
           python scripts/smoke_native.py --engine kilo
+      - name: Verify Claude Code free gateway without an Anthropic account
+        run: |
+          python scripts/smoke_claude.py
+          python scripts/smoke_claude_ui.py
       - name: Preserve terminal evidence
         if: always()
         uses: actions/upload-artifact@v4

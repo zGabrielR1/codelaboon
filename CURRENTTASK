@@ -1,21 +1,19 @@
-2026-11-14: RC12 fixes the reproduced Fedora Ptyxis/GNOME blank screen.
+2026-11-14: RC13 — Claude Code defaults to Codelaboon free (Auto).
 
-Root cause: immediate VTE background reply let frontend RPC requests outrun the
-backend listener. Bun dropped early messages; SyncProvider waited indefinitely.
-Fix: explicit rpc.ready handshake, awaited calls and a 15-second readiness bound.
-Source fork changes are bundled and replay-checked; temporary traces removed.
+User confirmed RC12 fixes Ptyxis. New task: no Claude subscription/account setup;
+use native Claude Code UI with the Codelaboon free model catalogue/backend.
 
-Verified before/after: RC11 fails immediate-terminal-response regression; RC12
-passes. Actual VTE UI, fixture model response and Up recall pass with installed
-RC12. Wide tmux/theme/sidebar checks, native types, 183 tests and bundle hashes
-pass. CI now gates publication on actual VTE under Xvfb as well as fast replies.
+Implemented unmodified native CLI configuration, isolated claude-code profile,
+onboarding preferences, free-only modelPicker and gateway bearer token. Added
+Anthropic Messages/Chat adapter for streaming, text/images, tools/results, usage
+and failures. Preserved trust/permissions, excluded personal account credentials,
+normalized [1m] aliases, capped output at 4096, and added estimated token counting.
+No new dependencies; OpenCode remains default and RC12's VTE fix is untouched.
 
-Published v1.0.0-rc.12 from 99eb59fa991d0f16a51812a9f731b33b8745391d.
-Release run 43612181195 and verify run 43612181008 succeeded, including actual
-VTE/Xvfb, fast-response regression and all existing native gates. Published
-wheel/sdist hashes verified against SHA256SUMS. User confirmed: "Yes, it opens"
-in a fresh Ptyxis terminal with the installed RC12. This reported failure is fixed.
-Next: monitor further acceptance feedback; authenticated-provider checks remain
-separate from this now-reproduced and fixed startup race.
-Preserve provider credentials, OMP sessions, .watch and all background queues.
-See docs/release-1.0.0rc12.md and docs/review-1.0.0rc12.md.
+Verified: 191 tests, native Claude UI/picker and real Read tool loop without an
+Anthropic account, plus a live free-provider reply from an empty project. Added
+Claude UI/tool CI gates. See docs/release-1.0.0rc13.md and review-1.0.0rc13.md.
+Installed RC13 wheel locally; user confirmed: "Yes, it opens on free" without
+Claude sign-in. Next: commit/tag/publish after required checks. Do not claim
+publication before release CI succeeds. Preserve all existing sessions/credentials,
+OMP profiles, .watch and background queues. Native cost displays are estimates.

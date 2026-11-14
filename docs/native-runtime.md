@@ -195,11 +195,23 @@ using cached/default models. Remote model metadata is fetched during setup rathe
 than first render. Native custom plugins may still perform their own setup.
 
 `codelaboon omp` retains the source-forked OMP interface. `codelaboon kilo` downloads
-the official Kilo 7.8.27 native binary and connects its native UI/tools to the
-Codelaboon gateway. `codelaboon claude` downloads the official stable Claude Code
-binary, verifies its published SHA-256 and preserves native authentication and
-sessions. Claude Code is proprietary; this integration does not modify or bundle
-its client or grant free inference. Run `codelaboon claude auth login` to sign in.
+the official Kilo native binary and connects its UI/tools to the gateway.
+`codelaboon claude` now starts the unmodified Claude Code client on `free (Auto)`.
+Its private loopback token and isolated `claude-code/` profile replace account
+setup for this route. Local onboarding preferences are prepared automatically;
+workspace trust and native permissions remain active. The free-only model picker
+uses the Codelaboon catalogue. Personal Claude OAuth/API credentials are excluded
+from this launch, and the gateway never automatically falls back to paid providers.
+
+The Messages adapter translates text/images, tool schemas/calls/results, streaming
+and usage to OpenAI-compatible free providers. Tool JSON fragments are combined
+and validated before emission; interrupted streams produce errors rather than a
+successful completion. Output is capped at 4096 tokens per request, matching the
+existing native gateway configuration. Token counting uses a conservative local
+UTF-8 size estimate (not a provider tokenizer). Native Claude cost displays are
+client estimates for an unknown model; they are not Anthropic charges. Claude-only
+cloud/account features are outside this third-party provider route.
+
 These optional CLIs each add their native binary only when requested (roughly
 250–300 MB on Linux x64); they do not install their development monorepos.
 

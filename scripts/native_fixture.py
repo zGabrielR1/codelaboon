@@ -36,13 +36,15 @@ def fixture(engine, setup=False, tools=False, development=False):
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 observed.append(body)
-                read = any(tool.get("function", {}).get("name") == "read" for tool in body.get("tools", []))
+                read_name = next((tool.get("function", {}).get("name") for tool in body.get("tools", [])
+                                  if tool.get("function", {}).get("name", "").lower() == "read"), None)
+                read = bool(read_name)
                 found = any(message.get("role") == "tool" and MARKER in str(message.get("content"))
                             for message in body.get("messages", []))
                 if tools and read and not found:
                     call = {"id": "fixture_read", "type": "function", "function": {
-                        "name": "read", "arguments": json.dumps({
-                            "path" if engine == "omp" else "filePath": str(project / "marker.txt")})}}
+                        "name": read_name, "arguments": json.dumps({
+                            "path" if engine == "omp" else "file_path" if engine == "claude" else "filePath": str(project / "marker.txt")})}}
                     message = {"role": "assistant", "content": None, "tool_calls": [call]}
                     reason = "tool_calls"
                 else:

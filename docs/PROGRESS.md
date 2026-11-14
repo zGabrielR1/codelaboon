@@ -404,3 +404,17 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Published [RC12](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.12)
   from `99eb59f`; release `43612181195` and verify `43612181008` succeeded,
   including actual VTE/Xvfb. Downloaded release wheel/sdist hashes verified.
+
+
+### Session 2026-11-14 — RC13 Claude Code free backend
+
+- Native Claude Code now defaults to free (Auto) with an isolated profile,
+  preconfigured onboarding and free-only model picker; no Anthropic subscription.
+- Added dependency-free Messages/Chat adapter with streaming/tools/usage/errors.
+  Kept trust/permissions; excluded personal Claude credentials from this route.
+- 191 tests, native UI/picker and Read tool round trip without Anthropic account,
+  plus a successful live free-provider reply. Added native Claude CI gates.
+- Next: install and publish reviewed RC13 only after complete CI succeeds.
+
+- Installed RC13 wheel locally; user confirmed native Claude opens on free without
+  account login ("Yes, it opens on free").

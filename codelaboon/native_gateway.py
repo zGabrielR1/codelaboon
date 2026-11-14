@@ -151,6 +151,10 @@ class Gateway:
         return [(name, identifier)]
 
     def request(self, body, api):
+        if api == "anthropic" and not body.get("model", "").startswith("claude/"):
+            from codelaboon.anthropic_bridge import MessagesResponse, to_chat
+            routed = dict(body, model=body["model"].removesuffix("[1m]"))
+            return MessagesResponse(self.request(to_chat(routed), "chat"), body["model"], bool(body.get("stream")))
         routes = self.routes(body.get("model", ""))
         if not routes:
             raise ValueError("No free coding model is ready. Configure ourfree, or retry kilo/pollinations shortly.")
@@ -267,7 +271,8 @@ def handler(gateway):
             if self.path != "/v1/models":
                 return self.document(404, {"error": {"message": "Unknown endpoint"}})
             self.document(200, {"object": "list", "data": [
-                {"id": row["id"], "object": "model", "owned_by": "codelaboon"}
+                {"id": row["id"], "object": "model", "type": "model", "display_name": row["name"],
+                 "owned_by": "codelaboon"}
                 for row in gateway.models()
             ]})
 
@@ -275,7 +280,7 @@ def handler(gateway):
             if not self.authorized():
                 return self.document(401, {"error": {"message": "Unauthorized"}})
             path = urlsplit(self.path)
-            api = {"/v1/chat/completions": "chat", "/v1/responses": "responses", "/v1/messages": "anthropic"}.get(path.path)
+            api = {"/v1/chat/completions": "chat", "/v1/responses": "responses", "/v1/messages": "anthropic", "/v1/messages/count_tokens": "anthropic"}.get(path.path)
             google = None
             for prefix in ("/v1/models/", "/v1beta/models/"):
                 if path.path.startswith(prefix):
@@ -289,6 +294,14 @@ def handler(gateway):
                 if not 0 < length <= 32 * 1024 * 1024:
                     raise ValueError("Invalid request size")
                 body = json.loads(self.rfile.read(length))
+                if path.path == "/v1/messages/count_tokens":
+                    if not isinstance(body, dict):
+                        raise ValueError("Expected an object")
+                    # No provider tokenizer is available; use a conservative local
+                    # estimate for client context management, never billing.
+                    size = len(json.dumps({key: body.get(key, []) for key in
+                                          ("system", "messages", "tools")}, ensure_ascii=False).encode())
+                    return self.document(200, {"input_tokens": (size + 2) // 3})
                 if api == "google" and isinstance(body, dict):
                     body = dict(body, model=google, stream=operation == "streamGenerateContent")
                 if not isinstance(body, dict) or not isinstance(body.get("model"), str):

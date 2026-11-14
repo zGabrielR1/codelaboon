@@ -123,27 +123,28 @@ def executable(engine):
 
 
 def launch(engine, arguments=(), profile="coding", local_only=False):
-    if engine == "claude" and local_only:
-        raise RuntimeError("Use OpenCode, OMP or Kilo for the configured OpenAI-compatible local models")
     binary = executable(engine)
     if arguments[:1] in (["--version"], ("--version",), ["--help"], ("--help",)):
         return subprocess.call([binary, *arguments])
-    if engine == "claude":
-        # Preserve Anthropic's published client and its native sign-in methods.
-        command = [binary, *arguments]
-        if profile == "security":
-            command.extend(["--append-system-prompt", (Path(__file__).parent / "prompts/security.md").read_text()])
-        return subprocess.call(command)
+    if engine == "claude" and arguments[:1] in (["auth"], ("auth",)):
+        return subprocess.call([binary, *arguments])
     from codelaboon.cli import CodelaboonCLI
     from codelaboon.native_gateway import serve
     from codelaboon.native_tui import opencode_config
     cli = CodelaboonCLI()
     cli.load_providers()
     providers = {"local": cli.providers["local"]} if local_only else cli.providers
+    if engine == "claude" and not local_only:
+        from codelaboon.native_gateway import FREE_COMPATIBLE
+        providers = {name: provider for name, provider in providers.items()
+                     if name in FREE_COMPATIBLE or name == "local"}
     with serve(providers) as (gateway, url):
         rows = gateway.models(startup=True)
         if not rows:
-            raise RuntimeError("No model is listed for this Kilo session")
+            raise RuntimeError("No model is listed for this session")
+        if engine == "claude":
+            from codelaboon.claude_engine import launch as launch_claude
+            return launch_claude(binary, arguments, profile, local_only, rows, url, gateway.token)
         config = opencode_config(rows, url, gateway.token)
         default = rows[0]["id"] if local_only else "free"
         config["model"] = config["small_model"] = "codelaboon/" + default

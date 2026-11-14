@@ -1,16 +1,13 @@
-# Latest release candidate: 1.0.0rc12
+# Latest release candidate: 1.0.0rc13
 
-RC12 fixes the reproduced blank OpenCode screen in Fedora Ptyxis/GNOME Terminal:
-frontend requests could outrun the backend worker listener. An explicit worker
-readiness handshake replaces the accidental dependency on terminal timing.
-See [RC12 notes](release-1.0.0rc12.md) and [review](review-1.0.0rc12.md).
+RC13 makes `codelaboon claude` use Codelaboon free providers with no Claude account
+or subscription. Native onboarding is prepared automatically; the model picker
+lists the free catalogue, and native tools/streaming use the loopback adapter.
+See [RC13 notes](release-1.0.0rc13.md) and [review](review-1.0.0rc13.md).
 
-Validated locally with the installed command in real VTE: home screen, fixture
-model response and Up-arrow recall. The new immediate-terminal-response test
-fails against RC11 and passes with the fix. Existing tmux UI, OpenCode types,
-183 Python tests, patch replay and bundle integrity pass.
+Validated locally: 191 tests, native Claude UI/model picker and file-tool loop
+without Anthropic credentials, and a live free-provider reply. OpenCode stays the
+default and retains the RC12 startup fix confirmed by the user in Ptyxis.
 
-[RC12 is published](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.12).
-Release run `43612181195` and verify run `43612181008` succeeded, including actual
-VTE under Xvfb. Published wheel/source checksums verified. The user confirmed
-that the installed fix opens correctly in a fresh Ptyxis terminal.
+Publication requires successful `v1.0.0-rc.13` CI, including native Claude tests
+and the existing OpenCode/OMP/Kilo/VTE gates. Free-provider quotas still apply.
