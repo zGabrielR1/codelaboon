@@ -37,14 +37,14 @@ def fixture(engine, setup=False, tools=False, development=False):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 observed.append(body)
                 read_name = next((tool.get("function", {}).get("name") for tool in body.get("tools", [])
-                                  if tool.get("function", {}).get("name", "").lower() == "read"), None)
+                                  if tool.get("function", {}).get("name", "").lower() == ("view" if engine == "crush" else "read")), None)
                 read = bool(read_name)
                 found = any(message.get("role") == "tool" and MARKER in str(message.get("content"))
                             for message in body.get("messages", []))
                 if tools and read and not found:
                     call = {"id": "fixture_read", "type": "function", "function": {
                         "name": read_name, "arguments": json.dumps({
-                            "path" if engine == "omp" else "file_path" if engine == "claude" else "filePath": str(project / "marker.txt")})}}
+                            "path" if engine == "omp" else "file_path" if engine in ("claude", "crush") else "filePath": str(project / "marker.txt")})}}
                     message = {"role": "assistant", "content": None, "tool_calls": [call]}
                     reason = "tool_calls"
                 else:
@@ -80,7 +80,7 @@ def fixture(engine, setup=False, tools=False, development=False):
             '[pollinations]\napi_key=""\nmodels=["fixture"]\n' + base,
             encoding="utf-8")
         env = dict(os.environ, CODELABOON_CONFIG_DIR=str(config), CODELABOON_NO_ANIMATION="1")
-        if engine in ("kilo", "claude"):
+        if engine in ("kilo", "claude", "crush"):
             # Reuse a verified optional binary while keeping all auth/config isolated.
             from codelaboon.paths import config_dir
             marker = config_dir() / "runtime/native-clis" / engine / "current.json"

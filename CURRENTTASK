@@ -1,22 +1,22 @@
-2026-11-14: RC13 — Claude Code defaults to Codelaboon free (Auto).
+2026-11-14: RC14 — Add Crush as a native engine.
 
-User confirmed RC12 fixes Ptyxis. New task: no Claude subscription/account setup;
-use native Claude Code UI with the Codelaboon free model catalogue/backend.
+User confirmed RC13 works and requested charmbracelet/crush for the next RC.
+Implemented optional `codelaboon crush`, official pinned v0.101.0 native download
+with checksum verification, generated crushrc for free (Auto), native model picker,
+separate global/project state, local/security profiles and no extra runtime deps.
+OpenCode remains default; all previous working engines are preserved.
 
-Implemented unmodified native CLI configuration, isolated claude-code profile,
-onboarding preferences, free-only modelPicker and gateway bearer token. Added
-Anthropic Messages/Chat adapter for streaming, text/images, tools/results, usage
-and failures. Preserved trust/permissions, excluded personal account credentials,
-normalized [1m] aliases, capped output at 4096, and added estimated token counting.
-No new dependencies; OpenCode remains default and RC12's VTE fix is untouched.
+Found native headless local-mode stdout can lose fast replies. Use the upstream
+client/server run path with a private per-launch IPC server, bounded readiness and
+owned cleanup. Interactive UI remains in-process. Native permissions retained;
+headless permissions follow upstream semantics. No persistent Crush daemon.
 
-Verified: 191 tests, native Claude UI/picker and real Read tool loop without an
-Anthropic account, plus a live free-provider reply from an empty project. Added
-Claude UI/tool CI gates. See docs/release-1.0.0rc13.md and review-1.0.0rc13.md.
-Installed RC13 wheel locally; user confirmed: "Yes, it opens on free" without
-Claude sign-in. Published v1.0.0-rc.13 from 2c4fbcd0ba42e72691b1e13bd5702edebce5a936.
-Release run 43614265583 and verify run 43614265809 succeeded, including native
-Claude UI/tool checks, OpenCode/OMP/Kilo and actual VTE. Downloaded release
-wheel/sdist hashes match SHA256SUMS. This requested RC is complete.
-Next: monitor acceptance feedback and provider availability. Preserve all existing sessions/credentials,
-OMP profiles, .watch and background queues. Native cost displays are estimates.
+Validated: 200 tests; native download; repeated real file-tool loops; native UI,
+model picker, prompt recall, saved themes and session DB; actual VTE installed UI;
+live free-provider reply. User confirmed installed RC14 opens in Ptyxis.
+Source ref 0dcd3d5fc452343d400b9de876d2dc10883f9519; license FSL-1.1-MIT retained.
+See docs/release-1.0.0rc14.md and docs/review-1.0.0rc14.md.
+
+Next: commit/tag/publish RC14 after CI passes. Local wheel is already installed.
+Preserve credentials, OMP/Claude sessions, .watch and background queues/services.
+Do not claim publication until release workflow succeeds.

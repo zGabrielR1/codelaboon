@@ -1,16 +1,12 @@
-# Latest release candidate: 1.0.0rc13
+# Latest release candidate: 1.0.0rc14
 
-RC13 makes `codelaboon claude` use Codelaboon free providers with no Claude account
-or subscription. Native onboarding is prepared automatically; the model picker
-lists the free catalogue, and native tools/streaming use the loopback adapter.
-See [RC13 notes](release-1.0.0rc13.md) and [review](review-1.0.0rc13.md).
+RC14 adds `codelaboon crush`: the official native Crush UI configured on Codelaboon
+free models, with automatic verified installation. OpenCode remains the default.
+See [RC14 notes](release-1.0.0rc14.md) and [review](review-1.0.0rc14.md).
 
-Validated locally: 191 tests, native Claude UI/model picker and file-tool loop
-without Anthropic credentials, and a live free-provider reply. OpenCode stays the
-default and retains the RC12 startup fix confirmed by the user in Ptyxis.
+Validated locally: 200 tests, actual native UI/model picker/history/themes/session
+storage, repeated real file-tool loops, Fedora VTE, and a live free-provider reply.
+The user confirmed the installed Crush engine opens in Ptyxis.
 
-[RC13 is published](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.13).
-Release `43614265583` and verify `43614265809` succeeded, including native Claude
-and existing OpenCode/OMP/Kilo/VTE gates. Downloaded wheel/source checksums match
-SHA256SUMS. User confirmed the installed client opens on free without sign-in.
-Free-provider quotas still apply.
+Publication requires successful `v1.0.0-rc.14` CI, including Crush tools/UI and VTE
+alongside all existing native engine gates. Upstream FSL-1.1-MIT license retained.

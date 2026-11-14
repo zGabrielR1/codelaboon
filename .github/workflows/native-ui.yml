@@ -70,10 +70,15 @@ jobs:
         run: |
           python -m codelaboon kilo --version
           python -m codelaboon claude --version
+          python -m codelaboon crush --version
       - name: Verify Kilo interface and tools with local inference
         run: |
           python scripts/smoke_ui.py --engine kilo --width 160
           python scripts/smoke_native.py --engine kilo
+      - name: Verify Crush native UI and tools
+        run: |
+          python scripts/smoke_crush.py
+          python scripts/smoke_crush_ui.py
       - name: Verify Claude Code free gateway without an Anthropic account
         run: |
           python scripts/smoke_claude.py
@@ -103,7 +108,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-gi gir1.2-vte-2.91 xvfb xauth
       - name: Verify actual VTE rendering and prompt recall
-        run: GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 scripts/smoke_vte.py
+        run: |
+          python -m codelaboon crush --version
+          GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 scripts/smoke_vte.py
+          GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 scripts/smoke_vte.py --engine crush
       - name: Preserve terminal evidence
         if: always()
         uses: actions/upload-artifact@v4

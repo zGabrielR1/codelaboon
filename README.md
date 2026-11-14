@@ -340,6 +340,7 @@ codelaboon                             # native OpenCode UI in the current proje
 codelaboon omp                         # OMP; dependencies install automatically
 codelaboon kilo                        # optional official Kilo CLI and provider gateway
 codelaboon claude                      # Claude Code UI on free (Auto); no Claude subscription
+codelaboon crush                       # official Crush UI on free (Auto); automatic setup
 codelaboon tui --theme codelaboon-kilo   # explicit native Kilo-derived palette
 codelaboon tui --profile security       # authorized pentesting workflow
 codelaboon tui --local-only             # local inference, with no cloud model fallback
@@ -355,13 +356,19 @@ including a locally chosen model with different refusal behavior, appears in the
 model picker. Model behavior depends on the selected weights. `--local-only`
 restricts inference routing; it does not sandbox tools or block their networking.
 
-Kilo and Claude Code install only when requested. `codelaboon claude` starts the
+Kilo, Claude Code and Crush install only when requested. `codelaboon claude` starts the
 unmodified Claude Code client on Codelaboon's `free (Auto)` gateway, with a free-only
 model picker and an isolated profile. It prepares local onboarding preferences
 and gateway authentication automatically; no Claude account/subscription is needed.
 Project trust and native tool permissions remain active. Free providers serve the
 inference; provider availability and quotas still apply. The separate
 `codelaboon login claude` provider continues to use Anthropic account/API access.
+
+Crush runs its official native UI and tools, with Codelaboon's free catalogue
+already configured. `Ctrl+L` opens models; `Ctrl+P` opens commands and themes.
+`codelaboon crush run "your prompt"` supports scripted runs. Sessions and preferences
+stay in the separate Codelaboon Crush profile. No Go, Node or Bun installation is
+needed for this engine. Upstream Crush retains its [FSL-1.1-MIT license](https://github.com/charmbracelet/crush/blob/v0.101.0/LICENSE.md).
 
 Fresh OpenCode/OMP profiles start with a charcoal/yellow theme derived from the official Kilo
 CLI theme. Existing native theme choices are preserved. Both engines keep their

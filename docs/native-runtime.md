@@ -218,3 +218,37 @@ These optional CLIs each add their native binary only when requested (roughly
 Development source directories are used only with `CODELABOON_DEV_RUNTIME=1`;
 normal commands consume the verified packaged source archives. Existing sessions,
 credentials, OMP profiles and background queues are preserved during upgrades.
+
+
+## Crush engine (RC14)
+
+`codelaboon crush` runs the official native Crush v0.101.0 binary and its Bubble
+Tea UI. Automatic setup downloads the pinned release archive from Charm's GitHub
+release and verifies checksums.txt before activation. Matching native binaries
+can be reused; npm/script wrappers and mismatched versions use the managed native
+install. The upstream license and notices remain with the extracted release.
+Crush is FSL-1.1-MIT, not covered by Codelaboon's own source license.
+
+The wrapper generates native crushrc configuration for the loopback provider,
+using environment references instead of provider credentials. Both model roles
+start on free (Auto); the native picker also exposes individual free/local models.
+Default provider discovery, Catwalk refresh and metrics are disabled for this
+route. Project configuration, initialization choices and interactive permissions
+retain native behavior. Context configuration supports the existing security
+profile, and `tui --engine crush --local-only` restricts inference to local models.
+
+Native project databases live below `crush/projects/<project-hash>` inside the
+Codelaboon profile; global preferences and caches have separate directories.
+Each launch gets temporary gateway metadata, preserving concurrent-session token
+isolation. Themes are native and persist through Crush's own state files.
+
+Interactive mode stays in-process. `crush run` uses the upstream client/server
+path because v0.101.0 local-mode stdout can drop a fast final reply. A private
+per-launch IPC server is probed for readiness, then terminated/reaped when the
+client finishes. Its temporary logs and configuration are removed. This is not
+a persistent background daemon. Noninteractive permissions follow upstream
+Crush's own behavior; the wrapper does not add yolo flags.
+
+The Linux x64 native package measured about 98 MB locally; no Go/Node/Bun runtime
+or development source tree is required. Windows/macOS archives are mapped by the
+installer but native execution on those hosts has not been verified here.

@@ -549,7 +549,8 @@ class CodelaboonCLI:
         subparsers.add_parser("ourfree", help="Run or connect the official standalone Our Free Model gateway")
         subparsers.add_parser("omp", help="Open the optional OMP interface (automatic setup)")
         subparsers.add_parser("kilo", help="Open the optional official Kilo native CLI")
-        subparsers.add_parser("claude", help="Open the optional official Claude Code CLI with its native sign-in")
+        subparsers.add_parser("claude", help="Open Claude Code on Codelaboon free models")
+        subparsers.add_parser("crush", help="Open the optional Crush native UI on Codelaboon free models")
 
         # List providers command
         providers_parser = subparsers.add_parser("providers", help="Provider management")
@@ -624,7 +625,7 @@ class CodelaboonCLI:
 
         # TUI command
         tui_parser = subparsers.add_parser("tui", help="Native OpenCode/OMP source TUI")
-        tui_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude"], default="opencode", help=argparse.SUPPRESS)
+        tui_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush"], default="opencode", help=argparse.SUPPRESS)
         tui_parser.add_argument("--setup", action="store_true", help="Install the selected fork's dependencies")
         tui_parser.add_argument("--profile", choices=["coding", "security"], default="coding")
         tui_parser.add_argument("--local-only", action="store_true", help="Use only local inference; disable cloud model fallback")
@@ -641,7 +642,7 @@ class CodelaboonCLI:
             "--no-path", action="store_true", help="Do not modify PATH"
         )
         install_parser.add_argument("--skip-runtime", action="store_true")
-        install_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude"], default="opencode", help=argparse.SUPPRESS)
+        install_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush"], default="opencode", help=argparse.SUPPRESS)
 
         update_parser = subparsers.add_parser(
             "update", help="Pull latest source changes and reinstall codelaboon"
@@ -653,7 +654,7 @@ class CodelaboonCLI:
             "--no-editable", action="store_true", help="Install as a regular package instead of editable"
         )
         update_parser.add_argument("--skip-runtime", action="store_true")
-        update_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude"], default="opencode", help=argparse.SUPPRESS)
+        update_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush"], default="opencode", help=argparse.SUPPRESS)
 
         web_parser = subparsers.add_parser("web", help="Open the localhost web workspace")
         web_parser.add_argument("--port", type=int, default=8765)
@@ -817,7 +818,7 @@ def main() -> None:
                 stream.reconfigure(errors="replace")
             except (OSError, ValueError):
                 pass
-    if sys.argv[1:2] and sys.argv[1] in ("omp", "kilo", "claude"):
+    if sys.argv[1:2] and sys.argv[1] in ("omp", "kilo", "claude", "crush"):
         run_tui(sys.argv[1], sys.argv[2:])
         return
     if sys.argv[1:2] == ['work']:

@@ -1,8 +1,10 @@
-"""Verify installed OpenCode in VTE, used by Fedora Ptyxis/GNOME Terminal.
+"""Verify installed native UIs in VTE, used by Fedora Ptyxis/GNOME Terminal.
 
 Requires GTK 3, VTE 2.91 and Python GI. Run under xvfb-run in headless CI.
 """
+import argparse
 import json
+import sys
 import os
 from pathlib import Path
 import shutil
@@ -15,13 +17,18 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Vte', '2.91')
 from gi.repository import GLib, Gtk, Vte
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from native_fixture import ROOT, REPLY, fixture
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--engine', choices=['opencode', 'crush'], default='opencode')
+engine = parser.parse_args().engine
 
 artifacts = ROOT / '.runtime/ui-qa'
 artifacts.mkdir(parents=True, exist_ok=True)
 prompt = 'vte-native-history-check'
 
-with fixture('opencode') as (project, env, observed):
+with fixture(engine) as (project, env, observed):
     window = Gtk.Window(title='Codelaboon VTE integration check')
     window.set_default_size(1100, 700)
     terminal = Vte.Terminal()
@@ -47,12 +54,15 @@ with fixture('opencode') as (project, env, observed):
     def poll():
         global state, sent
         value = screen()
-        (artifacts / ('opencode-vte-' + state + '.txt')).write_text(value, encoding='utf-8')
+        (artifacts / (engine + '-vte-' + state + '.txt')).write_text(value, encoding='utf-8')
         if failure or time.monotonic() > deadline:
             failure.append('VTE did not complete stage: ' + state)
             Gtk.main_quit()
             return False
-        if state == 'home' and 'Ask anything' in value and 'c o d e l a b o o n' in value:
+        if engine == 'crush' and 'Yep!' in value and 'Nope' in value:
+            terminal.feed_child(b'n')
+        home = ('Ask anything' in value and 'c o d e l a b o o n' in value) if engine == 'opencode' else ('free (Auto)' in value and 'Codelaboon' in value)
+        if state == 'home' and home:
             terminal.feed_child(prompt.encode())
             state, sent = 'typed', time.monotonic()
         elif state == 'typed' and time.monotonic() - sent > 0.3:
@@ -67,7 +77,8 @@ with fixture('opencode') as (project, env, observed):
             return False
         return True
 
-    command = [shutil.which('codelaboon'), 'tui', '--', '--model', 'codelaboon/local/fixture']
+    command = ([shutil.which('codelaboon'), 'tui', '--', '--model', 'codelaboon/local/fixture']
+               if engine == 'opencode' else [shutil.which('codelaboon'), 'crush'])
     terminal.spawn_async(pty_flags=Vte.PtyFlags.DEFAULT, working_directory=str(project), argv=command,
                          envv=[key + '=' + value for key, value in env.items()],
                          spawn_flags=GLib.SpawnFlags.DEFAULT, timeout=15000,
@@ -86,7 +97,7 @@ with fixture('opencode') as (project, env, observed):
                 pass
         window.destroy()
     assert state == 'complete' and not failure, '; '.join(failure) or state
-    result = {'terminal': 'VTE', 'home': True, 'response': True, 'prompt_recall': True,
+    result = {'terminal': 'VTE', 'engine': engine, 'home': True, 'response': True, 'prompt_recall': True,
               'native_model_requests': len(observed)}
-    (artifacts / 'opencode-vte.json').write_text(json.dumps(result, indent=2) + '\n')
+    (artifacts / (engine + '-vte.json')).write_text(json.dumps(result, indent=2) + '\n')
     print('PASS ' + json.dumps(result))

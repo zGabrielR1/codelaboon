@@ -423,3 +423,15 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   from `2c4fbcd`: release run `43614265583` and verify run `43614265809` succeeded,
   including native Claude UI/tools and all existing engine/VTE gates. Downloaded
   wheel/source checksums verified. User acceptance confirmed; requested RC complete.
+
+
+### Session 2026-11-14 — RC14 Crush engine
+
+- Added optional official Crush v0.101.0 native engine with verified download,
+  free gateway/picker, isolated project state, native themes and local/security modes.
+- Kept interactive mode in-process; scoped native headless server to each run to
+  fix reproduced fast-reply stdout loss. Readiness/cleanup have regression coverage.
+- 200 tests, repeated file-tool loops, actual UI/history/themes/session DB, installed
+  Fedora VTE and live free-provider response pass. User confirmed Ptyxis startup.
+- Added Crush UI/tool/VTE CI gates. No new runtime dependencies; upstream FSL
+  license retained. Next: publish reviewed RC14 only after CI succeeds.

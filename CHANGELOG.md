@@ -1,3 +1,14 @@
+## 1.0.0rc14 - 2026-11-14
+
+- Add `codelaboon crush`: official Crush v0.101.0 native UI, automatically
+  downloaded with SHA-256 verification and configured on Codelaboon free (Auto).
+- Keep Crush project sessions, global preferences and caches in a separate
+  profile. Expose the free model list, native tools/themes and local/security modes.
+- Use a private, short-lived native server for `crush run` so fast completions
+  reach stdout reliably; interactive mode stays in-process without a daemon.
+- Add Crush UI, prompt recall, saved themes, repeated file-tool loops and actual
+  VTE checks, plus installer/isolation/server-lifecycle regression coverage.
+
 ## 1.0.0rc13 - 2026-11-14
 
 - Start Claude Code on Codelaboon free (Auto), without Anthropic login or a Claude

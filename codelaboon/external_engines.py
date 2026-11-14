@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import zipfile
 
 import requests
 
@@ -18,6 +19,7 @@ from codelaboon.paths import config_dir
 
 CLAUDE_RELEASES = "https://downloads.claude.ai/claude-code-releases"
 KILO_VERSION = "7.8.27"
+CRUSH_VERSION = "0.101.0"
 
 
 def target(engine):
@@ -27,6 +29,8 @@ def target(engine):
         system, arch = systems[platform.system()], architectures[platform.machine()]
     except KeyError as error:
         raise RuntimeError("This platform does not have a supported native CLI build") from error
+    if engine == "crush":
+        return f"{system}-{arch}"
     musl = system == "linux" and platform.libc_ver()[0] == "musl"
     if engine == "claude" and system == "windows":
         system = "win32"
@@ -44,7 +48,7 @@ def metadata(url):
 
 
 def setup(engine):
-    if engine not in ("kilo", "claude", "bun"):
+    if engine not in ("kilo", "claude", "bun", "crush"):
         raise ValueError("Unknown optional engine")
     directory = config_dir() / "runtime" / "native-clis" / engine
     directory.mkdir(parents=True, exist_ok=True)
@@ -59,6 +63,20 @@ def setup(engine):
         url = f"{CLAUDE_RELEASES}/{version}/{system}/claude" + (".exe" if os.name == "nt" else "")
         digest = release["checksum"]
         algorithm = "sha256"
+    elif engine == "crush":
+        version = CRUSH_VERSION
+        system_name, architecture = system.split("-", 1)
+        architecture = "x86_64" if architecture == "x64" else architecture
+        suffix = "zip" if system_name == "windows" else "tar.gz"
+        filename = f"crush_{version}_{system_name.title()}_{architecture}.{suffix}"
+        base = f"https://github.com/charmbracelet/crush/releases/download/v{version}"
+        with requests.get(base + "/checksums.txt", timeout=(10, 30)) as response:
+            response.raise_for_status()
+            digest = next((line.split()[0] for line in response.text.splitlines()
+                           if len(line.split()) == 2 and line.split()[1] == filename), "")
+        if not re.fullmatch(r"[a-fA-F0-9]{64}", digest):
+            raise RuntimeError("Crush release has no valid checksum for this platform")
+        algorithm, url = "sha256", base + "/" + filename
     else:
         version = "1.4.4" if engine == "bun" else KILO_VERSION
         package = f"@oven/bun-{system}" if engine == "bun" else f"@kilocode/cli-{system}"
@@ -80,13 +98,19 @@ def setup(engine):
                 for chunk in response.iter_content(1024 * 1024):
                     hasher.update(chunk)
                     stream.write(chunk)
-        actual = hasher.hexdigest() if engine == "claude" else base64.b64encode(hasher.digest()).decode()
+        actual = hasher.hexdigest() if algorithm == "sha256" else base64.b64encode(hasher.digest()).decode()
         if actual != digest:
             raise RuntimeError(f"{engine} download checksum mismatch")
         content = staging / "content"
         content.mkdir()
         if engine == "claude":
             shutil.move(download, content / binary_name)
+        elif engine == "crush" and system.startswith("windows-"):
+            with zipfile.ZipFile(download) as archive:
+                for member in archive.infolist():
+                    if not (content / member.filename).resolve().is_relative_to(content.resolve()):
+                        raise RuntimeError("Unsafe path in Crush archive")
+                archive.extractall(content)
         else:
             with tarfile.open(download) as archive:
                 archive.extractall(content, filter="data")
@@ -108,6 +132,15 @@ def setup(engine):
 
 def executable(engine):
     existing = shutil.which(engine)
+    if existing and engine == "crush":
+        try:
+            with Path(existing).open("rb") as stream:
+                scripted = stream.read(2) == b"#!"
+            version = subprocess.check_output([existing, "--version"], text=True, timeout=10) if not scripted else ""
+            if not re.search(r"\bv?" + re.escape(CRUSH_VERSION) + r"\b", version):
+                existing = None
+        except (OSError, subprocess.SubprocessError):
+            existing = None
     if existing:
         return existing
     marker = config_dir() / "runtime/native-clis" / engine / "current.json"
@@ -124,7 +157,8 @@ def executable(engine):
 
 def launch(engine, arguments=(), profile="coding", local_only=False):
     binary = executable(engine)
-    if arguments[:1] in (["--version"], ("--version",), ["--help"], ("--help",)):
+    if arguments[:1] in (["--version"], ("--version",), ["--help"], ("--help",)) or (
+            engine == "crush" and any(flag in arguments for flag in ("--help", "-h"))):
         return subprocess.call([binary, *arguments])
     if engine == "claude" and arguments[:1] in (["auth"], ("auth",)):
         return subprocess.call([binary, *arguments])
@@ -134,7 +168,7 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
     cli = CodelaboonCLI()
     cli.load_providers()
     providers = {"local": cli.providers["local"]} if local_only else cli.providers
-    if engine == "claude" and not local_only:
+    if engine in ("claude", "crush") and not local_only:
         from codelaboon.native_gateway import FREE_COMPATIBLE
         providers = {name: provider for name, provider in providers.items()
                      if name in FREE_COMPATIBLE or name == "local"}
@@ -142,6 +176,9 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
         rows = gateway.models(startup=True)
         if not rows:
             raise RuntimeError("No model is listed for this session")
+        if engine == "crush":
+            from codelaboon.crush_engine import launch as launch_crush
+            return launch_crush(binary, arguments, profile, local_only, rows, url, gateway.token)
         if engine == "claude":
             from codelaboon.claude_engine import launch as launch_claude
             return launch_claude(binary, arguments, profile, local_only, rows, url, gateway.token)
