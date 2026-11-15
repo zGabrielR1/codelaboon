@@ -1,16 +1,15 @@
-RC19 PUBLICATION ACTIVE — user explicitly requested newRC + import/export buttons.
-Implemented 7engine canonical sessions from prior local dev + VSCode Sessions
-view: Import,Export,Convert,Refresh titlebuttons, inlineExport, clickResume with
-enginepicker. session-actions.js usesargument arrays/JSONlist, cancellation,
-no-librarystandaloneconvert, boundedoutput/activechildren cleanup. package1.0.19,
-core1.0.0rc19, engineassetURLs19(samehashes). VSIXJS/SVG whitelisting+MIMEadded.
-263Python testsPASS; Nodeconnector+buttonflows7agentsPASS; freshoneuniversalID
-Codex->OpenCodePASS. Prior native7formatsresumePASS. Core217811B,sourcedist382750B.
-Built/tmp/codelaboon-rc19-dist; installedcore+connectorlocally. Need commit/tag/push19,
-fullpipeline, publishedchecksums/installwheel,finalstatecommit. gh/tmp2.103.3.
-Reviewdocs/review-universal-sessions.md updatedbeforecommit. Existing concurrent
-OpenCodealias README/CLI/test edits preserved and carried in requestedrelease;
-don'tclaimownership butincludeexistingfix. No real user taskqueued; don'tclose
-personalCodewindows. Newviewneedsreload. OptionalnativeCI now7adapterchecks split
-acrossenginejobs andsharedID+Nodebuttons. RealCodexisolatedhost assertscommands/
-viewfocus; mayrunwhileCI. RC18 publishedpreviously;19notpublishedyet.
+RC19 COMPLETE — https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.19
+Source6f80122. Verify43674208542/release43674208611 succeeded. All published
+checksums verified; exact218383Bwheelinstalled; localconnector refreshed.
+PublicVSIX9181B includes session-actions.js/SVG, Import/Export/Convert/Resume view,
+no localbootstrap. User reloadsCode then Codelaboon activitybar -> Sessions.
+Canonical compressedSQLite library+nativeprojections covers OpenCode,Kilo,Codex,
+Claude,OMP,Jcode,Crush. Standaloneconvert neverregisters inlibrary, destination
+canresume independently. Sourcefiles/authunchanged. Native7resume testsPASS,
+oneuniversalID Codex->OpenCodePASS,263Python+Nodebuttons/connectorPASS,actual
+isolatedCodehost Sessionsview/actions+CodexreplyPASS. Sourcebranches/compaction/
+linkedprefixes handled; toolhistory inert. No merging simultaneousprojections;
+attachmentrecords archived, not universalbinaryreplay. Docs/universal-sessions.md
+and review-universal-sessions.md explain scope. Existing explicitOpenCodealias
+change/test carriedpreserved. No user workqueued. Idlecodelaboon.service restart
+on exactpublishedrelease performed. No workremains for thisRC exceptnewrequests.

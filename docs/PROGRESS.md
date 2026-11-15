@@ -587,3 +587,13 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   updated before commit. Existing explicit OpenCode alias/test carried unchanged.
 - Next: tag/publish RC19, wait existing release gates, verify published checksums
   and install exact wheel. Existing editor windows need reload for the new view.
+
+- Published RC19 from 6f80122. Verify43674208542 and release43674208611 both
+  succeeded, including native import/resume across seven adapters and shared-ID
+  continuation. Real isolated VS Code host loaded the Sessions view/commands and
+  completed Codex editor inference. All published SHA256SUMS entries verified.
+- Installed the exact published218383-byte wheel and refreshed the local connector.
+  Public9181-byte VSIX contains Import/Export view buttons and no local bootstrap.
+  Idle worker had zero pending/completed tasks; restart on RC19 authorized.
+  Existing editor windows require reload to activate the new Sessions sidebar.
+  Requested release complete; no real user objective was queued.
