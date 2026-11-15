@@ -281,6 +281,14 @@
 
 # Changelog
 
+## 1.0.0rc18
+
+- Add native Codex CLI and official VS Code app-server integration with an isolated
+  profile, automatic native setup, free backend and restorable editor connection.
+- Bridge Responses requests, native function/custom tools and tool results to
+  verified free chat providers. Keep OpenCode the default interactive engine.
+
+
 All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).

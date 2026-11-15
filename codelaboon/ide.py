@@ -15,9 +15,18 @@ import zipfile
 from codelaboon.paths import config_dir
 
 
-def wrapper_path():
+def wrapper_path(engine="claude"):
     root=config_dir()/'integrations/vscode'
     root.mkdir(parents=True,exist_ok=True,mode=0o700)
+    if engine == 'codex':
+        if os.name == 'nt':
+            candidate=shutil.which('codelaboon-codex-vscode.exe')
+            if not candidate: raise ValueError('Reinstall Codelaboon to register its Codex launcher')
+            return Path(candidate).resolve()
+        path=root/'codex-wrapper'
+        path.write_text('#!/bin/sh\nexec '+shlex.quote(sys.executable)+' -m codelaboon.codex_engine "$@"\n')
+        path.chmod(0o700)
+        return path.resolve()
     if os.name=='nt':
         candidates=[shutil.which('codelaboon-claude-vscode.exe'),
                     str(Path(sysconfig.get_path('scripts'))/'codelaboon-claude-vscode.exe'),
@@ -60,19 +69,21 @@ def build_vsix(destination,bootstrap=None):
     return destination
 
 
-def install(code=None):
+def install(code=None,engine="claude"):
     code=code or shutil.which('code')
     if not code: raise ValueError('Install VS Code, or pass --code with its CLI path')
     wrapper=wrapper_path()
+    codex_wrapper=wrapper_path("codex")
     profile=(config_dir()/'claude-code').resolve()
     # Setup generates only isolated preferences; account credentials are not copied.
     from codelaboon.claude_engine import prepare_profile
     prepare_profile(profile)
     with tempfile.TemporaryDirectory(prefix='codelaboon-vscode-') as temporary:
-        bootstrap={'wrapper':str(wrapper),'configDir':str(profile),'cli':shutil.which('codelaboon') or 'codelaboon','connectOnInstall':True}
+        bootstrap={'wrapper':str(wrapper),'configDir':str(profile),'cli':shutil.which('codelaboon') or 'codelaboon','connectOnInstall':engine=='claude','codexWrapper':str(codex_wrapper),'connectCodexOnInstall':engine=='codex'}
         package=build_vsix(Path(temporary)/'codelaboon.vsix',bootstrap)
+        if engine == 'codex': subprocess.run([code,'--install-extension','openai.chatgpt'],check=True)
         subprocess.run([code,'--install-extension',str(package),'--force'],check=True)
-    print('Codelaboon VS Code extension installed. Open Claude Code, or use Codelaboon: Connect Claude Code.')
+    print('Codelaboon VS Code extension installed. Use Codelaboon: Open '+('Codex' if engine=='codex' else 'Claude Code')+'.')
 
 
 def claude_wrapper(arguments=None):
@@ -110,8 +121,9 @@ def main(arguments=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action',choices=['install','wrapper-path'])
     parser.add_argument('--code')
+    parser.add_argument('--engine',choices=['claude','codex'],default='claude')
     options=parser.parse_args(args)
-    if options.action=='install': install(options.code)
+    if options.action=='install': install(options.code,options.engine)
     else: print(wrapper_path())
 
 

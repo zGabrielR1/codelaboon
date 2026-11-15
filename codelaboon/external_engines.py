@@ -21,6 +21,7 @@ CLAUDE_RELEASES = "https://downloads.claude.ai/claude-code-releases"
 KILO_VERSION = "7.8.27"
 CRUSH_VERSION = "0.101.0"
 JCODE_VERSION = "0.99.1"
+CODEX_VERSION = "0.169.0"
 
 
 def target(engine):
@@ -49,7 +50,7 @@ def metadata(url):
 
 
 def setup(engine):
-    if engine not in ("kilo", "claude", "bun", "crush", "jcode"):
+    if engine not in ("kilo", "claude", "bun", "crush", "jcode", "codex"):
         raise ValueError("Unknown optional engine")
     directory = config_dir() / "runtime" / "native-clis" / engine
     directory.mkdir(parents=True, exist_ok=True)
@@ -64,6 +65,14 @@ def setup(engine):
         url = f"{CLAUDE_RELEASES}/{version}/{system}/claude" + (".exe" if os.name == "nt" else "")
         digest = release["checksum"]
         algorithm = "sha256"
+    elif engine == "codex":
+        version = CODEX_VERSION
+        arch = "aarch64" if platform.machine() in ("aarch64", "arm64") else "x86_64"
+        package = "@openai/codex-" + ({"Linux":"linux","Darwin":"darwin","Windows":"win32"}[platform.system()]) + "-" + ("arm64" if arch=="aarch64" else "x64")
+        release = metadata(f"https://registry.npmjs.org/@openai/codex/{version}-" + package.removeprefix("@openai/codex-"))["dist"]
+        url = release["tarball"]
+        algorithm, digest = release["integrity"].split("-",1)
+        if algorithm != "sha512": raise RuntimeError("Codex package lacks SHA-512 integrity")
     elif engine == "jcode":
         version = JCODE_VERSION
         operating_system, architecture = system.split("-", 1)
@@ -190,7 +199,7 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
     cli = CodelaboonCLI()
     cli.load_providers()
     providers = {"local": cli.providers["local"]} if local_only else cli.providers
-    if engine in ("claude", "crush", "jcode") and not local_only:
+    if engine in ("claude", "crush", "jcode", "codex") and not local_only:
         from codelaboon.native_gateway import FREE_COMPATIBLE
         providers = {name: provider for name, provider in providers.items()
                      if name in FREE_COMPATIBLE or name == "local"}
@@ -198,6 +207,9 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
         rows = gateway.models(startup=True)
         if not rows:
             raise RuntimeError("No model is listed for this session")
+        if engine == "codex":
+            from codelaboon.codex_engine import launch as launch_codex
+            return launch_codex(binary, arguments, profile, local_only, rows, url, gateway.token)
         if engine == "jcode":
             from codelaboon.jcode_engine import launch as launch_jcode
             return launch_jcode(binary, arguments, profile, local_only, rows, url, gateway.token)

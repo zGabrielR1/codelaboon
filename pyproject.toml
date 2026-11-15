@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codelaboon"
-version = "1.0.0rc17"
+version = "1.0.0rc18"
 description = "CLI harness for accessing AI models from multiple providers"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -27,6 +27,7 @@ tui = ["textual>=1.0"]
 
 [project.scripts]
 codelaboon = "codelaboon.cli:main"
+codelaboon-codex-vscode = "codelaboon.codex_engine:wrapper"
 codelaboon-claude-vscode = "codelaboon.ide:claude_wrapper"
 
 [tool.setuptools]

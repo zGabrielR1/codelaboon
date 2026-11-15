@@ -718,3 +718,8 @@ Codelaboon. Commands support connecting, disconnecting/restoring owned settings,
 checking models and opening native engines.
 
 See [model health](docs/free-model-health.md) and [editor setup](docs/editor-integrations.md).
+
+Codex is available as `codelaboon codex`. To connect its official VS Code
+extension, run `codelaboon ide install --engine codex`, then use **Codelaboon:
+Open Codex**. Its native app-server uses an isolated Codelaboon profile and the
+same free backend. **Disconnect Codex** restores the previous CLI setting.

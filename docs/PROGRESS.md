@@ -523,3 +523,19 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   dependencies added. RC17 core/connector installed; idle service restarted.
 - Adversarial review: docs/review-1.0.0rc17.md. Next: publish RC17 only after
   full native CI, verify published checksums/assets and install exact wheel.
+
+- RC17 published successfully from a045fab7e937bb621a7b0e90189c24117e939a8f.
+  Release43668831579 passed all native gates; published checksums verified.
+
+## RC18 — Codex native engine and VS Code
+
+- Added Codex CLI/app-server wrapper and Responses adapter for free chat lanes,
+  including native function/custom tools and tool results. Isolated profile and
+  private temporary verified model catalog; automatic pinned native setup.
+- Added restorable official Codex VS Code CLI connection, Open/Disconnect commands
+  and optional engine terminal. Upstream CLI hook marked development-only; reload
+  required after switching an existing app-server. Actual editor prompt/reply and
+  native CLI shell/file result pass. 249 regressions, Node contract and three
+  focused adapter tests pass. Review docs/review-1.0.0rc18.md before commit.
+- User requested focused validation and publication. Next: install local RC18
+  connector/core, push tag, finish existing release CI and verify published assets.

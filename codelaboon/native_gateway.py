@@ -207,6 +207,9 @@ class Gateway:
             from codelaboon.anthropic_bridge import MessagesResponse, to_chat
             routed = dict(body, model=body["model"].removesuffix("[1m]"))
             return MessagesResponse(self.request(to_chat(routed), "chat"), body["model"], bool(body.get("stream")))
+        if api == "responses" and not body.get("model", "").startswith("chatgpt/"):
+            from codelaboon.responses_bridge import ResponsesResponse, to_chat
+            return ResponsesResponse(self.request(to_chat(body), "chat", timeout=timeout), body)
         routes = self.routes(body.get("model", ""))
         if not routes:
             raise ValueError("No free coding model is ready. Configure ourfree, or retry kilo/pollinations shortly.")

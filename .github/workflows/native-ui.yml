@@ -75,6 +75,7 @@ jobs:
           python -m codelaboon claude --version
           python -m codelaboon crush --version
           python -m codelaboon jcode --version
+          python -m codelaboon codex --version
       - name: Verify Kilo interface and tools with local inference
         run: |
           python scripts/smoke_ui.py --engine kilo --width 160
@@ -92,6 +93,7 @@ jobs:
           python scripts/smoke_crush_ui.py
       - name: Verify Claude Code free gateway without an Anthropic account
         run: |
+          python scripts/smoke_codex.py
           python scripts/smoke_model_health.py
           node scripts/test_vscode_extension.js
           python scripts/smoke_ide_wrapper.py

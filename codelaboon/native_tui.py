@@ -88,7 +88,7 @@ def source_root(engine):
 
 
 def setup(engine):
-    if engine in ("claude", "kilo", "crush", "jcode"):
+    if engine in ("claude", "kilo", "crush", "jcode", "codex"):
         from codelaboon.external_engines import setup as install_external
         return install_external(engine)
     root = source_root(engine)
@@ -183,7 +183,7 @@ def omp_config(rows, url):
 
 
 def launch(engine="opencode", arguments=(), profile="coding", local_only=False, theme=None):
-    if engine in ("claude", "kilo", "crush", "jcode"):
+    if engine in ("claude", "kilo", "crush", "jcode", "codex"):
         from codelaboon.external_engines import launch as launch_external
         return launch_external(engine, arguments, profile, local_only)
     from codelaboon.cli import CodelaboonCLI

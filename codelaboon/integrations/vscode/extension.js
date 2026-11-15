@@ -62,7 +62,7 @@ function serialized(fn) { const next = operation.then(fn, fn); operation = next.
 function connect(context, quiet = false) { return serialized(() => connectImpl(context, quiet)); }
 function disconnect(context) { return serialized(() => disconnectImpl(context)); }
 function openTerminal(context, engine = 'opencode') {
-  const choices = { opencode: [], omp: ['omp'], kilo: ['kilo'], claude: ['claude'], crush: ['crush'], jcode: ['jcode'] };
+  const choices = { opencode: [], omp: ['omp'], kilo: ['kilo'], claude: ['claude'], crush: ['crush'], jcode: ['jcode'], codex: ['codex'] };
   if (!Object.hasOwn(choices, engine)) throw new Error('Unknown Codelaboon engine');
   const editor = vscode.window.activeTextEditor;
   const folder = (editor && vscode.workspace.getWorkspaceFolder(editor.document.uri)) || vscode.workspace.workspaceFolders?.[0];
@@ -71,15 +71,32 @@ function openTerminal(context, engine = 'opencode') {
   terminal.show();
   return terminal;
 }
+async function connectCodex(context, quiet = false) {
+  const wrapper = bootstrap(context).codexWrapper;
+  if (!wrapper || !path.isAbsolute(wrapper) || !fs.existsSync(wrapper)) throw new Error('Run codelaboon ide install --engine codex');
+  const settings = vscode.workspace.getConfiguration('chatgpt');
+  if (!context.globalState.get('codexConnection')) await context.globalState.update('codexConnection', {previous:settings.inspect('cliExecutable')?.globalValue, owned:wrapper});
+  await settings.update('cliExecutable',wrapper,vscode.ConfigurationTarget.Global);
+  await context.globalState.update('codexDisconnected',false);
+  if (!quiet) vscode.window.showInformationMessage('Codex is connected to Codelaboon. Reload the window before starting a new Codex session.', 'Reload Window').then(action => {if (action==='Reload Window') return vscode.commands.executeCommand('workbench.action.reloadWindow');});
+}
+async function disconnectCodex(context) {
+  const saved=context.globalState.get('codexConnection');
+  if (!saved) return;
+  const settings=vscode.workspace.getConfiguration('chatgpt');
+  if (settings.inspect('cliExecutable')?.globalValue===saved.owned) await settings.update('cliExecutable',saved.previous,vscode.ConfigurationTarget.Global);
+  await context.globalState.update('codexConnection',undefined);
+  await context.globalState.update('codexDisconnected',true);
+}
 function activate(context) {
   const output = vscode.window.createOutputChannel('Codelaboon');
   context.subscriptions.push(output);
   context.subscriptions.push(vscode.commands.registerCommand('codelaboon.openTerminal', () => openTerminal(context)));
   context.subscriptions.push(vscode.commands.registerCommand('codelaboon.openEngineTerminal', async () => {
-    const engine = await vscode.window.showQuickPick(['opencode','omp','kilo','claude','crush','jcode'], {title:'Open a native Codelaboon engine'});
+    const engine = await vscode.window.showQuickPick(['opencode','omp','kilo','claude','crush','jcode','codex'], {title:'Open a native Codelaboon engine'});
     if (engine) openTerminal(context,engine);
   }));
-  const guarded = fn => async () => { try { return await fn(); } catch (error) { output.appendLine(error.message); vscode.window.showErrorMessage(error.message); throw error; } };
+  const guarded = fn => async (...args) => { try { return await fn(...args); } catch (error) { output.appendLine(error.message); vscode.window.showErrorMessage(error.message); throw error; } };
   context.subscriptions.push(vscode.commands.registerCommand('codelaboon.connectClaude', guarded(() => connect(context))));
   context.subscriptions.push(vscode.commands.registerCommand('codelaboon.disconnectClaude', guarded(() => disconnect(context))));
   context.subscriptions.push(vscode.commands.registerCommand('codelaboon.openClaude', guarded(async () => {
@@ -94,7 +111,11 @@ function activate(context) {
     child.on('close', code => output.appendLine('Checks finished (exit '+code+').'));
     context.subscriptions.push({dispose: () => child.kill()});
   })));
-  context.subscriptions.push(vscode.window.registerUriHandler({ handleUri: guarded(() => connect(context)) }));
+  context.subscriptions.push(vscode.commands.registerCommand('codelaboon.connectCodex', guarded(() => connectCodex(context))));
+  context.subscriptions.push(vscode.commands.registerCommand('codelaboon.disconnectCodex', guarded(() => disconnectCodex(context))));
+  context.subscriptions.push(vscode.commands.registerCommand('codelaboon.openCodex', guarded(async () => {await connectCodex(context); await vscode.commands.executeCommand('chatgpt.openSidebar');})));
+  if (bootstrap(context).connectCodexOnInstall && !context.globalState.get('codexConnection') && !context.globalState.get('codexDisconnected')) connectCodex(context, true).catch(error => output.appendLine(error.message));
+  context.subscriptions.push(vscode.window.registerUriHandler({ handleUri: guarded(uri => uri.path === '/codex' ? connectCodex(context) : connect(context)) }));
   if (options(context).auto && !context.globalState.get('connection') && !context.globalState.get('autoConnectDisabled')) connect(context, true).catch(error => output.appendLine(error.message));
   return { connect: () => connect(context, true), disconnect: () => disconnect(context) };
 }

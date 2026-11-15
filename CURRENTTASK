@@ -1,94 +1,13 @@
-2026-11-14: RC17 IN PROGRESS — verified free models plus VS Code Claude integration.
-
-User wants only working models in pickers, expanded real free providers/catalogs,
-and official engine integrations (specifically Claude Code VS Code extension)
-connected to Codelaboon backend. Preserve OpenCode default and thin checkout.
-RC16 published baseline2d4c554. NO new release/commit for this work yet.
-
-Uncommitted model_health.py adds scoped private persistent health, live catalogs,
-real reply/tool-call roundtrip probes, classifications and CLI models check free.
-Base providers live_models distinguish None (unknown/failure) from [] (liveempty).
-Kilo/Pollinations/Ourfree/Compatible updated; free_auto no longer promotes guessed
-CATALOG IDs absent from provider roster. Gateway filters real free-provider rows
-by verified health, backgroundchecks and per-model failures. Health disabled in
-nativefixtures and old offline suite. Existing223tests PASS after these changes;
-need NEWhealth tests, livechecks, correctness hardening (rate limiting, invalid
-catalog schemas, lock unlock onWindows, caches) and route fallback coverage.
-
-Public liveGET: Kilo473models,14isFree rows; Pollinations legacy /models200 with
-one actual anonymous model; OpenRouter471models. New Kilo free IDs discovered
-not hardcoded. Old curatedIDs are hints only now. Need expand newfree providers
-only with livecatalog/free-pricing evidence, never probe paid or credit lanes.
-
-VSCode /usr/bin/code installed. Official extension ALREADY installed at
-~/.vscode/extensions/anthropic.claude-code-2.1.325-linux-x64. package.json confirms
-claudeCode.claudeProcessWrapper (executablepath), disableLoginPrompt boolean,
-environmentVariables array. extension.js nse() resolves wrapper and passes its
-bundled native Claude executable as FIRST ARG, then usual SDK CLI args. Thus use
-on-demand wrapper to start serve(freeproviders), preserve native IDE/MCP/stdIO
-features, call claude_engine.launch with bundledCLI, isolate CLAUDE_CONFIG_DIR,
-map built-in Claude model aliases to free. No stable daemon/token in editorneeded.
-Official bundlednative resources/native-binary/claude exists. Need implement.
-
-Planned tiny Codelaboon VSCode extension (JS,no npm deps), Connect/Disconnect
-commands using VSCode configuration API to preserve JSONC/unrelated settings.
-Use supported wrapper setting, loginpromptdisable, scoped CLAUDE_CONFIG_DIR;
-backup only owned settings, no API secrets. Build VSIX via Python zip, release
-artifact + CLI ide install generates localbootstrap absolutewrapperpaths and
-installs with code--install-extension. Autoconnect once on explicitlocalinstall.
-Reuses official native UI/IDE capabilities; not rebuilding Claude's UI.
-Need actualwrapper protocol tests and VSCodehost activation/connection tests,
-then install locally as explicitly requested. No editor settings changed yet.
-
-Docs/AGENTS mandates review beforecommit; do notspawnsubagents. Devtest env
-~/.cache/codelaboon/development/runtime/buildenv; keep all clones/deps outsideppp.
-Current /tmp logs may disappear when user steers anotherturn; state here matters.
-
-
-2026-11-15 update: VS Code connector now implemented and E2E PASS. New lightweight
-codelaboon/integrations/vscode extensionJS/packageJSON, Python ide.py VSIX builder,
-CLI ide install, private on-demand processwrapper; claude_engine.prepare_profile
-atomic preferences and owned Popen lifecycle. Native official bundledCLI SDK
-JSON/file Read passes; actual VS Code devhost with both extensions, CDP editor
-submission and rendered fixture reply passes. Official Anthropic extension was
-installed/registered with codeCLI (2.1.325); ownconnector not yet installed globally.
-Code devtests use isolateduserdata and bothdevpaths; do not point tests at user's
-globalextensions dir (obsolete cleanup can remove unregistered folders). Node
-publicVSCodeAPI-contract test proves unrelated settings/secrets preservation and
-Disconnect restore; autoConnect operations nowserialized. PublicVSIX no userpaths.
-
-Free-health livefirstsweep: 2 Kilo routes chat+tools pass (auto/free and Nemotron
-3.5SuperVL). Freebuff/Poll unavailable, some accounts unconfigured, Kilo429 caused
-10models deferred, NOT retired. Checker nowprioritizes unchecked thenoldestmodels,
-background2initial/1perminute, catalogsrefresh5min, health4h. Public nightlyJSONL
-workflow added; account keys never stored in reports. Stronger toolreceipt check
-now uses fresh unpredictable result nonce, currentlyrechecking2live routes.
-All246unitstarget after19health+4IDE cases (latestfull239before7newcases passed).
-
-ZAI free-only lane added (3FlashIDs) with current official pricing.md zero-price
-verification failclosed; APIkeyrequired,no newcredentials. OpenRouterfree key
-reuse officialurlonly; pricingrejectnonzeroIDs + zero-cost constraints. LLM7
-inspected72models NONEpricedzero, excluded. Kilo live14freeIDsvsold2fallback.
-Normalfreepickers/manualcandidate lists verifiedonly; Auto can bootstrap unknown
-candidates, per-model negativequarantine and401/429provider backoff. Nativefixtures
-explicithealthoff and freecatalog flags. Need finalhardening/tests/docs/review,
-buildcore/VSIX, installcore+ownextension locally, fullnative/VTE tests, publishRC17
-andverifycoldassets. Versions and engine URLs bumped17. No RC17commit yet.
-
-FINAL LOCAL RC17 GATES: 249 tests PASS, Node PASS, native project-env SDK Read
-PASS, real official VSCode UI PASS, installed OpenCode VTE PASS. Wheel199354B,
-sdist353251B, publicVSIX no bootstrap. Locally installed RC17 wheel/connector,
-activated URI connect, idle service restart requested. Review updated. Need
-commit/tag/push, wait complete native/release CI, verify published checksums,
-install exact published wheel and cold manifests. gh verified restored under/tmp.
-
-CI1: native OpenCode/OMP/VTE gates PASS; optional-native failed at fresh Jcode
-welcome chooser. Evidence downloaded; inspected pinned upstream source in/tmp.
-Smoke now Right+Enter selects fixture new session once; local fullJcodeUI PASS.
-No release published. Retag unpublished17 with reviewed testfix, rerunCI. Public
-monitor43668212891 PASS:2codingroutes,1chat-only,rate/deferred/skipped explicit.
-Actualunit codelaboon.service restarted idle; Code userwrapper confirmed configured.
-
-CI2: Jcode+swarm gatesPASS; Crush picker correct actualfixture names but oldlabel
-assertionfailed. Corrected Crush+Claude smoke torequireactualfixture; both full
-nativeUI checksPASS. Productunchanged. NoRC17release. Retag17 once more withfix.
+RC18 ACTIVE — user requested Codex native engine, priority VS Code, focused checks
+and publication. RC17 published a045fab,release43668831579 green; checksumsverified.
+RC18 implementation complete: codex_engine isolated profile/envtoken/modelcatalog,
+Responses bridge chat/function/custom tool/result/lifecycle events, native setup
+pinned0.169.0 via npm platformaliases/SHA512, CLI/native_tui selects optionalcodex.
+VSCode connector chatgpt.cliExecutable nativewrapper, restore/disconnect, reload
+prompt; officialhookdevelopmentonly. Realisolated Codexextension prompt/replyPASS,
+nativeexec+shellcatfixturePASS;249regressions+NodePASS,3adaptertestsPASS.
+Reviewdocs/review-1.0.0rc18.md written. Versions18/build/tmp/codelaboon-rc18-dist.
+Need rebuildlatest smallchanges, installcore+ide --enginecodex, activateURI/codex,
+commit/tag/push18,waitreleaseCI,checksums/publishedwheel/coldassets,recordfinalstate.
+No realuserwork queued; idlecodelaboon.service active. Do not touch personalCodex
+home/currentagentconfig. Devsource/deps outsideppp. gh/tmp verified2.103.3 available.

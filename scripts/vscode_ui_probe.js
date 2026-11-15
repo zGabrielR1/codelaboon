@@ -12,14 +12,15 @@ async function inspect(target) {
   try {
     await send('Runtime.enable');await new Promise(r=>setTimeout(r,100));
     for(const contextId of contexts) {
-      const expression=mode==='reply' ? 'document.body?.innerText.includes("Fixture reply: accepted.")' : `(()=>{const node=[...document.querySelectorAll('textarea,[contenteditable]:not([contenteditable="false"])')].find(n=>(n.value||n.textContent||'').includes('IDE_BACKEND_PROBE'));if(!node)return false;node.focus();return true;})()`;
+      const expression=mode==='codex-send' ? `(()=>{const node=[...document.querySelectorAll('[contenteditable="true"],textarea')].find(n=>n.getBoundingClientRect().width>0);if(!node)return false;node.focus();return true;})()` : mode==='reply' ? 'document.body?.innerText.includes("Fixture reply: accepted.")' : `(()=>{const node=[...document.querySelectorAll('textarea,[contenteditable]:not([contenteditable="false"])')].find(n=>(n.value||n.textContent||'').includes('IDE_BACKEND_PROBE'));if(!node)return false;node.focus();return true;})()`;
       let result;
       try {result=await send('Runtime.evaluate',{expression,contextId,returnByValue:true});} catch {continue;}
       if(process.env.CODELABOON_VSCODE_PROBE_DEBUG==='1' && result.result?.value!==true) {
         const debug=await send('Runtime.evaluate',{expression:JSON.stringify('')+' || JSON.stringify({title:document.title,text:document.body?.innerText.slice(-1600),editable:[...document.querySelectorAll(\'textarea,[contenteditable]\')].map(n=>n.value||n.textContent)})',contextId,returnByValue:true});console.error(target.url,contextId,debug.result?.value);
       }
       if(result.result?.value===true) {
-        if(mode==='send') {await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});}
+        if(mode==='codex-send') await send('Input.insertText',{text:'IDE_BACKEND_PROBE: Reply briefly. Do not edit files.'});
+        if(mode==='send' || mode==='codex-send') {await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});}
         return true;
       }
     }

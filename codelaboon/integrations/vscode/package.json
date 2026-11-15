@@ -3,7 +3,7 @@
   "displayName": "Codelaboon",
   "description": "Connect the official Claude Code editor integration to Codelaboon's verified free-model backend.",
   "publisher": "codelaboon",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "preview": true,
   "engines": {
     "vscode": "^1.85.0"
@@ -45,6 +45,18 @@
       {
         "command": "codelaboon.openEngineTerminal",
         "title": "Codelaboon: Open Optional Engine Terminal"
+      },
+      {
+        "command": "codelaboon.connectCodex",
+        "title": "Codelaboon: Connect Codex"
+      },
+      {
+        "command": "codelaboon.disconnectCodex",
+        "title": "Codelaboon: Disconnect Codex"
+      },
+      {
+        "command": "codelaboon.openCodex",
+        "title": "Codelaboon: Open Codex"
       }
     ],
     "configuration": {

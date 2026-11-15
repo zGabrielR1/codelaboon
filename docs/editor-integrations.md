@@ -50,3 +50,21 @@ VS Code host that submits a webview prompt and renders the Codelaboon response.
 The test instance does not change the user's profile/settings.
 
 Reference: [official Claude Code VS Code documentation](https://code.claude.com/docs/en/vs-code).
+
+## Codex (RC18)
+
+Run `codelaboon ide install --engine codex`, then **Codelaboon: Open Codex**.
+The official `openai.chatgpt` extension launches Codelaboon's wrapper through
+`chatgpt.cliExecutable`. Upstream labels this CLI override DEVELOPMENT ONLY; it
+is a native protocol integration, not a Marketplace endorsement. **Disconnect
+Codex** restores the prior executable setting. No account files are copied.
+
+`codelaboon codex` opens the native terminal engine; `codelaboon codex exec ...`
+uses headless execution. Both reuse an installed Codex or download the pinned
+checksum-verified native package. Sessions/config live in Codelaboon's `codex`
+profile. Each process owns its gateway and private model catalog; the token
+stays in its environment. Native sandbox/approval defaults remain in force.
+The Responses adapter translates chat, function calls, custom patch tools and
+tool results for the existing free backend. Provider response text is buffered
+before emitting Responses events; it does not add token-level streaming latency
+benefits. Cloud features requiring an OpenAI account remain upstream features.
