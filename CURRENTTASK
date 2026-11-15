@@ -81,3 +81,10 @@ sdist353251B, publicVSIX no bootstrap. Locally installed RC17 wheel/connector,
 activated URI connect, idle service restart requested. Review updated. Need
 commit/tag/push, wait complete native/release CI, verify published checksums,
 install exact published wheel and cold manifests. gh verified restored under/tmp.
+
+CI1: native OpenCode/OMP/VTE gates PASS; optional-native failed at fresh Jcode
+welcome chooser. Evidence downloaded; inspected pinned upstream source in/tmp.
+Smoke now Right+Enter selects fixture new session once; local fullJcodeUI PASS.
+No release published. Retag unpublished17 with reviewed testfix, rerunCI. Public
+monitor43668212891 PASS:2codingroutes,1chat-only,rate/deferred/skipped explicit.
+Actualunit codelaboon.service restarted idle; Code userwrapper confirmed configured.

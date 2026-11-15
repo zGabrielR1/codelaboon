@@ -63,3 +63,10 @@ Native pickers use launch snapshots; reopen after checking. Only the Claude
 extension gets the dedicated editor connector in this release; other engines can
 use integrated native terminals. Upstream cloud/account-only features remain
 upstream. Other OS execution is not locally measured. No user objective is started.
+
+CI follow-up review: the clean runner displayed the pinned Jcode native welcome
+chooser, while the model-screen assertion assumed a completed first run. Verified
+upstream v0.99.1 navigation: any non-Enter key rotates its two choices. The smoke
+now selects the fixture-project new session once, then retains all reply, durable
+resume and owned-server cleanup assertions. Local native checks pass. No product
+behavior or user onboarding settings are changed. RC17 was not published.

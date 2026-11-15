@@ -20,9 +20,15 @@ def tmux(*args):
 
 def wait(label, predicate):
     deadline = time.monotonic()+45
+    welcomed = False
     while time.monotonic() < deadline:
         value = tmux('capture-pane', '-p', '-t', 'qa')
         (artifacts/('jcode-'+label+'.txt')).write_text(value)
+        if label == 'home' and not welcomed and 'How would you like to begin?' in value:
+            # Fresh native profiles show a welcome chooser before the model UI.
+            # Select the new session in this isolated fixture project.
+            tmux('send-keys', '-t', 'qa', 'Right', 'Enter')
+            welcomed = True
         if predicate(value):
             return value
         time.sleep(0.2)
