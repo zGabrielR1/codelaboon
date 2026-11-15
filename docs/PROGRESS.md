@@ -659,3 +659,27 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Installed local RC20 core/connector and restarted confirmed-idle worker; service
   advertises privilege-cases, remains0pending/0completed. No actual root case ran
   on this machine. Final public tag remains pending the CI follow-up.
+
+## RC20 publicly shipped — 2026-11-15
+
+- Published v1.0.0-rc.20 from1d2dc15:
+  https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.20
+  Verify43758987841 and release43759008899 succeeded. Portable contracts pass on
+  Linux/macOS/Windows; disposable POSIX elevation worker/bootstrap and Windows
+  UAC parser pass. Genuine Windows consent remains manual coverage. All native
+  engine, OMP/OpenCode widths, VTE startup and editor integration gates pass.
+- All296 unit regressions pass. Controller report is honestly11/13, two coding
+  drift misses/no false interventions. Configured file guards pass independently.
+  Security assessment coverage is documented per shipped checks, not universal
+  vulnerability/tool certification. Reviewed in review-continuous-supervision.md.
+- All published SHA256SUMS verified: wheel246964B, source424523B, VSIX10280B plus
+  both separate engine sources. Manifest references20 and matches asset hashes;
+  source includes evaluationJSON; VSIX includes diagnostics/no machine bootstrap.
+- Installed exact public wheel, refreshed local VS Code connector and restarted
+  confirmed-idle worker. RunningRC20 advertises privilege-cases and supervision;
+  0pending/0completed/no active attempts. Installed disposable HTTP assessment,
+  case dry-run and doctor smoke pass. No root/UAC case or real target/task was
+  executed on this user's machine. Existing VS Code windows need reload.
+- Source cleanup leaves about30MiB under ppp; optional runtimes/models stay outside.
+  RC20 request complete. Further quality work: broader security lab coverage,
+  stronger optional controller models and manual Windows UAC/native macOS UI checks.

@@ -70,3 +70,13 @@ Keep the persistence assertion and wait at most ten seconds for the native file;
 do not remove the gate or fake a persisted session. Include the JSON evaluation
 in source-distribution docs and bound portable job time to five minutes. Changes
 reviewed before follow-up commit; release remains gated by the same native checks.
+
+Final disposition: RC20 published from 1d2dc15. Main verify43758987841 and
+release43759008899 succeeded after the OMP completion-race correction. All portable
+and native gates pass; no validation was disabled. Downloaded every public asset
+and verified SHA256SUMS, engine hashes/URLs, thin core, evaluation JSON in source,
+and portable VSIX diagnostics/no bootstrap. Exact public246964B wheel installed,
+connector10280B refreshed locally, confirmed-idle worker restarted on RC20 with
+0pending/0completed. Installed disposable assessment/case-dry-run/doctor checks
+pass. No privileged case or real user task/target was run. Documentation-only
+completion update reviewed against actual tool results before commit.

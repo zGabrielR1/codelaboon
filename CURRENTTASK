@@ -1,18 +1,21 @@
-Public RC20 authorized; implementation ready for final gates, commit/tag/publish.
-Version1.0.0rc20, VSIX1.0.20; engines URLs20 same source hashes. New task full
-permissions/supervision, security assessment labs/nmap scopes, native root/UAC
-expiring explicit cases, measured routing, controller eval11/13 (2 missed drift,
-0false interventions), offline doctor/VSCode diagnostics, Jcode native overlay.
-295tests pass before final emptyresponse telemetry fix; rerun focused/full/build.
-Structural verification/nativeCodexJcodepolicy/securityJcodeUI passed. No user
-rootcase executed; realPOSIXbootstrap+worker only disposableCI. Windows UAC
-parser+portablecontracts CI; genuine consent manualnotclaimed. Need reviewbefore
-commit (docs/review-continuous-supervision.md), stage featurefiles, commit/pushmain,
-waitCI portable&native, tagv1.0.0-rc.20/push, waitreleasegates, downloadallassets/
-verifySHA/core/VSIX/install exactwheel and localconnector/restartconfirmedidleunit.
-No realtasksqueued. Keep bulkyassets/builds outsideppp. gh restoredverified at
-/tmp/gh_2.103.3_linux_amd64/bin/gh authaccountzGabrielR1. Gitpushhelper same gh.
-Pythonbuildenv ~/.cache/codelaboon/development/runtime/buildenv/bin/python.
-Pendinglocalreport /tmp/rc20-controller-final.json; trackedcopydocs JSON. Public
-stillRC19 untilrelease20workflow succeeds. Do notclaimoptimalmodel/broadpentest
-certification/OSsandbox or fullyautomatedWindowsconsent. No subagentsauthorized.
+RC20 RELEASE COMPLETE. Public v1.0.0-rc.20 from1d2dc15:
+https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.20
+Verify43758987841/release43759008899 successful. 296unitcases; allportable
+Linux/macOS/Windows contracts and nativeUI/editor/tool gates pass. POSIX actual
+rootbootstrap/worker tested onlydisposableCI; WindowsUACparserpassed but genuine
+humanconsentmanualnotclaimed. No privilegedcase/real target/task runonuserhost.
+PublishedallSHA256SUMSverified wheel246964B source424523B VSIX10280B plusengine
+bundles. Exactwheel+localconnectorinstalled; idleunitrestarted runningRC20 features
+continuous-swarm/task-execution-policy/active-supervision/privilege-cases. 0pending,
+0completed,noactiveattempts. ReloadexistingVSCodewindowsforDiagnostics.
+Features: explicitfulltaskpermissions, activefixedobjectiveoverseeing/replan,
+fileallowlistsstaged/reversion/missingGitfailclosed; root/admin expiringnative
+sudo/UACcases oneverifiedcycleperapproval; scopedHTTP/TLS/exposureassessments+
+nmapcase/import; measuredtaskawarerouting+presets; offlineCLI/VSCodeDiagnostics;
+Jcodeinteractiveadditivesecurityoverlay. Core~247KB/source~425KB; repo~30MiB.
+Controllerrealregression11/13,0falseinterventions,2misseddrifts. Notheld-out or
+infallible; deterministicguardsindependent. Securitycoverageevaluated forshipped
+checks,notallvulnerabilitycategories; scopesarenotOSsandbox/fullrootconfinement.
+Reviewdocs/review-continuous-supervision.md; usage docs/rc20-security-and-operations.md.
+No outstandingworkforrequestedRC20. Future: broadenlabs/controllermodelquality,
+manualWindowsconsent/nativeMacUI. No delegation authorized. Keepbulkoutsideppp.
