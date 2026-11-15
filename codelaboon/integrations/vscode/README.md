@@ -24,3 +24,9 @@ The official Codex extension retains its native app-server, tools and approval
 UI. **Disconnect Codex** restores the previous CLI setting. The upstream CLI
 override is marked development-only. Codex sessions/config remain isolated in
 Codelaboon's profile; no ChatGPT account files are copied.
+
+Open the Codelaboon activity-bar icon for **Sessions**. Its Import/Export buttons
+support OpenCode, Codex, Kilo, Claude, OMP, Jcode and Crush. Convert Between Agents
+performs a one-time native conversion without library registration. Click a shared
+session to continue it with another engine. Native resume instructions appear in
+the Codelaboon Sessions output panel. Reload VS Code after updating the connector.

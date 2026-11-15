@@ -46,6 +46,12 @@ jobs:
       - name: Check a real file-tool round trip
         if: matrix.width == 160
         run: python scripts/smoke_native.py --engine ${{ matrix.engine }} --setup
+      - name: Verify shared conversation continuation
+        if: matrix.engine == 'opencode' && matrix.width == 160
+        run: python scripts/smoke_session_library.py
+      - name: Verify OMP native session import
+        if: matrix.engine == 'omp' && matrix.width == 160
+        run: python scripts/smoke_session_transfer.py omp
       - name: Preserve terminal evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -96,6 +102,8 @@ jobs:
           python scripts/smoke_codex.py
           python scripts/smoke_model_health.py
           node scripts/test_vscode_extension.js
+          node scripts/test_session_actions.js
+          python scripts/smoke_session_transfer.py codex kilo claude jcode crush
           python scripts/smoke_ide_wrapper.py
           python scripts/smoke_claude.py
           python scripts/smoke_claude_ui.py

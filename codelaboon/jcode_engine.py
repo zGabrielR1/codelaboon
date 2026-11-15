@@ -159,4 +159,9 @@ def launch(binary, arguments, profile, local_only, rows, url, token):
         home = data_dir()/'jcode/projects'/key
         with profile_lock(home):
             return run(binary, arguments, rows, url, token, timeout=None, home=home, interactive=True)
+    if any(value=='--resume' or value.startswith('--resume=') for value in arguments):
+        key = hashlib.sha256(str(Path.cwd().resolve()).encode()).hexdigest()[:20]
+        home = data_dir()/'jcode/projects'/key
+        with profile_lock(home):
+            return run(binary, arguments, rows, url, token, home=home)
     return run(binary, arguments, rows, url, token)

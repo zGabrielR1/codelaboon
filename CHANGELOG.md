@@ -281,6 +281,16 @@
 
 # Changelog
 
+## 1.0.0rc19
+
+- Share persistent conversations across seven native engines using one library ID.
+- Add VS Code Sessions sidebar with Import, Export, Convert and Resume actions.
+- Convert independent native sessions without library registration or requiring
+  Codelaboon when the destination agent resumes. Preserve original source records.
+- Fix native import/export command dispatch and Jcode headless resume profiles.
+- Include the explicit `codelaboon opencode` default-engine command.
+
+
 ## 1.0.0rc18
 
 - Add native Codex CLI and official VS Code app-server integration with an isolated

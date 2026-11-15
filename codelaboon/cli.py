@@ -558,7 +558,9 @@ class CodelaboonCLI:
 
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
         subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
+        subparsers.add_parser("sessions", help="Share, resume or convert sessions across coding engines")
         subparsers.add_parser("ourfree", help="Run or connect the official standalone Our Free Model gateway")
+        subparsers.add_parser("opencode", help="Open the default native OpenCode UI")
         subparsers.add_parser("omp", help="Open the optional OMP interface (automatic setup)")
         subparsers.add_parser("kilo", help="Open the optional official Kilo native CLI")
         subparsers.add_parser("claude", help="Open Claude Code on Codelaboon free models")
@@ -869,8 +871,12 @@ def main() -> None:
                 stream.reconfigure(errors="replace")
             except (OSError, ValueError):
                 pass
-    if sys.argv[1:2] and sys.argv[1] in ("omp", "kilo", "claude", "crush", "jcode", "codex"):
+    if sys.argv[1:2] and sys.argv[1] in ("opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"):
         run_tui(sys.argv[1], sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['sessions']:
+        from codelaboon.session_transfer import main as session_main
+        session_main(sys.argv[2:])
         return
     if sys.argv[1:2] == ['ide']:
         from codelaboon.ide import main as ide_main

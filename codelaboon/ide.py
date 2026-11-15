@@ -56,12 +56,12 @@ def build_vsix(destination,bootstrap=None):
       '<Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true"/></Assets></PackageManifest>')
     types=('<?xml version="1.0" encoding="utf-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
            '<Default Extension="json" ContentType="application/json"/><Default Extension="js" ContentType="application/javascript"/>'
-           '<Default Extension="md" ContentType="text/markdown"/><Default Extension="vsixmanifest" ContentType="text/xml"/></Types>')
+           '<Default Extension="svg" ContentType="image/svg+xml"/><Default Extension="md" ContentType="text/markdown"/><Default Extension="vsixmanifest" ContentType="text/xml"/></Types>')
     destination=Path(destination);destination.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(destination,'w',zipfile.ZIP_DEFLATED) as archive:
         archive.writestr('extension.vsixmanifest',manifest)
         archive.writestr('[Content_Types].xml',types)
-        for name in ('package.json','extension.js','README.md'):
+        for name in ('package.json','extension.js','session-actions.js','sessions.svg','README.md'):
             archive.write(sources/name,'extension/'+name)
         license=Path(__file__).parent.parent/'LICENSE'
         archive.writestr('extension/LICENSE',license.read_text() if license.exists() else 'Personal use only; see https://github.com/zGabrielR1/codelaboon/blob/main/LICENSE')

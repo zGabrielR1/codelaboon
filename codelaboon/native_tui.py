@@ -246,7 +246,7 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
             package = root / "packages/opencode"
             command = [bun, "run", "--conditions=browser", "--preload",
                        str(root / "node_modules/@opentui/solid/scripts/preload.ts"), str(package / "src/index.ts")]
-            command.extend(arguments if arguments[:1] == ["run"] or arguments[:1] == ("run",)
+            command.extend(arguments if arguments and arguments[0] in ("run", "export", "import", "session")
                            else [str(project), *arguments])
             cwd = project
         else:

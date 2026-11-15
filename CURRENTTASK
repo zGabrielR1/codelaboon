@@ -1,16 +1,16 @@
-RC18 COMPLETE — published https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.18
-Commit f1eda6c; verify43669720894/release43669721302 successful. All published
-checksums verified; exact204545Bwheelinstalled. PublicVSIX5937B hasno localpaths.
-Codex nativeengine + Responsesbridge + officialVSCode CLIwrapper complete.
-Focusedchecks:249regressions+Node+3adaptertests; nativeCodexexec/shellfiletool;
-actualofficialCodexextension webviewprompt/replyPASS. ExistingnativeCI allgreen.
-Codex engine optional; OpenCode defaultunchanged. Codex profileisolated under
-Codelaboonconfig/codex; never edit user's ~/.codex. CLI supports automatic
-SHA512verified0.169.0 npmplatformaliasinstall. Connector `codelaboon ide install
---engine codex`; VSCode OpenCodex/ConnectCodex/DisconnectCodex commands. Hook
-chatgpt.cliExecutable markedupstreamdevelopmentonly. Existing personalCodewindow
-requiresreloadtoactivate updatedconnector; do not forcecloseunsavedwindows.
-Exactpublishedconnector refreshed; idlecodelaboon.service restarted successfully.
-No realuserobjective queued. Sourcecheckout31MB; deps/clones/builds outsideppp.
-RC17 likewisepublished a045fab, checksumsverified. Reviewdocs/review-1.0.0rc18.md.
-No additional work pending except a user follow-up/new objective.
+RC19 PUBLICATION ACTIVE — user explicitly requested newRC + import/export buttons.
+Implemented 7engine canonical sessions from prior local dev + VSCode Sessions
+view: Import,Export,Convert,Refresh titlebuttons, inlineExport, clickResume with
+enginepicker. session-actions.js usesargument arrays/JSONlist, cancellation,
+no-librarystandaloneconvert, boundedoutput/activechildren cleanup. package1.0.19,
+core1.0.0rc19, engineassetURLs19(samehashes). VSIXJS/SVG whitelisting+MIMEadded.
+263Python testsPASS; Nodeconnector+buttonflows7agentsPASS; freshoneuniversalID
+Codex->OpenCodePASS. Prior native7formatsresumePASS. Core217811B,sourcedist382750B.
+Built/tmp/codelaboon-rc19-dist; installedcore+connectorlocally. Need commit/tag/push19,
+fullpipeline, publishedchecksums/installwheel,finalstatecommit. gh/tmp2.103.3.
+Reviewdocs/review-universal-sessions.md updatedbeforecommit. Existing concurrent
+OpenCodealias README/CLI/test edits preserved and carried in requestedrelease;
+don'tclaimownership butincludeexistingfix. No real user taskqueued; don'tclose
+personalCodewindows. Newviewneedsreload. OptionalnativeCI now7adapterchecks split
+acrossenginejobs andsharedID+Nodebuttons. RealCodexisolatedhost assertscommands/
+viewfocus; mayrunwhileCI. RC18 publishedpreviously;19notpublishedyet.

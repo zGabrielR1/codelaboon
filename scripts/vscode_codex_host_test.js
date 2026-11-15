@@ -3,6 +3,9 @@ const vscode=require('vscode');const fs=require('fs');const path=require('path')
 exports.run=async()=>{
  const project=process.env.CODELABOON_VSCODE_TEST_PROJECT;
  await vscode.extensions.getExtension('codelaboon.codelaboon').activate();
+ const commands=await vscode.commands.getCommands();
+ for (const command of ['importSession','exportSession','convertSession','resumeSession']) assert(commands.includes('codelaboon.'+command),'Session action missing: '+command);
+ await vscode.commands.executeCommand('codelaboon.sessions.focus');
  await vscode.commands.executeCommand('codelaboon.connectCodex');
  assert(vscode.workspace.getConfiguration('chatgpt').get('cliExecutable').includes('wrapper'));
  await vscode.extensions.getExtension('openai.chatgpt').activate();

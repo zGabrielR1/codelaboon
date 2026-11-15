@@ -423,3 +423,10 @@ def serve(providers):
         server.server_close()
         thread.join(timeout=2)
         gateway.local.close()
+        # Native formats remain authoritative; centralize completed conversations
+        # after each engine closes without changing any upstream database.
+        try:
+            from codelaboon.session_transfer import sync_private
+            sync_private()
+        except (OSError, ValueError):
+            pass

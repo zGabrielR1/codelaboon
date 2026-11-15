@@ -547,3 +547,43 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   Official Codex extension and connector installed locally; existing personal
   VS Code windows need reload to activate the updated connector. No editor
   windows forcibly closed. Requested RC complete; no user task queued.
+
+
+## Universal sessions — RC19 development build
+
+- Added a private compressed SQLite session library with stable IDs, native
+  projection bindings and original-record archives. Codelaboon-owned native
+  profiles synchronize on gateway close and explicit list/sync; unchanged files
+  and SQLite WAL states are skipped. Standalone source homes remain opt-in.
+- Added sessions import/export/convert/resume for OpenCode, Kilo, Codex, Claude,
+  OMP, Jcode and Crush. Conversion does not open the library or perform inference;
+  destination native files can be used without Codelaboon. Existing source files
+  and auth profiles remain unchanged. Exports refuse overwrite.
+- Native headless tests resumed the earlier conversation in all seven engines.
+  Actual Codex-to-OpenCode continuation retained one universal ID and all source
+  bindings. Ten focused unit cases cover formats, inert tool/policy history,
+  archives, private output, active branches, compaction tails, linked prefixes,
+  no-library conversion and unchanged-file caching. Full suite262 passes,
+  including one concurrent user's explicit OpenCode alias test.
+- Review docs/review-universal-sessions.md. Instructions/limits are documented
+  in docs/universal-sessions.md. Fixed Jcode headless --resume profile selection.
+- This turn requested the feature, not another publication. Installed local
+  1.0.0rc19.dev0; no RC19 release/tag/commit. Preserve concurrent unrelated
+  README/CLI OpenCode alias and test edits. RC18 remains the published release.
+
+
+## RC19 — shared-session controls and publication
+
+- User requested publication and Import/Export buttons for all agents. Added a
+  Codelaboon Sessions activity-bar view with visible Import/Export/Convert/Refresh
+  buttons, per-session Export and engine-selected Resume in native terminals.
+- JSON listing backs the view; actions use direct CLI argument arrays, preserve
+  cancellation, support paths with spaces and never register independent converts
+  in the library. Active child cleanup and bounded output keep the host lean.
+- 263 Python tests and Node button/connector tests pass. All seven native adapters
+  were tested in the implementation; fresh shared-ID continuation passes. Core
+  wheel217811bytes, publicVSIX includes JS/SVG with no personal bootstrap.
+- RC19 core and connector installed locally. Review docs/review-universal-sessions.md
+  updated before commit. Existing explicit OpenCode alias/test carried unchanged.
+- Next: tag/publish RC19, wait existing release gates, verify published checksums
+  and install exact wheel. Existing editor windows need reload for the new view.

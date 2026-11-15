@@ -1,9 +1,9 @@
 {
   "name": "codelaboon",
   "displayName": "Codelaboon",
-  "description": "Connect the official Claude Code editor integration to Codelaboon's verified free-model backend.",
+  "description": "Native coding engines, shared sessions, and import/export across seven agents.",
   "publisher": "codelaboon",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "preview": true,
   "engines": {
     "vscode": "^1.85.0"
@@ -15,7 +15,8 @@
   "main": "./extension.js",
   "activationEvents": [
     "onStartupFinished",
-    "onUri"
+    "onUri",
+    "onView:codelaboon.sessions"
   ],
   "extensionDependencies": [
     "anthropic.claude-code"
@@ -57,6 +58,31 @@
       {
         "command": "codelaboon.openCodex",
         "title": "Codelaboon: Open Codex"
+      },
+      {
+        "command": "codelaboon.importSession",
+        "title": "Codelaboon: Import Session",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "codelaboon.exportSession",
+        "title": "Codelaboon: Export Session",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "codelaboon.convertSession",
+        "title": "Codelaboon: Convert Session Between Agents",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "codelaboon.resumeSession",
+        "title": "Codelaboon: Resume Shared Session",
+        "icon": "$(play)"
+      },
+      {
+        "command": "codelaboon.refreshSessions",
+        "title": "Codelaboon: Refresh Sessions",
+        "icon": "$(refresh)"
       }
     ],
     "configuration": {
@@ -75,6 +101,60 @@
           "description": "Codelaboon CLI executable for free-model health checks."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codelaboon",
+          "title": "Codelaboon",
+          "icon": "sessions.svg"
+        }
+      ]
+    },
+    "views": {
+      "codelaboon": [
+        {
+          "id": "codelaboon.sessions",
+          "name": "Sessions"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "codelaboon.sessions",
+        "contents": "Continue one conversation across coding agents.\n[Import Session](command:codelaboon.importSession)\n[Convert Between Agents](command:codelaboon.convertSession)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "codelaboon.importSession",
+          "when": "view == codelaboon.sessions",
+          "group": "navigation@0"
+        },
+        {
+          "command": "codelaboon.exportSession",
+          "when": "view == codelaboon.sessions",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codelaboon.convertSession",
+          "when": "view == codelaboon.sessions",
+          "group": "navigation@2"
+        },
+        {
+          "command": "codelaboon.refreshSessions",
+          "when": "view == codelaboon.sessions",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "codelaboon.exportSession",
+          "when": "view == codelaboon.sessions && viewItem == codelaboonSession",
+          "group": "inline"
+        }
+      ]
     }
   },
   "repository": {

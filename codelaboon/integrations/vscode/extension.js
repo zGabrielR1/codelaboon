@@ -89,6 +89,7 @@ async function disconnectCodex(context) {
   await context.globalState.update('codexDisconnected',true);
 }
 function activate(context) {
+  require('./session-actions').register(vscode,context,options(context).cli);
   const output = vscode.window.createOutputChannel('Codelaboon');
   context.subscriptions.push(output);
   context.subscriptions.push(vscode.commands.registerCommand('codelaboon.openTerminal', () => openTerminal(context)));

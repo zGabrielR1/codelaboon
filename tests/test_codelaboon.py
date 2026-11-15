@@ -632,5 +632,15 @@ class TuiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(app.history[-1], {"role": "assistant", "content": "echo:hi"})
 
 
+class EngineCommandTests(unittest.TestCase):
+    def test_opencode_command_opens_the_default_engine(self):
+        from codelaboon import cli
+
+        with mock.patch("sys.argv", ["codelaboon", "opencode", "--continue"]):
+            with mock.patch.object(cli, "run_tui") as launch:
+                cli.main()
+        launch.assert_called_once_with("opencode", ["--continue"])
+
+
 if __name__ == "__main__":
     unittest.main()

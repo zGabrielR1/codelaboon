@@ -337,6 +337,7 @@ and forwards the native wire protocols through a token-protected loopback gatewa
 ```bash
 python3 -m codelaboon install           # small core; engine dependencies fetched on first use
 codelaboon                             # native OpenCode UI in the current project
+codelaboon opencode                    # same default engine, explicit command
 codelaboon omp                         # OMP; dependencies install automatically
 codelaboon kilo                        # optional official Kilo CLI and provider gateway
 codelaboon claude                      # Claude Code UI on free (Auto); no Claude subscription
@@ -723,3 +724,9 @@ Codex is available as `codelaboon codex`. To connect its official VS Code
 extension, run `codelaboon ide install --engine codex`, then use **Codelaboon:
 Open Codex**. Its native app-server uses an isolated Codelaboon profile and the
 same free backend. **Disconnect Codex** restores the previous CLI setting.
+
+Shared sessions are available with `codelaboon sessions list` and
+`codelaboon sessions resume UNIVERSAL_ID --engine codex` (or another engine).
+A one-time `sessions convert` also exports native sessions for independent agents
+without adding them to the library or requiring Codelaboon at continuation time.
+See [universal sessions and standalone conversion](docs/universal-sessions.md).
