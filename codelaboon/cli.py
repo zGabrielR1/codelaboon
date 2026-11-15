@@ -70,11 +70,18 @@ class CodelaboonCLI:
                 **kwargs,
             )
 
+        # Reuse a configured official OpenRouter key for its strictly free lane.
+        paid=self.providers.get('openrouter')
+        free=self.providers.get('openrouter_free')
+        if paid and free and not free.api_key.strip() and getattr(paid,'base_url','').rstrip('/')==getattr(free,'base_url','').rstrip('/')=='https://openrouter.ai/api/v1':
+            free.api_key=paid.api_key
+
     def _get_provider_class(self, provider_name: str):
         """Get provider class based on provider name."""
         provider_mapping = {
             "local": "providers.compatible.LocalProvider",
             "openrouter_free": "providers.compatible.OpenRouterFreeProvider",
+            "zai_free": "providers.compatible.ZaiFreeProvider",
             "groq": "providers.compatible.GroqProvider",
             "cerebras": "providers.compatible.CerebrasProvider",
             "chatgpt": "providers.chatgpt.chatgpt_provider.ChatGPTProvider",
@@ -265,7 +272,12 @@ class CodelaboonCLI:
         print("-" * 40)
 
         try:
-            models = provider.list_models()
+            from codelaboon import model_health
+            models = model_health.discover(provider_name,provider) if model_health.eligible(provider_name,provider) else provider.list_models()
+            if model_health.enabled() and model_health.eligible(provider_name,provider):
+                models=[model for model in models if model_health.verified(provider_name,provider,model)]
+                if not models:
+                    print('No verified models yet. Run codelaboon models check '+provider_name)
             for i, model in enumerate(models, 1):
                 print(f"{i}. {model}")
         except Exception as e:
@@ -550,6 +562,7 @@ class CodelaboonCLI:
         subparsers.add_parser("omp", help="Open the optional OMP interface (automatic setup)")
         subparsers.add_parser("kilo", help="Open the optional official Kilo native CLI")
         subparsers.add_parser("claude", help="Open Claude Code on Codelaboon free models")
+        subparsers.add_parser("ide", help="Connect official engine editor integrations to Codelaboon")
         subparsers.add_parser("storage", help="Audit or relocate development/cache bulk outside the project")
         subparsers.add_parser("swarm", help="Run a bounded lightweight Rust swarm on the free backend")
         subparsers.add_parser("jcode", help="Open the native Jcode UI (Rust, automatic setup, free backend)")
@@ -567,6 +580,16 @@ class CodelaboonCLI:
         models_subparsers = models_parser.add_subparsers(dest="models_command")
         list_models_parser = models_subparsers.add_parser("list", help="List models for a provider")
         list_models_parser.add_argument("provider", help="Provider name")
+
+        check_models_parser = models_subparsers.add_parser("check", help="Verify free models with real replies and tool calls")
+        check_models_parser.add_argument("provider", nargs="?", default="free")
+        check_models_parser.add_argument("--force", action="store_true", help="Recheck fresh health records")
+        check_models_parser.add_argument("--timeout", type=int, default=15)
+        check_models_parser.add_argument("--chat-only", action="store_true")
+        check_models_parser.add_argument("--require-working", action="store_true", help="Exit nonzero if no checked route passes")
+        formats=check_models_parser.add_mutually_exclusive_group()
+        formats.add_argument("--json", action="store_true")
+        formats.add_argument("--jsonl", action="store_true", help="Stream one JSON health record per checked model")
 
         # Chat command
         chat_parser = subparsers.add_parser("chat", help="Send chat completion request")
@@ -702,6 +725,30 @@ class CodelaboonCLI:
         elif args.command == "models":
             if args.models_command == "list":
                 self.list_models(args.provider)
+            elif args.models_command == "check":
+                from codelaboon import model_health
+                if args.provider != 'free' and args.provider not in model_health.FREE_PROVIDERS:
+                    parser.error('Choose free or a declared free provider')
+                if not 1 <= args.timeout <= 120:
+                    parser.error('--timeout must be 1–120 seconds')
+                providers=self.providers if args.provider=='free' else {args.provider:self.providers[args.provider]} if args.provider in self.providers else {}
+                import threading
+                progress_lock=threading.Lock()
+                def progress(row):
+                    with progress_lock:
+                        if args.jsonl:
+                            print(json.dumps(row),flush=True)
+                        else:
+                            print(row['provider']+'/'+row.get('model','*')+' | '+row['status']+
+                                  (' | tools: '+str(row['tools']) if 'tools' in row else ' | '+row.get('reason',''))+
+                                  (' | cached' if row.get('cached') else ''),flush=True)
+                rows=model_health.check(providers,args.timeout,not args.chat_only,args.force,
+                                        None if args.json else progress)
+                if args.json:print(json.dumps(rows,indent=2))
+                elif not args.jsonl:print('Health cache updated. Reopen the engine to refresh its model picker.')
+                if args.require_working and not any(row['status']=='working' and (args.chat_only or row.get('tools') is True) for row in rows):
+                    print('No checked free route passed the required verification.',file=sys.stderr)
+                    raise SystemExit(1)
             else:
                 models_parser.print_help()
 
@@ -823,6 +870,10 @@ def main() -> None:
                 pass
     if sys.argv[1:2] and sys.argv[1] in ("omp", "kilo", "claude", "crush", "jcode"):
         run_tui(sys.argv[1], sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['ide']:
+        from codelaboon.ide import main as ide_main
+        ide_main(sys.argv[2:])
         return
     if sys.argv[1:2] == ['storage']:
         from codelaboon.storage import main as storage_main

@@ -79,6 +79,7 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
             ],
         },
         "wusrouter": {"api_key": "", "models": []},
+        "zai_free": {"api_key": "", "models": []},
         "kilo": {
             "api_key": "",
             "models": ["kilo-auto/free", "openrouter/free"],

@@ -83,6 +83,8 @@ class KiloProvider(BaseProvider):
             )
             if response.status_code == 200:
                 payload = response.json()
+                if not isinstance(payload,list) and not (isinstance(payload,dict) and any(isinstance(payload.get(k),list) for k in ('data','models'))):
+                    raise ValueError('Invalid model catalog')
                 rows = self._listing_rows(payload)
                 models = []
                 for row in rows:
@@ -92,10 +94,12 @@ class KiloProvider(BaseProvider):
                     if row.get("isFree") is True and isinstance(model_id, str) and model_id.strip():
                         if model_id not in models:
                             models.append(model_id)
-                if models:
-                    return models
-        except (requests.RequestException, ValueError):
-            pass  # Fall back to the configured or default catalogue.
+                self.live_models = list(models)
+                self.discovery_error = None
+                return models
+            self.discovery_error = "http_" + str(response.status_code)
+        except (requests.RequestException, ValueError) as error:
+            self.discovery_error = type(error).__name__  # Fall back to the configured or default catalogue.
 
         if self.models:
             return self.models

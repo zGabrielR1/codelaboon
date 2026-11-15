@@ -22,13 +22,15 @@ from codelaboon import free_auto
 from codelaboon.paths import config_dir
 
 COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter", "nvidia", "luna", "chatgpt",
-              "local", "openrouter_free", "groq", "cerebras", "wusrouter", "claude", "gemini", "freebuff"}
-FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebuff"}
+              "local", "openrouter_free", "groq", "cerebras", "wusrouter", "claude", "gemini", "freebuff", "zai_free"}
+FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free"}
 
 
 class Gateway:
-    def __init__(self, providers):
+    def __init__(self, providers, health_checks=True):
         self.providers = providers
+        self.health_checks = health_checks
+        self.health_started = set()
         self.token = secrets.token_urlsafe(32)
         self.cooldowns = {}
         self.catalog = None
@@ -37,9 +39,49 @@ class Gateway:
         self.closed = threading.Event()
         self.discovery_errors = {}
 
+    def health_applies(self,name,provider):
+        from providers.base import BaseProvider
+        from codelaboon import model_health
+        return (self.health_checks and model_health.enabled() and isinstance(provider,BaseProvider)
+                and name in model_health.FREE_PROVIDERS and model_health.eligible(name,provider))
+
+    def visible(self,rows):
+        from codelaboon import model_health
+        result=[]
+        for row in rows:
+            name,_,model=row['id'].partition('/')
+            provider=self.providers.get(name)
+            if provider and self.health_applies(name,provider):
+                live=model_health.catalog(name,provider)
+                if live is not None and model not in live:
+                    continue
+                if not model_health.verified(name,provider,model,coding=name in model_health.WIRE_PROVIDERS):
+                    continue
+            result.append(row)
+        return result
+
+    def schedule_checks(self,name,provider,models=None):
+        if not self.health_applies(name,provider) or name in self.health_started:
+            return
+        self.health_started.add(name)
+        def verify():
+            from codelaboon.model_health import check_provider,discover
+            try:
+                current=models;refresh=time.monotonic()+300;first=True
+                while not self.closed.is_set():
+                    if current is None or time.monotonic()>=refresh:
+                        current=discover(name,provider);refresh=time.monotonic()+300
+                    check_provider(name,provider,closed=self.closed,models=current,limit=2 if first else 1)
+                    first=False
+                    if self.closed.wait(60):
+                        break
+            except Exception:
+                self.discovery_errors[name]='health_check_failed'
+        threading.Thread(target=verify,daemon=True,name='free-model-check-'+name).start()
+
     def models(self, startup=False):
         if self.catalog is not None:
-            return self.catalog
+            return self.visible(self.catalog)
         if startup:
             return self.start_catalogue()
         rows = ([{"id": "free", "name": "free (Auto)", "api": "chat"}]
@@ -50,7 +92,9 @@ class Gateway:
             if not provider.validate_api_key():
                 continue
             try:
-                models = provider.list_models()
+                from codelaboon import model_health
+                models = model_health.discover(name,provider) if self.health_applies(name,provider) else provider.list_models()
+                self.schedule_checks(name,provider,models)
                 subscription = name == "chatgpt" and provider._credential()[1]
             except Exception:
                 continue
@@ -59,7 +103,7 @@ class Gateway:
                          "api": {"claude": "anthropic", "gemini": "google"}.get(name,
                              "responses" if subscription else "chat")} for model in models)
         self.catalog = rows
-        return rows
+        return self.visible(rows)
 
     def start_catalogue(self, budget=1.0):
         """Render promptly, even when provider discovery/auth endpoints stall."""
@@ -94,7 +138,7 @@ class Gateway:
         self.catalog = snapshot()
         remaining = pending.qsize()
         if not remaining:
-            return self.catalog
+            return self.visible(self.catalog)
         def worker():
             nonlocal remaining
             while not self.closed.is_set():
@@ -103,7 +147,9 @@ class Gateway:
                 except queue.Empty:
                     return
                 try:
-                    models = provider.list_models()
+                    from codelaboon import model_health
+                    models = model_health.discover(name,provider) if self.health_applies(name,provider) else provider.list_models()
+                    self.schedule_checks(name,provider,models)
                     labels = getattr(provider, "model_names", {})
                     rows = [{"id": name + "/" + model, "name": labels.get(model, model), "api": api}
                             for model in models if isinstance(model, str)]
@@ -130,16 +176,22 @@ class Gateway:
         for _ in range(min(4, remaining)):
             threading.Thread(target=worker, daemon=True, name="model-discovery").start()
         complete.wait(budget)
-        return list(self.catalog)
+        return self.visible(list(self.catalog))
 
     def routes(self, model):
         if model == "free":
             entries = free_auto.ranked({key: value for key, value in self.providers.items()
                                         if key in FREE_COMPATIBLE})
-            # Reach another provider before retrying models on a failed gateway.
-            names = list(dict.fromkeys(entry.provider for entry in entries))
-            return [(name, next(entry.model for entry in entries if entry.provider == name))
-                    for name in names if self.cooldowns.get(name, 0) <= time.monotonic()]
+            from codelaboon import model_health
+            def tier(rows):
+                names=list(dict.fromkeys(entry.provider for entry in rows))
+                queues={name:[entry.model for entry in rows if entry.provider==name and
+                              not model_health.blocked(name,self.providers[name],entry.model,coding=True)] for name in names}
+                return [(name,models[index]) for index in range(max([len(items) for items in queues.values()]+[0]))
+                        for name,models in queues.items() if index<len(models) and self.cooldowns.get(name,0)<=time.monotonic()]
+            verified=[entry for entry in entries if model_health.verified(entry.provider,self.providers[entry.provider],entry.model,coding=True)]
+            unknown=[entry for entry in entries if entry not in verified]
+            return (tier(verified)+tier(unknown))[:12]
         name, separator, identifier = model.partition("/")
         if not separator or name not in COMPATIBLE or name not in self.providers:
             raise ValueError("Unknown codelaboon model")
@@ -150,7 +202,7 @@ class Gateway:
             raise ValueError("This provider does not allow that model")
         return [(name, identifier)]
 
-    def request(self, body, api):
+    def request(self, body, api, timeout=(15,180)):
         if api == "anthropic" and not body.get("model", "").startswith("claude/"):
             from codelaboon.anthropic_bridge import MessagesResponse, to_chat
             routed = dict(body, model=body["model"].removesuffix("[1m]"))
@@ -160,8 +212,13 @@ class Gateway:
             raise ValueError("No free coding model is ready. Configure ourfree, or retry kilo/pollinations shortly.")
         failures = []
         for name, model in routes:
+            if body.get("model")=="free" and self.cooldowns.get(name,0)>time.monotonic():
+                continue
             provider = self.providers[name]
             payload = dict(body, model=model)
+            if name=='openrouter_free':
+                options=payload.get('provider',{})
+                payload['provider']={**(options if isinstance(options,dict) else {}),'max_price':{'prompt':0,'completion':0}}
             headers = {"content-type": "application/json", "user-agent": "codelaboon"}
             credential = provider.credential() if hasattr(provider, "credential") else provider.api_key.strip()
             subscription = False
@@ -207,10 +264,13 @@ class Gateway:
                 url = f"{provider.base_url.rstrip('/')}{suffix}"
                 if name == "freebuff":
                     from codelaboon import __version__
-                    credential, _ = provider._credential()
                     try:
+                        credential, _ = provider._credential()
                         instance = provider._ensure_slot(credential, model)
-                    except (ValueError, requests.RequestException):
+                    except (ValueError, requests.RequestException) as error:
+                        if self.health_checks:
+                            from codelaboon.model_health import observe,failure
+                            observe(name,provider,model,failure(error))
                         if body.get("model") != "free":
                             raise
                         self.cooldowns[name] = time.monotonic() + 30
@@ -224,14 +284,24 @@ class Gateway:
             try:
                 transport = self.local if name == "local" else requests
                 response = transport.post(url, headers=headers, json=payload,
-                                          stream=True, timeout=(15, 180), allow_redirects=False)
+                                          stream=True, timeout=timeout, allow_redirects=False)
             except requests.RequestException:
+                if self.health_checks:
+                    from codelaboon.model_health import observe
+                    observe(name,provider,model,"unavailable")
                 self.cooldowns[name] = time.monotonic() + 30
                 failures.append(f"{name}: connection failed")
                 continue
+            if not 200 <= response.status_code < 300 and self.health_checks and self.health_applies(name,provider):
+                from codelaboon import model_health
+                model_health.observe(name,provider,model,model_health.classify(response.status_code))
             if not 200 <= response.status_code < 300 and body.get("model") == "free":
                 failures.append(f"{name}: HTTP {response.status_code}")
-                self.cooldowns[name] = time.monotonic() + 30
+                from codelaboon import model_health
+                if self.health_checks:
+                    model_health.observe(name,provider,model,model_health.classify(response.status_code))
+                if response.status_code in (401,402,403,429) or response.status_code>=500:
+                    self.cooldowns[name] = time.monotonic() + 30
                 response.close()
                 continue
             response.codelaboon_google_oauth = google_oauth

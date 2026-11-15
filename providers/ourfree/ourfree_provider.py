@@ -88,15 +88,20 @@ class OurFreeModelProvider(BaseProvider):
                     timeout=5,
                 )
                 if response.status_code == 200:
-                    data = response.json().get("data", [])
+                    payload=response.json()
+                    if not isinstance(payload,dict) or not isinstance(payload.get("data"),list):
+                        raise ValueError("Invalid model catalog")
+                    data = payload["data"]
                     models = [
                         row["id"] for row in data
                         if isinstance(row, dict) and row.get("id")
                     ]
-                    if models:
-                        return models
-            except (requests.RequestException, ValueError):
-                pass  # Fall back to the configured or default catalogue.
+                    self.live_models = list(models)
+                    self.discovery_error = None
+                    return models
+                self.discovery_error = "http_" + str(response.status_code)
+            except (requests.RequestException, ValueError) as error:
+                self.discovery_error = type(error).__name__  # Fall back to the configured or default catalogue.
 
         if self.models:
             return self.models

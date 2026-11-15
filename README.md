@@ -696,3 +696,25 @@ continues indefinitely. Acceptance checks are mandatory in continuous mode.
 active cycle finish, including checks. OpenCode remains the default interface;
 `codelaboon jcode` opens the optional native Jcode UI with saved project sessions.
 See [continuous swarm operations](docs/lean-runtime.md#continuous-swarms-rc16).
+
+
+### Verified free models and editor integrations (RC17)
+
+```bash
+codelaboon models check free             # real replies and tool-result checks
+codelaboon models list free              # verified chat models; native coding pickers require tools
+codelaboon ide install                   # connect the official Claude Code VS Code extension
+```
+
+Model discovery follows live free catalogs. Stale IDs, failed replies and broken
+coding-tool routes stay out of verified pickers. Rate limits defer checks instead
+of declaring models retired; background checks respect retry windows. Kilo's full
+free catalog and an explicitly zero-priced Z.AI Flash lane expand the candidates.
+
+The lightweight VS Code connector retains the official Claude UI, editor context,
+permissions, diffs and sessions while using Codelaboon's backend. It also opens
+OpenCode or optional engines in integrated terminals. Provider keys remain in
+Codelaboon. Commands support connecting, disconnecting/restoring owned settings,
+checking models and opening native engines.
+
+See [model health](docs/free-model-health.md) and [editor setup](docs/editor-integrations.md).

@@ -52,8 +52,11 @@ class PollinationsProvider(BaseProvider):
                 timeout=LISTING_TIMEOUT,
             )
             if response.status_code == 200:
+                payload=response.json()
+                if not isinstance(payload,list) and not (isinstance(payload,dict) and any(isinstance(payload.get(k),list) for k in ('data','models'))):
+                    raise ValueError('Invalid model catalog')
                 models: List[str] = []
-                for row in self._listing_rows(response.json()):
+                for row in self._listing_rows(payload):
                     if not isinstance(row, dict):
                         continue
                     name = row.get("name") or row.get("id")
@@ -62,10 +65,12 @@ class PollinationsProvider(BaseProvider):
                         continue
                     if isinstance(name, str) and name.strip() and name not in models:
                         models.append(name)
-                if models:
-                    return models
-        except (requests.RequestException, ValueError):
-            pass
+                self.live_models = list(models)
+                self.discovery_error = None
+                return models
+            self.discovery_error = "http_" + str(response.status_code)
+        except (requests.RequestException, ValueError) as error:
+            self.discovery_error = type(error).__name__
 
         if self.models:
             return list(self.models)

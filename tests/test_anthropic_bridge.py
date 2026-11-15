@@ -105,7 +105,13 @@ class BridgeTests(unittest.TestCase):
         rows = [{'id': 'free', 'name': 'free (Auto)', 'api': 'chat'}]
         with tempfile.TemporaryDirectory() as directory, patch('codelaboon.claude_engine.config_dir', return_value=Path(directory)), patch.dict(
                 os.environ, {'ANTHROPIC_API_KEY': 'personal-key', 'CLAUDE_CODE_OAUTH_TOKEN': 'personal-token'}), patch(
-                'codelaboon.claude_engine.subprocess.call', return_value=0) as run:
+                'codelaboon.claude_engine.subprocess.Popen') as run:
+            captured = {}
+            def capture(command, **kwargs):
+                captured.update(json.loads(Path(command[command.index('--settings') + 1]).read_text()))
+                return run.return_value
+            run.side_effect = capture
+            run.return_value.wait.return_value=0
             launch('/native/claude', [], 'coding', False, rows, 'http://127.0.0.1:123/v1', 'session-token')
             env = run.call_args.kwargs['env']
             self.assertEqual(env['ANTHROPIC_BASE_URL'], 'http://127.0.0.1:123')
@@ -116,7 +122,10 @@ class BridgeTests(unittest.TestCase):
             self.assertTrue(json.loads(preferences.read_text())['hasCompletedOnboarding'])
             self.assertNotIn('session-token', preferences.read_text())
             command = run.call_args.args[0]
-            settings = json.loads(command[command.index('--settings') + 1])
+            settings = captured
+            self.assertFalse(Path(command[command.index('--settings') + 1]).exists())
+            self.assertNotIn('session-token', str(command))
+            self.assertEqual(settings['env']['ANTHROPIC_API_KEY'], '')
             self.assertTrue(settings['modelPicker']['replaceBuiltInOptions'])
             self.assertEqual(settings['availableModels'], ['free'])
             self.assertNotIn('--dangerously-skip-permissions', command)

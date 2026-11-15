@@ -501,3 +501,25 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   User service restarted idle, with continuous-swarm capabilities and autostart
   still enabled. Checkout measures about30MB after the new commit/build.
   Requested RC complete. No real user objective was queued or started.
+
+
+## RC17 — free-model verification and editor connector
+
+- Replaced static free picker claims with endpoint/account-scoped chat and tool
+  verification, live catalogs, negative quarantine and bounded background probes.
+  Explicit checks stream progress and respect rate-limit retry windows. Nightly
+  monitoring reports outages separately from release correctness.
+- Expanded Kilo live free discovery, constrained OpenRouter routing to zero-price
+  models, and added Z.AI with official free-pricing verification. LLM7 excluded
+  after its live catalog showed no zero-priced models. Live Kilo Auto/Nemotron
+  chat/tool receipts passed; unavailable/deferred/unconfigured routes stay explicit.
+- Added a tiny VS Code connector using the official Claude Code process wrapper,
+  preserving SDK tools/context/permissions. Backend settings live in private
+  temporary files; no upstream credentials copied into editor configuration.
+  Supports health checks and native engine terminals, with settings restoration.
+- 249 Python tests, Node connector contract, HTTP health smoke, native SDK Read,
+  actual official VS Code prompt/reply, and installed OpenCode VTE checks pass.
+  Wheel199354bytes; source353251bytes. Source checkout stays lean, no runtime
+  dependencies added. RC17 core/connector installed; idle service restarted.
+- Adversarial review: docs/review-1.0.0rc17.md. Next: publish RC17 only after
+  full native CI, verify published checksums/assets and install exact wheel.

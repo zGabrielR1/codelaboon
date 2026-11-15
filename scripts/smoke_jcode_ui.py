@@ -15,7 +15,7 @@ socket = 'codelaboon-jcode-' + uuid.uuid4().hex
 
 
 def tmux(*args):
-    return subprocess.check_output(['tmux', '-L', socket, *args], text=True)
+    return subprocess.check_output(['tmux', '-L', socket, *args], text=True, env=env)
 
 
 def wait(label, predicate):
@@ -30,7 +30,7 @@ def wait(label, predicate):
 
 
 with fixture('jcode') as (project, env, observed):
-    assignments = [key+'='+env[key] for key in ('CODELABOON_CONFIG_DIR', 'CODELABOON_DATA_DIR',
+    assignments = [key+'='+env[key] for key in ('CODELABOON_CONFIG_DIR', 'CODELABOON_DATA_DIR', 'CODELABOON_MODEL_CHECKS',
                    'CODELABOON_JCODE_BIN', 'PATH') if key in env]
     command = ['env', *assignments, sys.executable, str(ROOT/'codelaboon/cli.py'), 'jcode']
     try:

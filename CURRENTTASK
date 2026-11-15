@@ -1,20 +1,83 @@
-2026-11-14: RC16 COMPLETE — published and exact release wheel installed locally.
+2026-11-14: RC17 IN PROGRESS — verified free models plus VS Code Claude integration.
 
-Release https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.16
-Feature commit3284c87f2801c9202275d1df183d42fedc386bc7.
-Verify43642855045 and release43642857338 SUCCESS:223tests onPython3.11-3.13,
-all native interfaces/VTE, Jcode native UI/resume/server cleanup, native swarm
-limits, two-cycle supervisor restart and real background CLI pause/resume/status.
-Published wheel183654bytes; source317702bytes. Every checksum verified. Cold
-OpenCode/OMP downloads from installed RC16 engine manifest PASS.
+User wants only working models in pickers, expanded real free providers/catalogs,
+and official engine integrations (specifically Claude Code VS Code extension)
+connected to Codelaboon backend. Preserve OpenCode default and thin checkout.
+RC16 published baseline2d4c554. NO new release/commit for this work yet.
 
-New continuous swarm mode: local or worker controller, interval/cycle limits,
-independent budgeted checks, durable progress, per-job pause/resume/stop/status.
-User service upgraded/restarted only while empty. It advertises continuous-swarm
-capability and remains enabled for login/boot. NO real user jobs queued or started.
-Jcode now has persistent project UI profiles and owned servers; OpenCode default.
-No new runtime dependencies; source checkout~30MB. Preserve external models,
-accounts and histories. Bulk dev dirs remain outside ppp from RC15 relocation.
+Uncommitted model_health.py adds scoped private persistent health, live catalogs,
+real reply/tool-call roundtrip probes, classifications and CLI models check free.
+Base providers live_models distinguish None (unknown/failure) from [] (liveempty).
+Kilo/Pollinations/Ourfree/Compatible updated; free_auto no longer promotes guessed
+CATALOG IDs absent from provider roster. Gateway filters real free-provider rows
+by verified health, backgroundchecks and per-model failures. Health disabled in
+nativefixtures and old offline suite. Existing223tests PASS after these changes;
+need NEWhealth tests, livechecks, correctness hardening (rate limiting, invalid
+catalog schemas, lock unlock onWindows, caches) and route fallback coverage.
 
-Docs:docs/lean-runtime.md, docs/review-1.0.0rc16.md, docs/PROGRESS.md.
-Await user feedback; do not claim upstream RAM ratios as our measurements.
+Public liveGET: Kilo473models,14isFree rows; Pollinations legacy /models200 with
+one actual anonymous model; OpenRouter471models. New Kilo free IDs discovered
+not hardcoded. Old curatedIDs are hints only now. Need expand newfree providers
+only with livecatalog/free-pricing evidence, never probe paid or credit lanes.
+
+VSCode /usr/bin/code installed. Official extension ALREADY installed at
+~/.vscode/extensions/anthropic.claude-code-2.1.325-linux-x64. package.json confirms
+claudeCode.claudeProcessWrapper (executablepath), disableLoginPrompt boolean,
+environmentVariables array. extension.js nse() resolves wrapper and passes its
+bundled native Claude executable as FIRST ARG, then usual SDK CLI args. Thus use
+on-demand wrapper to start serve(freeproviders), preserve native IDE/MCP/stdIO
+features, call claude_engine.launch with bundledCLI, isolate CLAUDE_CONFIG_DIR,
+map built-in Claude model aliases to free. No stable daemon/token in editorneeded.
+Official bundlednative resources/native-binary/claude exists. Need implement.
+
+Planned tiny Codelaboon VSCode extension (JS,no npm deps), Connect/Disconnect
+commands using VSCode configuration API to preserve JSONC/unrelated settings.
+Use supported wrapper setting, loginpromptdisable, scoped CLAUDE_CONFIG_DIR;
+backup only owned settings, no API secrets. Build VSIX via Python zip, release
+artifact + CLI ide install generates localbootstrap absolutewrapperpaths and
+installs with code--install-extension. Autoconnect once on explicitlocalinstall.
+Reuses official native UI/IDE capabilities; not rebuilding Claude's UI.
+Need actualwrapper protocol tests and VSCodehost activation/connection tests,
+then install locally as explicitly requested. No editor settings changed yet.
+
+Docs/AGENTS mandates review beforecommit; do notspawnsubagents. Devtest env
+~/.cache/codelaboon/development/runtime/buildenv; keep all clones/deps outsideppp.
+Current /tmp logs may disappear when user steers anotherturn; state here matters.
+
+
+2026-11-15 update: VS Code connector now implemented and E2E PASS. New lightweight
+codelaboon/integrations/vscode extensionJS/packageJSON, Python ide.py VSIX builder,
+CLI ide install, private on-demand processwrapper; claude_engine.prepare_profile
+atomic preferences and owned Popen lifecycle. Native official bundledCLI SDK
+JSON/file Read passes; actual VS Code devhost with both extensions, CDP editor
+submission and rendered fixture reply passes. Official Anthropic extension was
+installed/registered with codeCLI (2.1.325); ownconnector not yet installed globally.
+Code devtests use isolateduserdata and bothdevpaths; do not point tests at user's
+globalextensions dir (obsolete cleanup can remove unregistered folders). Node
+publicVSCodeAPI-contract test proves unrelated settings/secrets preservation and
+Disconnect restore; autoConnect operations nowserialized. PublicVSIX no userpaths.
+
+Free-health livefirstsweep: 2 Kilo routes chat+tools pass (auto/free and Nemotron
+3.5SuperVL). Freebuff/Poll unavailable, some accounts unconfigured, Kilo429 caused
+10models deferred, NOT retired. Checker nowprioritizes unchecked thenoldestmodels,
+background2initial/1perminute, catalogsrefresh5min, health4h. Public nightlyJSONL
+workflow added; account keys never stored in reports. Stronger toolreceipt check
+now uses fresh unpredictable result nonce, currentlyrechecking2live routes.
+All246unitstarget after19health+4IDE cases (latestfull239before7newcases passed).
+
+ZAI free-only lane added (3FlashIDs) with current official pricing.md zero-price
+verification failclosed; APIkeyrequired,no newcredentials. OpenRouterfree key
+reuse officialurlonly; pricingrejectnonzeroIDs + zero-cost constraints. LLM7
+inspected72models NONEpricedzero, excluded. Kilo live14freeIDsvsold2fallback.
+Normalfreepickers/manualcandidate lists verifiedonly; Auto can bootstrap unknown
+candidates, per-model negativequarantine and401/429provider backoff. Nativefixtures
+explicithealthoff and freecatalog flags. Need finalhardening/tests/docs/review,
+buildcore/VSIX, installcore+ownextension locally, fullnative/VTE tests, publishRC17
+andverifycoldassets. Versions and engine URLs bumped17. No RC17commit yet.
+
+FINAL LOCAL RC17 GATES: 249 tests PASS, Node PASS, native project-env SDK Read
+PASS, real official VSCode UI PASS, installed OpenCode VTE PASS. Wheel199354B,
+sdist353251B, publicVSIX no bootstrap. Locally installed RC17 wheel/connector,
+activated URI connect, idle service restart requested. Review updated. Need
+commit/tag/push, wait complete native/release CI, verify published checksums,
+install exact published wheel and cold manifests. gh verified restored under/tmp.

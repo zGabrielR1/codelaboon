@@ -115,42 +115,47 @@ def _availability(model: FreeModel, providers: Dict[str, object]) -> float:
         return 0.0  # AI Studio keys do not establish free Code Assist access.
     if model.provider == "qoder" and getattr(provider, "_pat", lambda: "")():
         return 0.0  # Cloud Agents PAT usage can consume credits.
-    roster = _roster(provider)
-    if model.model in roster:
-        return 1.0
-    if roster:
-        # The provider is configured but this curated entry is not in its
-        # published roster; keep it as a lower-confidence fallback.
-        return 0.7
-    # A provider with live-only discovery: still usable, but unproven.
-    return 0.8
+    from codelaboon import model_health
+    roster = model_health.catalog(model.provider, provider)
+    if roster is None:
+        roster = _roster(provider)
+    if model.model not in roster or model_health.blocked(model.provider, provider, model.model):
+        return 0.0
+    return 1.0 if model_health.verified(model.provider, provider, model.model) else 0.8
 
 
 def ranked(providers: Dict[str, object]) -> List[FreeModel]:
-    """Rank every usable free model by availability, intelligence and speed."""
-    scored = []
-    catalog = list(CATALOG)
-    for name, provider in providers.items():
-        discover = getattr(provider, "free_models", None)
-        if discover and provider.validate_api_key():
-            catalog.extend(FreeModel(name, model, 8.0, 8.0) for model in discover())
-    for index, entry in enumerate(catalog):
-        availability = _availability(entry, providers)
-        if availability <= 0:
+    """Rank current provider IDs only; historical capability hints are never model discovery."""
+    from codelaboon import model_health
+    hints = {(entry.provider, entry.model): entry for entry in CATALOG}
+    scored=[]
+    for name,provider in providers.items():
+        if not model_health.eligible(name,provider):
             continue
-        scored.append((entry.score(availability), -index, entry))
+        models=model_health.catalog(name,provider)
+        if models is None:
+            models=_roster(provider)
+        for model in dict.fromkeys(models):
+            entry=hints.get((name,model),FreeModel(name,model,8.0,8.0))
+            availability=_availability(entry,providers)
+            if availability>0:
+                scored.append((entry.score(availability),-len(scored),entry))
     scored.sort(reverse=True)
-    return [entry for _, _, entry in scored]
+    return [entry for _,_,entry in scored]
 
 
 def candidates(providers: Dict[str, object]) -> List[Tuple[str, str, str]]:
     """The ranked free models as ``(provider, model, label)`` rows."""
-    return [(entry.provider, entry.model, entry.display) for entry in ranked(providers)]
+    from codelaboon import model_health
+    return [(entry.provider, entry.model, entry.display) for entry in ranked(providers)
+            if not model_health.enabled() or model_health.verified(entry.provider,providers[entry.provider],entry.model)]
 
 
 def describe(providers: Dict[str, object], limit: Optional[int] = None) -> List[str]:
     """Human-readable ranked rows, used by ``models list free``."""
-    entries = ranked(providers)
+    from codelaboon import model_health
+    entries = [entry for entry in ranked(providers) if not model_health.enabled() or
+               model_health.verified(entry.provider,providers[entry.provider],entry.model)]
     if limit is not None:
         entries = entries[:limit]
     return [f"{entry.provider}/{entry.model}  ({entry.display})" for entry in entries]
@@ -235,12 +240,16 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
             try:
                 reply = provider.chat(entry.model, list(messages), **kwargs)
             except Exception as error:  # Fail over: the point of Auto is availability.
+                from codelaboon import model_health
+                model_health.observe(entry.provider,provider,entry.model,model_health.failure(error))
                 errors.append(f"{entry.provider}/{entry.model}: {error}")
                 if attempt == 0 and _is_transient_error(error):
                     time.sleep(0.6)
                     continue
                 break
             if isinstance(reply, str) and reply.strip():
+                from codelaboon import model_health
+                model_health.observe(entry.provider,provider,entry.model,"working")
                 return entry, reply
             errors.append(f"{entry.provider}/{entry.model}: empty reply")
             if attempt == 0:

@@ -33,6 +33,8 @@ class BaseProvider(ABC):
         self.api_key = api_key
         self.models = models or []
         self._validated = False
+        self.live_models = None  # None means discovery failed/not attempted; [] is an authoritative empty catalog.
+        self.discovery_error = None
         if base_url:
             self.base_url = base_url
     

@@ -1,0 +1,73 @@
+{
+  "name": "codelaboon",
+  "displayName": "Codelaboon",
+  "description": "Connect the official Claude Code editor integration to Codelaboon's verified free-model backend.",
+  "publisher": "codelaboon",
+  "version": "1.0.17",
+  "preview": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "extensionDependencies": [
+    "anthropic.claude-code"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codelaboon.connectClaude",
+        "title": "Codelaboon: Connect Claude Code"
+      },
+      {
+        "command": "codelaboon.disconnectClaude",
+        "title": "Codelaboon: Disconnect Claude Code"
+      },
+      {
+        "command": "codelaboon.openClaude",
+        "title": "Codelaboon: Open Claude Code"
+      },
+      {
+        "command": "codelaboon.checkFreeModels",
+        "title": "Codelaboon: Check Free Models"
+      },
+      {
+        "command": "codelaboon.openTerminal",
+        "title": "Codelaboon: Open Coding Terminal (OpenCode)"
+      },
+      {
+        "command": "codelaboon.openEngineTerminal",
+        "title": "Codelaboon: Open Optional Engine Terminal"
+      }
+    ],
+    "configuration": {
+      "title": "Codelaboon",
+      "properties": {
+        "codelaboon.wrapperPath": {
+          "type": "string",
+          "scope": "machine",
+          "default": "",
+          "description": "Absolute Codelaboon Claude wrapper path; ide install configures this automatically."
+        },
+        "codelaboon.executablePath": {
+          "type": "string",
+          "scope": "machine",
+          "default": "codelaboon",
+          "description": "Codelaboon CLI executable for free-model health checks."
+        }
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zGabrielR1/codelaboon"
+  },
+  "license": "SEE LICENSE IN LICENSE"
+}

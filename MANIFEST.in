@@ -26,3 +26,7 @@ recursive-include codelaboon/themes *.json KILO-LICENSE
 recursive-include scripts/patches *.patch
 prune codelaboon/_vendor/opencode
 prune codelaboon/_vendor/oh-my-pi
+
+recursive-include codelaboon/integrations/vscode *.json *.js *.md
+
+recursive-include scripts *.js

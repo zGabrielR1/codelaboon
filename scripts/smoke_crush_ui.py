@@ -13,7 +13,7 @@ socket = 'codelaboon-crush-' + uuid.uuid4().hex
 
 
 def tmux(*args):
-    return subprocess.check_output(['tmux', '-L', socket, *args], text=True)
+    return subprocess.check_output(['tmux', '-L', socket, *args], text=True, env=env)
 
 
 def wait(label, predicate):
@@ -31,7 +31,7 @@ def wait(label, predicate):
 
 
 with fixture('crush') as (project, env, observed):
-    command = ['env', 'CODELABOON_CONFIG_DIR=' + env['CODELABOON_CONFIG_DIR'],
+    command = ['env', 'CODELABOON_MODEL_CHECKS=0', 'CODELABOON_CONFIG_DIR=' + env['CODELABOON_CONFIG_DIR'],
                'PATH=' + env['PATH'], sys.executable, str(ROOT / 'codelaboon/cli.py'), 'crush']
     try:
         tmux('-f', '/dev/null', 'new-session', '-d', '-s', 'qa', '-x', '160', '-y', '44',

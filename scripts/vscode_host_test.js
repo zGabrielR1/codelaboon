@@ -1,0 +1,27 @@
+'use strict';
+const vscode = require('vscode');
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
+exports.run = async function () {
+  const project = process.env.CODELABOON_VSCODE_TEST_PROJECT;
+  const own = vscode.extensions.getExtension('codelaboon.codelaboon');
+  assert(own, 'Codelaboon extension missing');
+  const api = await own.activate();
+  await api.connect();
+  const settings = vscode.workspace.getConfiguration('claudeCode');
+  assert.strictEqual(settings.get('disableLoginPrompt'), true);
+  assert(settings.get('claudeProcessWrapper').includes('wrapper'));
+  assert(vscode.extensions.getExtension('anthropic.claude-code'), 'Official extension missing');
+  await vscode.extensions.getExtension('anthropic.claude-code').activate();
+  const document = await vscode.workspace.openTextDocument(path.join(project, 'marker.txt'));
+  const editor = await vscode.window.showTextDocument(document);
+  editor.selection = new vscode.Selection(0, 0, 0, document.lineAt(0).text.length);
+  await vscode.commands.executeCommand('claude-vscode.primaryEditor.open', undefined, 'IDE_BACKEND_PROBE: Explain the selected line briefly. Do not edit files.');
+  await vscode.commands.executeCommand('claude-vscode.focus');
+  fs.writeFileSync(path.join(project,'ui-ready'),'ready');
+  const deadline = Date.now() + 45000;
+  while (!fs.existsSync(path.join(project, 'reply-visible')) && Date.now() < deadline) await new Promise(r => setTimeout(r, 250));
+  assert(fs.existsSync(path.join(project, 'reply-visible')), 'The official extension did not send the prompt through Codelaboon');
+  fs.writeFileSync(path.join(project, 'host-test-passed'), JSON.stringify({ officialExtension: true, wrapper: true, modelRequest: true }));
+};

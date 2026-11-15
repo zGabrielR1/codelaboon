@@ -28,11 +28,16 @@ class CompatibleProvider(BaseProvider):
             with self.transport.get(self.base_url.rstrip("/") + "/models", headers=self.headers(), timeout=10, allow_redirects=False) as response:
                 response.raise_for_status()
                 rows = response.json()["data"]
+                if not isinstance(rows,list):
+                    raise ValueError("Invalid model catalog")
                 models = list(dict.fromkeys(row["id"] for row in rows
                               if isinstance(row, dict) and isinstance(row.get("id"), str)
                               and self.accepts(row)))
+                self.live_models = list(models)
+                self.discovery_error = None
                 return models
-        except (requests.RequestException, ValueError, KeyError, TypeError):
+        except (requests.RequestException, ValueError, KeyError, TypeError) as error:
+            self.discovery_error = type(error).__name__
             return [model for model in self.models if self.accepts({"id": model})]
 
     def accepts(self, row):
@@ -43,6 +48,8 @@ class CompatibleProvider(BaseProvider):
             raise ValueError("Model or credential is unavailable")
         body = {"model": model, "messages": messages, "stream": False,
                 "max_tokens": kwargs.get("max_tokens", 4096)}
+        if getattr(self,"zero_price_cap",False):
+            body["provider"]={"max_price":{"prompt":0,"completion":0}}
         with self.transport.post(self.base_url.rstrip("/") + "/chat/completions",
                            headers=self.headers(), json=body, timeout=kwargs.get("timeout", 180), allow_redirects=False) as response:
             response.raise_for_status()
@@ -65,12 +72,26 @@ class LocalProvider(CompatibleProvider):
 
 
 class OpenRouterFreeProvider(CompatibleProvider):
+    zero_price_cap = True
     base_url = "https://openrouter.ai/api/v1"
     environment = "OPENROUTER_API_KEY"
 
     def accepts(self, row):
         # Restrict requests as well as the picker: never spill Auto into paid IDs.
-        return row["id"].endswith(":free") or row["id"] == "openrouter/free"
+        from decimal import Decimal,InvalidOperation
+        if not (row['id'].endswith(':free') or row['id']=='openrouter/free'):
+            return False
+        pricing=row.get('pricing')
+        if pricing is not None:
+            try:
+                if not isinstance(pricing,dict) or any(Decimal(str(pricing.get(key,'NaN')))!=0 for key in ('prompt','completion')):
+                    return False
+                for key in ('request','image','audio','input_audio','output_audio','internal_reasoning','web_search'):
+                    if pricing.get(key) is not None and Decimal(str(pricing[key]))!=0:
+                        return False
+            except (InvalidOperation,ValueError,TypeError):
+                return False
+        return True
 
     def free_models(self):
         return self.list_models()
@@ -84,3 +105,46 @@ class GroqProvider(CompatibleProvider):
 class CerebrasProvider(CompatibleProvider):
     base_url = "https://api.cerebras.ai/v1"
     environment = "CEREBRAS_API_KEY"
+
+
+class ZaiFreeProvider(CompatibleProvider):
+    """Only Z.AI's explicitly zero-priced Flash models, never paid FlashX/GLM5 IDs."""
+    base_url = 'https://api.z.ai/api/paas/v4'
+    environment = 'ZAI_API_KEY'
+    FREE_IDS = {'glm-4.7-flash', 'glm-4.5-flash', 'glm-4.6v-flash'}
+
+    def __init__(self, api_key='', models=None, base_url=None):
+        super().__init__(api_key,models,base_url)
+        self.default_models=sorted(self.FREE_IDS)
+        self.priced_free=set()
+
+    def refresh_prices(self):
+        import time
+        if getattr(self,'prices_until',0)>time.monotonic():
+            return
+        self.priced_free=set()
+        try:
+            response=requests.get('https://docs.z.ai/guides/overview/pricing.md',timeout=10,allow_redirects=False)
+            response.raise_for_status()
+            for line in response.text.splitlines():
+                cells=[cell.strip().lower() for cell in line.lstrip('> ').split('|')[1:-1]]
+                import re
+                if len(cells)==5 and re.fullmatch(r'glm-[a-z0-9.-]+',cells[0]) and all(cell=='free' for cell in cells[1:]):
+                    self.priced_free.add(cells[0])
+            self.prices_until=time.monotonic()+3600
+        except requests.RequestException:
+            self.prices_until=time.monotonic()+60
+
+    def accepts(self,row):
+        self.refresh_prices()
+        return row.get('id') in self.priced_free
+
+    def list_models(self):
+        if not self.validate_api_key():
+            return []
+        self.refresh_prices()
+        if not self.priced_free:
+            self.discovery_error='free_pricing_unverified'
+            return []
+        models=super().list_models()
+        return models if self.live_models is not None else [model for model in self.models or sorted(self.priced_free) if self.accepts({'id':model})]

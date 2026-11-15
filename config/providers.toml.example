@@ -104,3 +104,15 @@ models = ["openai-fast"]
 [wusrouter]
 api_key = ""
 models = []
+
+# Free-only OpenRouter catalog; use an API key or OPENROUTER_API_KEY.
+# The official [openrouter] key is reused automatically when this key is empty.
+[openrouter_free]
+api_key = ""
+models = []
+
+# Z.AI's explicitly zero-priced GLM Flash lane (API key required; ZAI_API_KEY supported).
+# Paid FlashX/GLM5 models are never allowed on this lane.
+[zai_free]
+api_key = ""
+models = []

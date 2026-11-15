@@ -1,3 +1,20 @@
+## 1.0.0rc17 - 2026-11-15
+
+- Verify free models with real replies, valid function calls and unpredictable
+  tool-result receipts. Store private scoped health and filter verified pickers.
+- Follow authoritative live/empty catalogs; capability hints cannot resurrect
+  retired IDs. Quarantine failures per model and prioritize proven coding routes.
+- Add incremental background verification, Retry-After/backoff, streaming reports
+  and a daily public free-provider health workflow. Defer rate-limited/account
+  lanes without pretending they passed or permanently removing them.
+- Expand dynamic Kilo free discovery, official OpenRouter-key reuse and zero-price
+  constraints; add the documented Z.AI Flash lane with live free-pricing guards.
+- Add a tiny VS Code connector using the official Claude process-wrapper hook.
+  Retain native editor/SDK/tool features on the Codelaboon backend, preserve
+  unrelated settings/secrets, and restore owned preferences on disconnect.
+- Add native engine integrated-terminal commands and a portable VSIX asset.
+  Verify SDK/file tools and actual official VS Code chat submission/reply.
+
 ## 1.0.0rc16 - 2026-11-14
 
 - Add continuous durable swarms with local-model routing or native worker

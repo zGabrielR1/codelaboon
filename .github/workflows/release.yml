@@ -49,6 +49,9 @@ jobs:
       - name: Stage separately downloadable engine sources
         run: python scripts/stage_engine_assets.py --out dist
 
+      - name: Build VS Code connector
+        run: python scripts/build_vscode.py dist/codelaboon-vscode.vsix
+
       - name: Write checksums
         run: cd dist && sha256sum * > SHA256SUMS
 

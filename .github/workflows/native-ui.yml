@@ -92,6 +92,9 @@ jobs:
           python scripts/smoke_crush_ui.py
       - name: Verify Claude Code free gateway without an Anthropic account
         run: |
+          python scripts/smoke_model_health.py
+          node scripts/test_vscode_extension.js
+          python scripts/smoke_ide_wrapper.py
           python scripts/smoke_claude.py
           python scripts/smoke_claude_ui.py
       - name: Preserve terminal evidence
