@@ -90,6 +90,8 @@ jobs:
         run: |
           python scripts/smoke_jcode.py
           python scripts/smoke_jcode_ui.py
+          CODELABOON_UI_PROFILE=security python scripts/smoke_jcode_ui.py
+          python scripts/smoke_worker_policy.py
           python scripts/smoke_continuous_swarm.py
           python scripts/smoke_swarm_service.py
           python scripts/smoke_swarm.py
@@ -103,6 +105,7 @@ jobs:
           python scripts/smoke_model_health.py
           node scripts/test_vscode_extension.js
           node scripts/test_session_actions.js
+          node scripts/test_diagnostics.js
           python scripts/smoke_session_transfer.py codex kilo claude jcode crush
           python scripts/smoke_ide_wrapper.py
           python scripts/smoke_claude.py

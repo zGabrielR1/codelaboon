@@ -19,7 +19,7 @@ class ContinuousSwarmTests(unittest.TestCase):
         return config, task_id, root/'work-runtime'
 
     @staticmethod
-    def execute(argv, project, output, timeout):
+    def execute(argv, project, output, timeout, **kwargs):
         output.write_text('Verified progress')
         return 0
 
@@ -60,7 +60,7 @@ class ContinuousSwarmTests(unittest.TestCase):
     def test_failed_check_does_not_complete_cycle_and_has_backoff(self):
         with tempfile.TemporaryDirectory() as directory:
             config, task_id, runtime = self.configure(Path(directory))
-            def failed_check(argv, project, output, timeout):
+            def failed_check(argv, project, output, timeout, **kwargs):
                 output.write_text('build' if 'swarm.py' in ' '.join(argv) else 'failure')
                 return 0 if 'swarm.py' in ' '.join(argv) else 8
             with patch('codelaboon.watch.execute', side_effect=failed_check):
@@ -118,7 +118,7 @@ class ContinuousSwarmTests(unittest.TestCase):
             value=json.loads(config.read_text())
             value['tasks']=[tasks[local_id],tasks[worker_id]]
             config.write_text(json.dumps(value))
-            def execute(argv, project, output, timeout):
+            def execute(argv, project, output, timeout, **kwargs):
                 output.write_text('Verified progress')
                 (runtime/'STOP').touch()
                 return 0

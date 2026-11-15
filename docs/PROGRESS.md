@@ -597,3 +597,56 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   Idle worker had zero pending/completed tasks; restart on RC19 authorized.
   Existing editor windows require reload to activate the new Sessions sidebar.
   Requested release complete; no real user objective was queued.
+
+
+## Audit and local RC20 development — continuous policy/scope controls
+
+- Live RC19 service active/idle, no tasks. Local router intentionally unloaded
+  while idle; runtime/model present. Isolated actual inference measured~1.4s cold
+  start/~1s route selection. Routing is still heuristic, not optimal/task-aware.
+- Added explicit per-task default/full permissions, coding/security profiles and
+  required security scope. Native full flags never grant OS/root privileges.
+  Flagged Jcode headless security injection fixed; swarm security propagated.
+- Active local scope review monitors logs/Git metadata, stops/replans drifting
+  work, pauses on observed path violations or failed review, and checks final
+  completion. Operator controls are durable task files; old services cannot
+  silently accept unsupported policy tasks. Worker-controlled mode preserved.
+- 275 regression cases, native Codex/Jcode disposable permission/profile tools,
+  and basic real local-model scope examples pass. Initial weak review behavior
+  improved with examples/grounded evidence; complex judgment not benchmarked.
+- Review docs/review-continuous-supervision.md, usage docs/continuous-supervision.md.
+  Install local1.0.0rc20.dev0 and restart confirmed-idle service. No public release
+  or real user work queued. Outstanding: measured task-aware routing, stronger
+  controller evaluation, interactive Jcode security parity and per-tool scope gates.
+
+- Local1.0.0rc20.dev0 installed from the built wheel; confirmed-idle service
+  restarted. Installed/running versions match and advertise task-execution-policy
+  plus active-supervision. Live status remains0pending/0completed; no full-access
+  task was queued. Public RC19 is unchanged. New controls are CLI options only.
+
+## RC20 public release preparation — 2026-11-15
+
+- User authorized public RC20 and actual evaluated security workflows plus explicit
+  root/admin cases across Linux/macOS/Windows. Implemented separate interactive
+  native OS grants with exact argv/scope/hash/expiry/timeout and single-use receipts.
+  Background worker never self-elevates. Privileged cycles need fresh case approval.
+- Added bounded scoped HTTP/TLS/exposure assessments, evidence/remediation output,
+  optional tool capability detection and nmap host/port scope adapters/import.
+  Real vulnerable/hardened HTTP, self-signed TLS and malicious XML labs pass.
+- Task-aware routing now learns from private bounded latency/acceptance observations,
+  with fast/balanced/deep choices. No best-model intelligence guarantee asserted.
+- Local controller regression suite records model/suite hashes, 11/13 passes,
+  zero false interventions and two misses. Deterministic file guard separately
+  handles staged files/reversions/inspection failures. Native Jcode security
+  overlay now works in actual UI; saved session and owned process cleanup pass.
+- Offline doctor/VS Code Diagnostics view added. 295 tests and structural checks
+  passed; final telemetry edge-case refinement awaits final tests/build. Portable
+  platform CI/native bootstrap gates added. Review in review-continuous-supervision.md.
+- Version1.0.0rc20 / connector1.0.20 prepared. Public tag not pushed yet. No real
+  user objective, target scan, root/admin case or model-provider spend queued.
+
+- Final local gates:296 tests pass, structural/provenance verification passes,
+  all three Node connector/button/diagnostics contract suites pass. Final core
+  wheel246357B and source427534B both below1MiB; connector includes diagnostics.
+  Native Jcode security UI/resume and full Codex/Jcode tool checks passed. Public
+  release still pending CI; no privileged host case or real task was run.

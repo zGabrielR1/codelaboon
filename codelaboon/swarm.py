@@ -30,6 +30,8 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free'):
     home.mkdir(parents=True, mode=0o700)
     instruction = ('Coordinate this coding task. Use the native swarm tool to delegate independent work when useful. '
                    f'Use at most {workers} concurrent workers. Resolve conflicts, retain context, and verify the final result.\n\n' + task)
+    from codelaboon.execution_policy import profile as task_profile
+    if task_profile()=='security':instruction=(Path(__file__).parent/'prompts/security.md').read_text()+'\n\n'+instruction
     deadline = time.monotonic() + timeout
     with serve(providers) as (gateway, url):
         rows = gateway.models(startup=True)
@@ -61,7 +63,7 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free'):
 
 
 def enqueue(task, workers=4, timeout=1800, checks=(), model='free', controller='local',
-            interval=60, cycles=0, config=None, project=None):
+            interval=60, cycles=0, config=None, project=None, permissions='default', profile='coding', supervise=None, scope='', review_interval=15, allowed_paths=None, elevation='none'):
     from codelaboon import work
     from codelaboon.work_queue import validate_swarm
     options = validate_swarm(dict(workers=workers, timeout=timeout, model=model,
@@ -79,7 +81,7 @@ def enqueue(task, workers=4, timeout=1800, checks=(), model='free', controller='
         if 'continuous-swarm' not in features:
             raise ValueError('The running worker predates continuous swarms. Use work stop, wait until stopped, '
                              'then work start after upgrading; no task was queued.')
-    task_id = work.add(project or Path.cwd(), task, checks, target, swarm=options)
+    task_id = work.add(project or Path.cwd(), task, checks, target, swarm=options,permissions=permissions,profile=profile,supervise=supervise,scope=scope,review_interval=review_interval,allowed_paths=allowed_paths,elevation=elevation)
     work.start(target)
     print('Continuous swarm: ' + task_id + ' | controller: ' + controller)
     print('Use swarm --status, --pause ID, --resume ID or --stop ID. work enable persists across reboots.')
@@ -119,6 +121,13 @@ def _main(arguments=None):
     parser.add_argument('--cycles', type=int, default=0, help='Successful cycle limit; 0 continues until stopped')
     parser.add_argument('--config', help='Background worker configuration')
     parser.add_argument('--project', type=Path, help='Project for a continuous swarm; defaults to current directory')
+    parser.add_argument('--elevation',choices=['none','root','administrator'],default='none')
+    parser.add_argument('--permissions',choices=['default','full'],default='default')
+    parser.add_argument('--profile',choices=['coding','security'],default='coding')
+    parser.add_argument('--scope',default='')
+    parser.add_argument('--supervise',action=argparse.BooleanOptionalAction,default=None)
+    parser.add_argument('--review-interval',type=int,default=15)
+    parser.add_argument('--allow-path',action='append',default=[])
     parser.add_argument('--json', action='store_true', help='Machine-readable status')
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument('--status', action='store_true')
@@ -147,8 +156,10 @@ def _main(arguments=None):
     checks = [shlex.split(item) for item in args.check]
     if args.continuous:
         enqueue(task, args.workers, args.timeout, checks, args.model, args.controller,
-                args.interval, args.cycles, args.config, args.project)
+                args.interval, args.cycles, args.config, args.project,args.permissions,args.profile,args.supervise,args.scope,args.review_interval,args.allow_path,args.elevation)
         return
+    if args.elevation!='none' or args.permissions!='default' or args.profile!='coding' or args.scope or args.supervise is not None or args.allow_path:
+        parser.error('Execution policy options belong to --continuous tasks')
     if args.project or args.config:
         parser.error('--project/--config belong to continuous mode or status/controls')
     raise SystemExit(execute(task, args.workers, args.timeout, checks, args.model))

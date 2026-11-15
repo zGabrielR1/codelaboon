@@ -27,8 +27,9 @@ FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebu
 
 
 class Gateway:
-    def __init__(self, providers, health_checks=True):
+    def __init__(self, providers, health_checks=True, task_class=None):
         self.providers = providers
+        self.task_class=task_class
         self.health_checks = health_checks
         self.health_started = set()
         self.token = secrets.token_urlsafe(32)
@@ -178,10 +179,10 @@ class Gateway:
         complete.wait(budget)
         return self.visible(list(self.catalog))
 
-    def routes(self, model):
+    def routes(self, model, task=None):
         if model == "free":
             entries = free_auto.ranked({key: value for key, value in self.providers.items()
-                                        if key in FREE_COMPATIBLE})
+                                        if key in FREE_COMPATIBLE},task=task)
             from codelaboon import model_health
             def tier(rows):
                 names=list(dict.fromkeys(entry.provider for entry in rows))
@@ -210,7 +211,9 @@ class Gateway:
         if api == "responses" and not body.get("model", "").startswith("chatgpt/"):
             from codelaboon.responses_bridge import ResponsesResponse, to_chat
             return ResponsesResponse(self.request(to_chat(body), "chat", timeout=timeout), body)
-        routes = self.routes(body.get("model", ""))
+        from codelaboon import routing_metrics
+        category=routing_metrics.task_class(body.get('messages',[]),self.task_class)
+        routes = self.routes(body.get("model", ""),task=category)
         if not routes:
             raise ValueError("No free coding model is ready. Configure ourfree, or retry kilo/pollinations shortly.")
         failures = []
@@ -284,6 +287,7 @@ class Gateway:
                     url = f"{provider.base_url.rstrip('/')}/api/v1/chat/completions"
                     headers["authorization"] = f"Bearer {credential}"
                     headers["x-freebuff-client-version"] = __version__
+            started=time.monotonic()
             try:
                 transport = self.local if name == "local" else requests
                 response = transport.post(url, headers=headers, json=payload,
@@ -293,6 +297,7 @@ class Gateway:
                     from codelaboon.model_health import observe
                     observe(name,provider,model,"unavailable")
                 self.cooldowns[name] = time.monotonic() + 30
+                if self.health_checks:routing_metrics.observe(name,provider,model,category,'failed',time.monotonic()-started)
                 failures.append(f"{name}: connection failed")
                 continue
             if not 200 <= response.status_code < 300 and self.health_checks and self.health_applies(name,provider):
@@ -305,9 +310,12 @@ class Gateway:
                     model_health.observe(name,provider,model,model_health.classify(response.status_code))
                 if response.status_code in (401,402,403,429) or response.status_code>=500:
                     self.cooldowns[name] = time.monotonic() + 30
+                if self.health_checks:routing_metrics.observe(name,provider,model,category,'failed',time.monotonic()-started)
                 response.close()
                 continue
             response.codelaboon_google_oauth = google_oauth
+            if self.health_checks and api=='chat' and routing_metrics.enabled():
+                return routing_metrics.MeasuredResponse(response,name,provider,model,category,started)
             return response
         raise ValueError("No free coding model answered. " + "; ".join(failures))
 
@@ -410,8 +418,8 @@ def handler(gateway):
 
 
 @contextmanager
-def serve(providers):
-    gateway = Gateway(providers)
+def serve(providers,task_class=None):
+    gateway = Gateway(providers,task_class=task_class)
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler(gateway))
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

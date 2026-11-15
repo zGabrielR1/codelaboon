@@ -9,10 +9,12 @@ permissions:
   contents: write
 
 jobs:
+  portable:
+    uses: ./.github/workflows/portable.yml
   native:
     uses: ./.github/workflows/native-ui.yml
   build-and-release:
-    needs: native
+    needs: [native, portable]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

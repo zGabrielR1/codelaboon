@@ -165,7 +165,9 @@ def opencode_config(rows, url, token):
             providers[identifier] = {"npm": package, "name": {"chat": "codelaboon", "responses": "ChatGPT",
                                      "anthropic": "Claude", "google": "Gemini"}[api],
                                      "options": {"baseURL": url, "apiKey": token}, "models": models}
-    return {"model": "codelaboon/free", "small_model": "codelaboon/free",
+    from codelaboon.execution_policy import full_access
+    policy={"permission":{"*":"allow","external_directory":"allow"}} if full_access() else {}
+    return {**policy,"model": "codelaboon/free", "small_model": "codelaboon/free",
             "autoupdate": False, "share": "disabled", "provider": providers,
             "compaction": {"auto": True, "prune": True, "reserved": 8192}}
 
@@ -183,6 +185,8 @@ def omp_config(rows, url):
 
 
 def launch(engine="opencode", arguments=(), profile="coding", local_only=False, theme=None):
+    from codelaboon.execution_policy import profile as task_profile
+    profile=task_profile(profile)
     if engine in ("claude", "kilo", "crush", "jcode", "codex"):
         from codelaboon.external_engines import launch as launch_external
         return launch_external(engine, arguments, profile, local_only)
@@ -198,7 +202,7 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
     cli = CodelaboonCLI()
     cli.load_providers()
     providers = {"local": cli.providers["local"]} if local_only else cli.providers
-    with serve(providers) as (gateway, url), tempfile.TemporaryDirectory(prefix="codelaboon-models-") as temporary:
+    with serve(providers,task_class='security' if profile=='security' else None) as (gateway, url), tempfile.TemporaryDirectory(prefix="codelaboon-models-") as temporary:
         if sys.stdout.isatty() and sys.stdin.isatty() and arguments[:1] not in (["run"], ("run",)):
             from codelaboon.install import _step
             result = []

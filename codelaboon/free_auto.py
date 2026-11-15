@@ -124,7 +124,7 @@ def _availability(model: FreeModel, providers: Dict[str, object]) -> float:
     return 1.0 if model_health.verified(model.provider, provider, model.model) else 0.8
 
 
-def ranked(providers: Dict[str, object]) -> List[FreeModel]:
+def ranked(providers: Dict[str, object], task=None) -> List[FreeModel]:
     """Rank current provider IDs only; historical capability hints are never model discovery."""
     from codelaboon import model_health
     hints = {(entry.provider, entry.model): entry for entry in CATALOG}
@@ -139,7 +139,9 @@ def ranked(providers: Dict[str, object]) -> List[FreeModel]:
             entry=hints.get((name,model),FreeModel(name,model,8.0,8.0))
             availability=_availability(entry,providers)
             if availability>0:
-                scored.append((entry.score(availability),-len(scored),entry))
+                from codelaboon import routing_metrics
+                learned=routing_metrics.adjustment(name,provider,model,task or routing_metrics.task_class()) if routing_metrics.enabled() else 0
+                scored.append((entry.score(availability)+learned,-len(scored),entry))
     scored.sort(reverse=True)
     return [entry for _,_,entry in scored]
 
@@ -219,7 +221,9 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
     """
     import time
 
-    entries = ranked(providers)
+    from codelaboon import routing_metrics
+    category=routing_metrics.task_class(messages)
+    entries = ranked(providers,category)
     if not entries:
         raise ValueError(
             "No free model is configured. Sign in to Gemini/Freebuff/Qoder, or "
@@ -238,10 +242,12 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
             if attempts > max_attempts:
                 break
             try:
+                started=time.monotonic()
                 reply = provider.chat(entry.model, list(messages), **kwargs)
             except Exception as error:  # Fail over: the point of Auto is availability.
                 from codelaboon import model_health
                 model_health.observe(entry.provider,provider,entry.model,model_health.failure(error))
+                routing_metrics.observe(entry.provider,provider,entry.model,category,'failed',time.monotonic()-started)
                 errors.append(f"{entry.provider}/{entry.model}: {error}")
                 if attempt == 0 and _is_transient_error(error):
                     time.sleep(0.6)
@@ -250,7 +256,9 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
             if isinstance(reply, str) and reply.strip():
                 from codelaboon import model_health
                 model_health.observe(entry.provider,provider,entry.model,"working")
+                routing_metrics.observe(entry.provider,provider,entry.model,category,'ok',time.monotonic()-started)
                 return entry, reply
+            routing_metrics.observe(entry.provider,provider,entry.model,category,'failed',time.monotonic()-started)
             errors.append(f"{entry.provider}/{entry.model}: empty reply")
             if attempt == 0:
                 time.sleep(0.25)

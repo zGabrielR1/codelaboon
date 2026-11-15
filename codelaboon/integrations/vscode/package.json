@@ -3,7 +3,7 @@
   "displayName": "Codelaboon",
   "description": "Native coding engines, shared sessions, and import/export across seven agents.",
   "publisher": "codelaboon",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "preview": true,
   "engines": {
     "vscode": "^1.85.0"
@@ -16,7 +16,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onUri",
-    "onView:codelaboon.sessions"
+    "onView:codelaboon.sessions",
+    "onView:codelaboon.diagnostics"
   ],
   "extensionDependencies": [
     "anthropic.claude-code"
@@ -83,6 +84,15 @@
         "command": "codelaboon.refreshSessions",
         "title": "Codelaboon: Refresh Sessions",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "codelaboon.refreshDiagnostics",
+        "title": "Codelaboon: Refresh Diagnostics",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "codelaboon.evaluateController",
+        "title": "Codelaboon: Evaluate Local Controller"
       }
     ],
     "configuration": {
@@ -116,6 +126,10 @@
         {
           "id": "codelaboon.sessions",
           "name": "Sessions"
+        },
+        {
+          "id": "codelaboon.diagnostics",
+          "name": "Diagnostics"
         }
       ]
     },
@@ -146,6 +160,11 @@
           "command": "codelaboon.refreshSessions",
           "when": "view == codelaboon.sessions",
           "group": "navigation@3"
+        },
+        {
+          "command": "codelaboon.refreshDiagnostics",
+          "when": "view == codelaboon.diagnostics",
+          "group": "navigation"
         }
       ],
       "view/item/context": [

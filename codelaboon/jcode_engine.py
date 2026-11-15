@@ -40,6 +40,20 @@ def prepare(rows, url, home):
     config.write_text(retained.rstrip() + '\n' + '\n'.join(lines) + '\n', encoding='utf-8')
 
 
+def prepare_profile(home,profile):
+    # Native additive hook, scoped to Codelaboon's JCODE_HOME. Keep native base
+    # instructions and user overlays; never write ~/AGENTS.md or project files.
+    path=home/'prompt-overlay.md'
+    begin='<!-- codelaboon-security:start -->';end='<!-- codelaboon-security:end -->'
+    text=path.read_text(encoding='utf-8') if path.exists() else ''
+    text=re.sub(re.escape(begin)+r'.*?'+re.escape(end), '', text,flags=re.S).strip()
+    if profile=='security':
+        prompt=(Path(__file__).parent/'prompts/security.md').read_text()
+        text=(text+'\n\n'+begin+'\n'+prompt+'\n'+end).strip()
+    if text:path.write_text(text+'\n',encoding='utf-8')
+    elif path.exists():path.unlink()
+
+
 @contextmanager
 def profile_lock(home):
     home.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -90,12 +104,14 @@ def server_ready(address):
     return bool(kernel.WaitNamedPipeW(pipe, 0)) or ctypes.get_last_error() in (121, 231)
 
 
-def run(binary, arguments, rows, url, token, workers=4, timeout=1800, home=None, interactive=False):
+def run(binary, arguments, rows, url, token, workers=4, timeout=1800, home=None, interactive=False, profile=None):
     if not 1 <= workers <= 1000 or (timeout is None and not interactive) or (timeout is not None and timeout <= 0):
         raise ValueError('Workers must be 1–1000 and headless timeout must be positive')
     home = Path(home or data_dir() / 'jcode/runs' / uuid.uuid4().hex)
     home.mkdir(parents=True, exist_ok=True, mode=0o700)
     prepare(rows, url, home)
+    from codelaboon.execution_policy import profile as selected_profile
+    prepare_profile(home,selected_profile(profile or "coding"))
     env = dict(os.environ, JCODE_HOME=str(home), CODELABOON_GATEWAY_TOKEN=token,
                JCODE_NO_TELEMETRY='1', JCODE_CHECK_UPDATES='false', JCODE_MEMORY_ENABLED='false',
                JCODE_OPENROUTER_MAX_TOKENS='4096', JCODE_SWARM_MAX_CONCURRENT_AGENTS=str(workers))
@@ -110,6 +126,7 @@ def run(binary, arguments, rows, url, token, workers=4, timeout=1800, home=None,
             address = Path(temporary)/'agent.sock'
             command = [binary, '--no-update', '--no-selfdev', '--quiet', '--provider-profile', 'codelaboon',
                        '--socket', str(address)]
+            if os.environ.get('CODELABOON_WORK_TRACE')=='1':command.append('--trace')
             if not any(value in ('--model', '-m') or value.startswith('--model=') for value in arguments):
                 command.extend(['--model', 'free'])
             if interactive:
@@ -152,16 +169,16 @@ def launch(binary, arguments, profile, local_only, rows, url, token):
         arguments = ['--model', default, *arguments]
     if profile == 'security':
         prompt = (Path(__file__).parent / 'prompts/security.md').read_text()
-        if arguments[:1] in (['run'], ('run',)):
+        if 'run' in arguments:
             arguments = [*arguments[:-1], prompt + '\n\n' + arguments[-1]]
     if 'run' not in arguments:
         key = hashlib.sha256(str(Path.cwd().resolve()).encode()).hexdigest()[:20]
         home = data_dir()/'jcode/projects'/key
         with profile_lock(home):
-            return run(binary, arguments, rows, url, token, timeout=None, home=home, interactive=True)
+            return run(binary, arguments, rows, url, token, timeout=None, home=home, interactive=True, profile=profile)
     if any(value=='--resume' or value.startswith('--resume=') for value in arguments):
         key = hashlib.sha256(str(Path.cwd().resolve()).encode()).hexdigest()[:20]
         home = data_dir()/'jcode/projects'/key
         with profile_lock(home):
-            return run(binary, arguments, rows, url, token, home=home)
-    return run(binary, arguments, rows, url, token)
+            return run(binary, arguments, rows, url, token, home=home, profile=profile)
+    return run(binary, arguments, rows, url, token, profile=profile)

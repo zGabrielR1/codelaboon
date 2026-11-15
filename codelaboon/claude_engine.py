@@ -61,7 +61,9 @@ def launch(binary, arguments, profile, local_only, rows, url, token):
     descriptor, settings_path = tempfile.mkstemp(prefix='.gateway-', suffix='.json', dir=directory)
     with os.fdopen(descriptor, 'w') as stream:
         json.dump(settings, stream)
+    from codelaboon.execution_policy import full_access
     command = [binary, '--settings', settings_path, *arguments]
+    if full_access():command.append('--dangerously-skip-permissions')
     if profile == 'security':
         command.extend(['--append-system-prompt', (Path(__file__).parent / 'prompts/security.md').read_text()])
     import sys

@@ -2,6 +2,7 @@
 import hashlib
 from pathlib import Path
 import json
+import os
 import shlex
 import subprocess
 import sys
@@ -36,8 +37,11 @@ def wait(label, predicate):
 
 
 with fixture('jcode') as (project, env, observed):
+    profile=os.environ.get('CODELABOON_UI_PROFILE','coding')
+    assert profile in ('coding','security')
+    env['CODELABOON_WORK_PROFILE']=profile
     assignments = [key+'='+env[key] for key in ('CODELABOON_CONFIG_DIR', 'CODELABOON_DATA_DIR', 'CODELABOON_MODEL_CHECKS',
-                   'CODELABOON_JCODE_BIN', 'PATH') if key in env]
+                   'CODELABOON_JCODE_BIN', 'PATH','CODELABOON_WORK_PROFILE') if key in env]
     command = ['env', *assignments, sys.executable, str(ROOT/'codelaboon/cli.py'), 'jcode']
     try:
         tmux('-f', '/dev/null', 'new-session', '-d', '-s', 'qa', '-x', '160', '-y', '44',
@@ -49,6 +53,7 @@ with fixture('jcode') as (project, env, observed):
         tmux('send-keys', '-t', 'qa', 'Enter')
         wait('reply', lambda value: REPLY in value)
         assert observed, 'No native UI request reached the gateway'
+        if profile=='security':assert 'authorized pentesting assistant' in json.dumps(observed[0]['messages']),'Native additive security overlay absent'
         key = hashlib.sha256(str(project.resolve()).encode()).hexdigest()[:20]
         profile = project/'data/jcode/projects'/key
         assert list((profile/'sessions').glob('*.json')), 'No persistent native session'

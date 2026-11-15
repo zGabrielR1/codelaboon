@@ -94,6 +94,10 @@ def agent(model, prompt_file, runtime, engine="jcode"):
 
 
 def main():
+    import signal
+    def stopped(signum,frame):raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM,stopped)
+    if os.name!='nt':signal.signal(signal.SIGHUP,stopped)
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, 'reconfigure'):
             stream.reconfigure(encoding='utf-8', errors='replace')

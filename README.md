@@ -730,3 +730,14 @@ Shared sessions are available with `codelaboon sessions list` and
 A one-time `sessions convert` also exports native sessions for independent agents
 without adding them to the library or requiring Codelaboon at continuation time.
 See [universal sessions and standalone conversion](docs/universal-sessions.md).
+
+
+### RC20: scoped security, permissions and diagnostics
+
+Continuous tasks support explicit full agent permissions, immutable security
+scopes, local scope review and file allowlists. Root/admin actions use separately
+reviewed, expiring native OS approval cases on Linux/macOS/Windows. Security
+assessments include bounded HTTP/TLS/exposure checks and scoped nmap evidence.
+Routing learns from observed latency and independent task checks; a VS Code
+Diagnostics view exposes operational state. See [RC20 usage, evaluation and
+platform coverage](docs/rc20-security-and-operations.md).

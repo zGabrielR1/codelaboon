@@ -33,7 +33,7 @@ def pending_work(config, runtime):
         tasks = list(config.get('tasks', []))
         tasks.extend(json.loads(path.read_text()) for path in (runtime / 'inbox').glob('*.json'))
         from codelaboon.work_queue import ready
-        return any(ready(task, state, runtime) and task.get('swarm', {}).get('controller') != 'worker'
+        return any(ready(task, state, runtime) and (task.get('swarm', {}).get('controller') != 'worker' or task.get('supervision',{}).get('enabled'))
                    for task in tasks)
     except (OSError, ValueError, KeyError, TypeError):
         return True  # Let the supervisor diagnose malformed state; do not silently drop work.
@@ -78,7 +78,7 @@ def serve(config_path):
         from codelaboon import __version__
         from codelaboon.watch import save
         save(runtime/'service-info.json', {'version': __version__, 'pid': os.getpid(),
-                                           'features': ['continuous-swarm']})
+                                           'features': ['continuous-swarm','task-execution-policy','active-supervision','privilege-cases']})
         with (local / 'service-server.log').open('ab') as server_log, \
                 (runtime / 'supervisor.log').open('ab') as worker_log:
             while not (runtime / 'STOP').exists():

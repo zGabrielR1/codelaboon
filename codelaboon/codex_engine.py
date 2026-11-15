@@ -31,7 +31,9 @@ def launch(binary,arguments,profile,local_only,rows,url,token):
     settings['model_catalog_json']=catalog
     # Put enforced provider overrides after SDK arguments; preserve their transport,
     # editor context, permission and MCP flags. Never change the user's Codex home.
+    from codelaboon.execution_policy import full_access
     command=[binary,*arguments]
+    if full_access():command.append('--dangerously-bypass-approvals-and-sandbox')
     for key,value in settings.items(): command.extend(['-c',key+'='+json.dumps(value)])
     try:
         process=subprocess.Popen(command,env=env,start_new_session=os.name!='nt')

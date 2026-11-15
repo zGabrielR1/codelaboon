@@ -26,7 +26,7 @@ def choose(config, candidates):
                 {'role': 'user', 'content': json.dumps(candidates)}],
             'chat_template_kwargs': {'enable_thinking': False}}
     request = urllib.request.Request(url, data=json.dumps(body).encode(),
-                                     headers={'Content-Type': 'application/json'})
+                                     headers={'Content-Type': 'application/json',**({'Authorization':'Bearer '+config['token']} if config.get('token') else {})})
     # Ignore system proxies and refuse redirects away from the local server.
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, *args, **kwargs):

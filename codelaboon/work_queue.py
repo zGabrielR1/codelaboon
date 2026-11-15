@@ -10,7 +10,7 @@ def controls(root, task_id):
 
 def ready(task, state, root, now=None):
     control = controls(root, task['id'])
-    return (task['id'] not in state.get('done', [])
+    return (task.get('elevation','none')=='none' and task['id'] not in state.get('done', [])
             and not (control / 'PAUSE').exists() and not (control / 'STOP').exists()
             and state.get('next_run', {}).get(task['id'], 0) <= (time.time() if now is None else now))
 

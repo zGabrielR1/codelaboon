@@ -558,6 +558,10 @@ class CodelaboonCLI:
 
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
         subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
+        subparsers.add_parser("controller-eval", help="Evaluate the optional local supervisor against scope fixtures")
+        subparsers.add_parser("routing", help="Measured task-aware routing status and policy")
+        subparsers.add_parser("security", help="Run scoped, evidence-backed security assessment workflows")
+        subparsers.add_parser("privilege", help="Review and approve bounded root/administrator cases")
         subparsers.add_parser("sessions", help="Share, resume or convert sessions across coding engines")
         subparsers.add_parser("ourfree", help="Run or connect the official standalone Our Free Model gateway")
         subparsers.add_parser("opencode", help="Open the default native OpenCode UI")
@@ -874,6 +878,28 @@ def main() -> None:
     if sys.argv[1:2] and sys.argv[1] in ("opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"):
         run_tui(sys.argv[1], sys.argv[2:])
         return
+    if sys.argv[1:2] == ['controller-eval']:
+        from codelaboon.controller_evaluation import main as evaluate
+        raise SystemExit(evaluate(sys.argv[2:]))
+    if sys.argv[1:2] == ['doctor']:
+        if len(sys.argv)==2:
+            ok=CodelaboonCLI().doctor()
+            from codelaboon.doctor import main as doctor
+            doctor([])
+            if not ok:raise SystemExit(1)
+        else:
+            from codelaboon.doctor import main as doctor
+            doctor(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['routing']:
+        from codelaboon.routing_metrics import main as routing_main
+        routing_main(sys.argv[2:]);return
+    if sys.argv[1:2] == ['security']:
+        from codelaboon.security_assessment import main as security_main
+        security_main(sys.argv[2:]);return
+    if sys.argv[1:2] == ['privilege']:
+        from codelaboon.privilege import main as privilege_main
+        privilege_main(sys.argv[2:]);return
     if sys.argv[1:2] == ['sessions']:
         from codelaboon.session_transfer import main as session_main
         session_main(sys.argv[2:])

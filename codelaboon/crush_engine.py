@@ -52,7 +52,8 @@ def launch(binary, arguments, profile, local_only, rows, url, token):
         env['CRUSH_GLOBAL_CONFIG'] = directory
         if arguments[:1] in (["run"], ("run",), ["r"], ("r",)):
             return run_with_server(binary, arguments, project, env, directory)
-        return subprocess.call([binary, *arguments], cwd=project, env=env)
+        from codelaboon.execution_policy import full_access
+        return subprocess.call([binary, *(['-y','-y'] if full_access() else []), *arguments], cwd=project, env=env)
 
 
 def server_ready(address):
@@ -83,8 +84,10 @@ def run_with_server(binary, arguments, project, env, temporary):
     host = ('npipe:////./pipe/' + address.rsplit('\\', 1)[-1] if os.name == 'nt' else 'unix://' + address)
     options = dict(env, CRUSH_CLIENT_SERVER='true', CRUSH_SERVER_READY_TIMEOUT='15s',
                    CRUSH_CACHE_DIR=str(Path(temporary) / 'cache'))
+    from codelaboon.execution_policy import full_access
+    flags=['-y','-y'] if full_access() else []
     with (Path(temporary) / 'server.log').open('w+') as log:
-        server = subprocess.Popen([binary, 'server', '--host', host], cwd=project, env=options,
+        server = subprocess.Popen([binary, *flags, 'server', '--host', host], cwd=project, env=options,
                                   stdin=subprocess.DEVNULL, stdout=log, stderr=log)
         try:
             deadline = time.monotonic() + 15
@@ -93,7 +96,7 @@ def run_with_server(binary, arguments, project, env, temporary):
                     log.seek(0)
                     raise RuntimeError('Crush server did not become ready: ' + log.read()[-2000:])
                 time.sleep(0.05)
-            return subprocess.call([binary, '--host', host, *arguments], cwd=project, env=options)
+            return subprocess.call([binary, *flags, '--host', host, *arguments], cwd=project, env=options)
         finally:
             if server.poll() is None:
                 server.terminate()

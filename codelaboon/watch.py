@@ -57,13 +57,32 @@ def progress_tail(directory, limit=12000):
         return '(Previous output unavailable; inspect the saved attempt directory.)'
 
 
-def execute(argv, cwd, output, timeout):
+def execute(argv, cwd, output, timeout, env=None, monitor=None, review_interval=15):
+    if env is None:
+        from codelaboon.execution_policy import child_environment
+        env=child_environment({})
     with output.open('wb') as log:
         process = subprocess.Popen(argv, cwd=cwd, stdout=log,
                                    stderr=subprocess.STDOUT,
-                                   start_new_session=os.name != 'nt')
+                                   start_new_session=os.name != 'nt',env=env)
         try:
-            return process.wait(timeout=timeout)
+            if monitor is None:return process.wait(timeout=timeout)
+            deadline=time.monotonic()+timeout;next_review=time.monotonic()+review_interval
+            while True:
+                remaining=deadline-time.monotonic()
+                if remaining<=0:raise subprocess.TimeoutExpired(argv,timeout)
+                try:
+                    code=process.wait(timeout=min(0.5,remaining))
+                    if code==0:
+                        decision=getattr(monitor,'finish',monitor)()
+                        if decision is not None:return decision
+                    return code
+                except subprocess.TimeoutExpired:pass
+                if time.monotonic()>=next_review:
+                    decision=monitor()
+                    if decision is not None:
+                        terminate(process);return decision
+                    next_review=time.monotonic()+review_interval
         except subprocess.TimeoutExpired:
             terminate(process)
             return 124
@@ -170,6 +189,25 @@ def supervise(config, base, root, once):
         for task in queued:
             if task['id'] not in all_tasks:
                 all_tasks[task['id']] = task
+        from codelaboon.privilege import digest
+        for elevated_task in all_tasks.values():
+            if elevated_task.get('elevation','none')=='none':continue
+            directory=__import__('codelaboon.work_queue',fromlist=['controls']).controls(root,elevated_task['id'])
+            for receipt in directory.glob('privileged-*.json'):
+                try:result=json.loads(receipt.read_text())
+                except (OSError,ValueError):continue
+                if not isinstance(result,dict) or result.get('task_sha256')!=digest(elevated_task):continue
+                consumed=state.setdefault('privileged_cases',[])
+                case_id=result.get('case')
+                if not isinstance(case_id,str) or case_id in consumed:continue
+                consumed.append(case_id)
+                if result.get('exit_code')==0 and elevated_task['id'] not in state['done']:
+                    cycles=state['cycles'];cycles[elevated_task['id']]=cycles.get(elevated_task['id'],0)+1
+                    swarm=elevated_task.get('swarm')
+                    if not swarm or (swarm['cycles'] and cycles[elevated_task['id']]>=swarm['cycles']):state['done'].append(elevated_task['id'])
+                elif result.get('exit_code')!=0:
+                    (directory/'PAUSE').touch()
+                save(state_path,state)
         pending = [t for t in all_tasks.values() if ready(t, state, root)]
         eligible = [h for h in harnesses if
                     state['cooldowns'].get(h['id'], 0) <= time.time()]
@@ -221,7 +259,7 @@ def supervise(config, base, root, once):
             jobs = [job for job in jobs if not direct(job)][:16]
             metadata = [{'task': t['id'], 'project': t['project'],
                          'stage': s, 'harness': h['id'], 'model': h.get('model', 'auto'),
-                         'health': state['health'].get(h['id'], {}),
+                         'health': state['health'].get(h['id'], {}),'profile':t.get('profile','coding'),
                          'capabilities': h.get('capabilities', [])} for t, h, s in jobs]
             try:
                 from codelaboon.local_router import choose
@@ -236,9 +274,13 @@ def supervise(config, base, root, once):
                 time.sleep(min(idle, 30))
                 continue
             task, harness, stage = jobs[selection]
+        from codelaboon.work_queue import controls
+        reset=controls(root,task['id'])/'RESET_SUPERVISION'
+        if reset.exists():
+            state.setdefault('redirects',{}).pop(task['id'],None);reset.unlink(missing_ok=True)
         project = (base / task['project']).resolve()
         attempt = root / str(uuid.uuid4())
-        attempt.mkdir()
+        attempt.mkdir(mode=0o700)
         prompt = attempt / 'prompt.md'
         content = task['prompt']
         if task.get('swarm'):
@@ -261,6 +303,12 @@ def supervise(config, base, root, once):
                 content += '\nPrevious attempt logs (inspect if needed): ' + previous
                 if task.get('swarm'):
                     content += '\nBounded previous progress summary:\n' + progress_tail(previous)
+        if task.get('permissions')=='full':content+='\nExecution policy: agent full access was explicitly selected for this task only. Operating-system/admin restrictions still apply. Justify native tool requests in terms of the allowed objective; never expand scope or seek new privileges. Report genuine OS blockers rather than repeatedly retrying them.'
+        if task.get('scope'):content+='\n\nImmutable allowed scope: '+task['scope']
+        if task.get('profile')=='security':content='Security profile: '+(Path(__file__).parent/'prompts/security.md').read_text()+'\n\n'+content
+        correction=state.setdefault('corrections',{}).get(task['id'])
+        if correction:content+='\n\nSupervisor correction (within the original scope): '+correction
+        content+='\nStay within this objective and scope. Full process permissions do not expand task scope.'
         prompt.write_text(content, encoding='utf-8')
         values = {'python': sys.executable, 'project': str(project),
                   'source': str(Path(__file__).resolve().parent.parent),
@@ -268,13 +316,24 @@ def supervise(config, base, root, once):
                   'prompt': content, 'prompt_file': str(prompt)}
         argv = [part.format_map(values) for part in harness['argv']]
         record = {'task': task['id'], 'harness': harness['id'], 'stage': stage,
-                  'started': time.time(), 'status': 'running'}
+                  'started': time.time(), 'status': 'running','permissions':task.get('permissions','default'),
+                  'profile':task.get('profile','coding'),'scope':task.get('scope',''),
+                  'supervision':task.get('supervision',{'enabled':False})}
         save(attempt / 'result.json', record)
         print(f"Running {task['id']} with {harness['id']}", flush=True)
         build_started = time.monotonic()
         try:
+            from codelaboon.execution_policy import child_environment
+            execution={'env':child_environment(task)}
+            execution['env']['CODELABOON_ROUTING_TASK']='planning' if stage=='plan' else ('security' if task.get('profile')=='security' else 'coding')
+            execution['env']['CODELABOON_ROUTING_TRACE']=str(attempt/'routing.jsonl')
+            if stage!='plan' and task.get('supervision',{}).get('enabled'):
+                from codelaboon.supervision import Monitor,validate
+                options=validate(task['supervision'])
+                if not orchestrator:raise ValueError('Live supervision requires a local orchestrator')
+                execution.update(monitor=Monitor(orchestrator,task,project,attempt),review_interval=options.get('interval',15))
             code = execute(argv, project, attempt / 'output.log',
-                           max(1, float(harness.get('timeout_seconds', 1800))))
+                           max(1, float(harness.get('timeout_seconds', 1800))),**execution)
         except OSError as error:
             (attempt / 'output.log').write_text(str(error), encoding='utf-8')
             code = 127
@@ -282,8 +341,10 @@ def supervise(config, base, root, once):
             output = attempt / 'output.log'
             if not output.exists() or not output.read_text(encoding='utf-8', errors='replace').strip():
                 code = 125
+        checks_run=False
         if code == 0 and stage != 'plan':
             for number, check in enumerate(task.get('verify_argv', [])):
+                checks_run=True
                 try:
                     remaining = (task['swarm']['timeout'] - (time.monotonic()-build_started)
                                  if task.get('swarm') else float(task.get('verify_timeout_seconds', 600)))
@@ -297,6 +358,24 @@ def supervise(config, base, root, once):
                     code = 127
                 if code:
                     break
+        if checks_run:
+            from codelaboon.routing_metrics import feedback
+            feedback(attempt/'routing.jsonl',code==0)
+        decision=json.loads((attempt/'supervision.json').read_text()) if (attempt/'supervision.json').exists() else {}
+        if task.get('supervision',{}).get('enabled') and decision.get('action')=={75:'redirect',76:'pause'}.get(code,'never'):
+            if code==75:
+                state.setdefault('corrections',{})[task['id']]=decision['correction']
+                state['plans'].pop(task['id'],None)
+                redirects=state.setdefault('redirects',{});redirects[task['id']]=redirects.get(task['id'],0)+1
+                if redirects[task['id']]>=3:
+                    from codelaboon.work_queue import controls
+                    directory=controls(root,task['id']);directory.mkdir(parents=True,exist_ok=True);(directory/'PAUSE').touch();code=76
+            state['last_attempts'][task['id']]=str(attempt)
+            state['task_cursor']+=1
+            record.update(status='redirected' if code==75 else 'paused',exit_code=code,finished=time.time())
+            save(attempt/'result.json',record);save(state_path,state)
+            if once:return
+            continue
         record.update(status='succeeded' if code == 0 else 'failed',
                       exit_code=code, finished=time.time())
         health = state['health'].setdefault(harness['id'], {'succeeded': 0, 'failed': 0})
@@ -308,6 +387,8 @@ def supervise(config, base, root, once):
             if stage == 'plan':
                 state['plans'][task['id']] = str(attempt / 'output.log')
             else:
+                state.setdefault('corrections',{}).pop(task['id'],None)
+                state.setdefault('redirects',{}).pop(task['id'],None)
                 state['cycles'][task['id']] = state['cycles'].get(task['id'], 0) + 1
                 swarm = task.get('swarm')
                 if swarm and (not swarm['cycles'] or state['cycles'][task['id']] < swarm['cycles']):

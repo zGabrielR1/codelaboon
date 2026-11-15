@@ -187,6 +187,8 @@ def executable(engine):
 
 
 def launch(engine, arguments=(), profile="coding", local_only=False):
+    from codelaboon.execution_policy import profile as task_profile
+    profile=task_profile(profile)
     binary = executable(engine)
     if arguments[:1] in (["--version"], ("--version",), ["--help"], ("--help",)) or (
             engine == "crush" and any(flag in arguments for flag in ("--help", "-h"))):
@@ -203,7 +205,7 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
         from codelaboon.native_gateway import FREE_COMPATIBLE
         providers = {name: provider for name, provider in providers.items()
                      if name in FREE_COMPATIBLE or name == "local"}
-    with serve(providers) as (gateway, url):
+    with serve(providers,task_class='security' if profile=='security' else None) as (gateway, url):
         rows = gateway.models(startup=True)
         if not rows:
             raise RuntimeError("No model is listed for this session")

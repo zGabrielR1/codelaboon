@@ -1,0 +1,28 @@
+name: portable RC20 contracts
+on:
+  workflow_call:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install .
+      - name: Scoped assessment, elevation and telemetry contracts
+        env:
+          CODELABOON_MODEL_CHECKS: '0'
+          CODELABOON_METRICS: '0'
+        run: python -m unittest discover -s tests -p test_rc20_portable.py -v
+      - name: Native elevation bootstrap / Windows UAC parser
+        run: python scripts/smoke_privilege_ci.py

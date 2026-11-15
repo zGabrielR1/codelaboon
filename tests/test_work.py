@@ -32,7 +32,7 @@ class WorkTests(unittest.TestCase):
             root = Path(directory)
             config = self.configure(root)
             calls = []
-            def execute(*args):
+            def execute(*args, **kwargs):
                 calls.append(args)
                 if len(calls) == 1:
                     work.add(root, 'second instruction', [[sys.executable, '-c', 'pass']], config)

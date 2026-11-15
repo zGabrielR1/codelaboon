@@ -1,3 +1,18 @@
+## 1.0.0rc20 - 2026-11-15
+
+- Add per-task native full permissions, active local scope review, redirect/replan,
+  file allowlists and durable pause/resume; preserve the original objective.
+- Add separate expiring root/admin cases with exact command review, native sudo/UAC,
+  single-use receipts and bounded elevated worker cycles; never auto-elevate services.
+- Add scoped HTTP/TLS/exposure assessments, evidence/remediation reports, tool
+  capability detection and exact-host/port nmap cases/import, with real local labs.
+- Learn task-aware routing from private bounded latency/outcome observations;
+  expose fast/balanced/deep presets without claiming guaranteed model intelligence.
+- Add reproducible local-controller evaluation and offline CLI/VS Code diagnostics.
+  Small-model regression score is 11/13; document misses and independent file guards.
+- Apply native Jcode security overlays in interactive sessions while preserving
+  native base instructions and user preferences. Add Linux/macOS/Windows contracts.
+
 ## 1.0.0rc17 - 2026-11-15
 
 - Verify free models with real replies, valid function calls and unpredictable

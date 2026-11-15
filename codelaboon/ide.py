@@ -61,7 +61,7 @@ def build_vsix(destination,bootstrap=None):
     with zipfile.ZipFile(destination,'w',zipfile.ZIP_DEFLATED) as archive:
         archive.writestr('extension.vsixmanifest',manifest)
         archive.writestr('[Content_Types].xml',types)
-        for name in ('package.json','extension.js','session-actions.js','sessions.svg','README.md'):
+        for name in ('package.json','extension.js','session-actions.js','diagnostics.js','sessions.svg','README.md'):
             archive.write(sources/name,'extension/'+name)
         license=Path(__file__).parent.parent/'LICENSE'
         archive.writestr('extension/LICENSE',license.read_text() if license.exists() else 'Personal use only; see https://github.com/zGabrielR1/codelaboon/blob/main/LICENSE')
