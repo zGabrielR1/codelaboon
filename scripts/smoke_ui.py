@@ -89,6 +89,11 @@ with fixture(args.engine, args.setup, development=args.types) as (project, env, 
         if args.engine == "omp":
             profile = Path(env["CODELABOON_CONFIG_DIR"]) / "omp"
             assert (profile / "logs").is_dir(), "OMP logs escaped the Codelaboon profile"
+            # Reply text can render while the native stream is still finishing.
+            # Require persistence after completion, not in that earlier frame.
+            deadline=time.monotonic()+10
+            while not list(profile.rglob("*.jsonl")) and time.monotonic()<deadline:
+                time.sleep(.1)
             assert list(profile.rglob("*.jsonl")), "OMP session was not persisted in the Codelaboon profile"
         key("Up")
         wait("history", lambda value: value.count(prompt) >= 2)

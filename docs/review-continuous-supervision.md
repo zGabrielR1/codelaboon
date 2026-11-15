@@ -61,3 +61,12 @@ The small-model cases were development regressions, not held-out intelligence da
 
 Review disposition: proceed to final gates; no blocker hidden by a passing claim.
 UI/permission scope is covered by explicit cases and declared platform limits.
+
+CI follow-up: portable contracts pass on Linux/macOS/Windows, including actual
+read-only root bootstrap/elevated worker on disposable POSIX runners and Windows
+PowerShell parsing. All native gates except OMP80 passed. Its capture shows the
+reply while OMP still displays Working, before its asynchronous transcript flush.
+Keep the persistence assertion and wait at most ten seconds for the native file;
+do not remove the gate or fake a persisted session. Include the JSON evaluation
+in source-distribution docs and bound portable job time to five minutes. Changes
+reviewed before follow-up commit; release remains gated by the same native checks.

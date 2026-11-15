@@ -650,3 +650,12 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   wheel246357B and source427534B both below1MiB; connector includes diagnostics.
   Native Jcode security UI/resume and full Codex/Jcode tool checks passed. Public
   release still pending CI; no privileged host case or real task was run.
+
+- CI43758666288 passed portable Linux/macOS/Windows contracts and native POSIX
+  root bootstrap/worker; UAC parsing passed. Verify43758666300 passed Python3.11–13,
+  all optional engines, VTE startup and all terminal cases except OMP80. Capture
+  shows reply with Working before transcript flush: retain assertion but wait
+  bounded10seconds for native persistence. Add evalJSON to source docs manifest.
+- Installed local RC20 core/connector and restarted confirmed-idle worker; service
+  advertises privilege-cases, remains0pending/0completed. No actual root case ran
+  on this machine. Final public tag remains pending the CI follow-up.
