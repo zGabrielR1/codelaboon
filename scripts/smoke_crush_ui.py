@@ -46,7 +46,7 @@ with fixture('crush') as (project, env, observed):
         tmux('send-keys', '-t', 'qa', 'Up')
         wait('history', lambda value: value.count(prompt) >= 2)
         tmux('send-keys', '-t', 'qa', 'C-u', 'C-l')
-        wait('models', lambda value: 'free (Auto)' in value and ('kilo' in value.lower() or 'pollinations' in value.lower()))
+        wait('models', lambda value: 'free (Auto)' in value and 'fixture' in value.lower())
         tmux('send-keys', '-t', 'qa', 'Escape')
         time.sleep(0.3)
         tmux('send-keys', '-t', 'qa', 'C-p')

@@ -88,3 +88,7 @@ Smoke now Right+Enter selects fixture new session once; local fullJcodeUI PASS.
 No release published. Retag unpublished17 with reviewed testfix, rerunCI. Public
 monitor43668212891 PASS:2codingroutes,1chat-only,rate/deferred/skipped explicit.
 Actualunit codelaboon.service restarted idle; Code userwrapper confirmed configured.
+
+CI2: Jcode+swarm gatesPASS; Crush picker correct actualfixture names but oldlabel
+assertionfailed. Corrected Crush+Claude smoke torequireactualfixture; both full
+nativeUI checksPASS. Productunchanged. NoRC17release. Retag17 once more withfix.

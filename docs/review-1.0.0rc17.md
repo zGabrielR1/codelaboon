@@ -70,3 +70,10 @@ upstream v0.99.1 navigation: any non-Enter key rotates its two choices. The smok
 now selects the fixture-project new session once, then retains all reply, durable
 resume and owned-server cleanup assertions. Local native checks pass. No product
 behavior or user onboarding settings are changed. RC17 was not published.
+
+Second clean-run follow-up: Crush successfully replied and recalled prompts; its
+picker showed correct fixture models, but the assertion still required old
+provider display names. The fixture now intentionally returns name `fixture`
+with its live/free marker. Updated both Crush and Claude picker assertions to
+require Auto plus the actual fixture name. Both complete native UI checks pass
+locally, retaining themes/history/model checks. Product code unchanged.

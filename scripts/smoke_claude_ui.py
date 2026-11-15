@@ -52,7 +52,7 @@ with fixture('claude') as (project, env, observed):
         tmux('send-keys', '-t', 'qa', '-l', '/model')
         time.sleep(0.3)
         tmux('send-keys', '-t', 'qa', 'Enter')
-        wait('models', lambda value: 'free (Auto)' in value and ('kilo' in value.lower() or 'pollinations' in value.lower()))
+        wait('models', lambda value: 'free (Auto)' in value and 'fixture' in value.lower())
         result = {'engine': 'claude', 'onboarding_skipped': True, 'subscription_required': False,
                   'response': True, 'free_model_picker': True, 'native_model_requests': len(observed)}
         (artifacts / 'claude-free-ui.json').write_text(json.dumps(result, indent=2) + '\n')
