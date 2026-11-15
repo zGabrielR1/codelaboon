@@ -539,3 +539,11 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   focused adapter tests pass. Review docs/review-1.0.0rc18.md before commit.
 - User requested focused validation and publication. Next: install local RC18
   connector/core, push tag, finish existing release CI and verify published assets.
+
+- Published RC18 from f1eda6c. Verify43669720894 and release43669721302 succeeded,
+  including optional native Codex download and real shell-tool inference. All
+  uploaded SHA256SUMS entries verified; public VSIX has no local bootstrap. Exact
+  published204545-byte wheel installed. Sourcecheckout remains31MB.
+  Official Codex extension and connector installed locally; existing personal
+  VS Code windows need reload to activate the updated connector. No editor
+  windows forcibly closed. Requested RC complete; no user task queued.
