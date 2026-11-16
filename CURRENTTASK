@@ -1,4 +1,6 @@
-RC23 release explicitly requested. Implementation and local validation complete.
-347 tests pass,3 skipped; real Chromium smoke passes navigation/live-output/guidance at1440/768/390; source/wheel/VSIX built, engine provenance verified.
-Next: commit/push main, tag v1.0.0-rc.23, observe release gates, verify published checksums and notes.
-No real user task changed; no delegation.
+RC23 COMPLETE AND PUBLISHED: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.23
+Release source94dac7bc6187e9ffe7511ac65cc1cd86b86805a4. Release workflow43937514148 and verify43937484881 succeeded.
+All release portable/native/browser gates passed. Five downloadable artifacts verified against SHA256SUMS; published wheel entrypoint tests passed (optional Textual tests skipped in base build venv; full local347 tests passed,3 platform skips).
+Task navigation opens dedicated live chat routes; engine launchers expose Tasks, all7 aliases support --tasks, shared terminal viewer and --direct implemented. RC22 unpublished candidate features included.
+Read-only check found existing task instruction-43a3a186387f49d0b0b9fec9924ecd91 in retry wait. Never restarted, paused, messaged or elevated it.
+Local QA browser and fixture processes closed. No outstanding release work.

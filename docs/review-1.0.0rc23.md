@@ -11,3 +11,5 @@ Local verification: 347 unit tests passed, 3 skipped. Textual pilot tests exerci
 Remaining limits: viewing a background task is a shared task conversation rather than an imported native session. Guidance enters the next attempt, not an already-running model request. Long-running old workers need a graceful restart before guidance is supported. Textual task chat requires the optional tui extra; otherwise tasks open in the browser. No RC22 release was published; RC23 contains its candidate changes.
 
 Final responsive inspector: zero failures, one chart-hue warning caused by the navigation SVG (no chart is present). Screenshots viewed at desktop, tablet and mobile. Monospace lint applies to literal task IDs and captured code/output.
+
+Publication evidence: release workflow43937514148 and verify43937484881 succeeded for94dac7bc6187e9ffe7511ac65cc1cd86b86805a4. Public RC23 assets independently downloaded and SHA256-checked; published wheel task entry tests passed in an isolated environment.

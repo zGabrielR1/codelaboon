@@ -783,3 +783,11 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - RC23 publication explicitly requested; release build and CI pending. RC22 candidate is included without publishing a separate RC22 tag.
 
 RC23 local release verification: Chromium regression passed;347 unit tests pass with3 platform skips. Thin wheel290334 bytes, source499258 bytes; VSIX built, both engine archives pass provenance. Release CI/publication pending.
+
+
+### RC23 published (2026-11-16)
+- Public release: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.23
+- Source commit94dac7bc6187e9ffe7511ac65cc1cd86b86805a4. Release43937514148 and verify43937484881 succeeded; release gates include browser chat, portable contracts on Windows/macOS/Linux and all native engine checks.
+- Downloaded and verified five artifacts against SHA256SUMS: wheel290155 bytes, source495136 bytes, VSIX10281 bytes, both immutable engine source bundles. Published wheel task-entry tests pass; optional Textual tests covered by the full local347-test run.
+- Existing real task was found through the new projection in retry wait; no task controls or messages were applied.
+- Updated public release notes with entry commands, checkpoint delivery and old-worker/elevation limitations. RC22 was not separately published.
