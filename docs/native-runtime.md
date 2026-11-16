@@ -22,6 +22,64 @@ overriding the operating system's package protections. Fish profiles use
 `fish_add_path`. Source updates stop on a failed fast-forward pull; `--no-pull`
 explicitly reinstalls local work. Setup needs network access and disk space.
 
+## Windows: damaged runtime dependencies
+
+After the RC21 release, a Windows launch failed with `Cannot find module
+'@actions/core'` and `Unexpected \\x00` pointing to a cached dependency's
+`package.json`. Inspection found a 1,025-byte file containing NUL bytes while
+`.codelaboon-ready` still declared the runtime ready. The marker alone did not
+establish a healthy install. The cause of the file corruption was not established.
+
+The subsequent source fix changes runtime setup and readiness:
+
+- Readiness records hashes of valid hoisted dependency manifests. Missing,
+  malformed, NUL-filled or changed recorded manifests invalidate readiness.
+- Setup removes the old ready marker before installing dependencies. Detected
+  damaged dependencies are renamed to `.codelaboon-corrupt-dependencies-<id>`
+  inside the selected runtime so the files remain available for inspection.
+- Repair installs use a fresh temporary Bun cache. Windows installs use the
+  `copyfile` backend so the new dependency files do not share cache hardlinks.
+- Setup runs the engine's real startup imports with `--help`, with OpenCode's
+  model fetching, default plugins and automatic updates disabled. It writes an
+  atomic ready record only after that check succeeds.
+
+These changes are on the source branch after RC21; the original release archives
+are unchanged. From an updated source checkout, explicitly prepare OpenCode:
+
+```powershell
+python -m codelaboon tui --engine opencode --setup
+python -m codelaboon
+```
+
+When using an installed wheel outside the checkout, install the fixed source
+into the Python environment that owns your launcher first. From the checkout:
+
+```powershell
+python -m pip install --upgrade .
+codelaboon tui --engine opencode --setup
+codelaboon
+```
+
+Setup can download many dependencies and needs network access, free disk space
+and write access to the Codelaboon runtime directory. A failed install or startup
+check leaves the runtime unready so the next launch retries setup. Preserve the
+diagnostic output if a fresh install still fails. Do not launch another setup
+against the same runtime while the first is running.
+
+The repair operates on source-runtime dependencies. Provider configuration,
+credentials and saved sessions are stored separately. Preserved damaged
+dependency directories consume disk space and can be reviewed after recovery.
+Manifest hashes detect changes to the recorded manifests; they are not a full
+dependency-content attestation or a defense against arbitrary local tampering.
+
+On the affected Windows machine, rebuilding installed 803 packages. The repaired
+runtime validated 708 hoisted manifests, passed startup imports and opened the
+actual `codelaboon` home screen. Four regressions cover NUL/missing/changed
+manifests, preserved repair inputs, fresh-cache installation, and failed/timed-out
+startup checks. The full offline suite then passed 314 tests with three platform
+skips. This is local recovery evidence; the original RC21 release tests did not
+cover this damaged-cache case.
+
 ## RC10 native UI verification and Kilo reference
 
 Kilo CLI is itself an OpenCode fork. Its CLI theme at revision

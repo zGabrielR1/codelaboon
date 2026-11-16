@@ -8,9 +8,29 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
-RC21 adds scoped web and local IT security workflows: CORS, browser policies,
-cookie attributes, method advertisements, explicit local configuration audits,
-and defensive report comparison. See [RC21 security usage and limits](docs/rc21-security.md).
+### What changed in RC21
+
+RC21 expands the security workflow introduced in RC20:
+
+- **Web assessments:** inspect advertised HTTP methods, cookie attributes and
+  prefixes, cross-origin access (CORS), CSP, framing and transport-policy settings.
+- **Local IT checks:** audit explicitly named configuration files for private-key
+  markers and supported POSIX permission issues without copying their contents.
+- **Defensive retesting:** compare equivalent completed assessments to see which
+  observations are new, persist, or were not observed again.
+- **Stronger boundaries:** validate scope timing, URLs and pinned addresses;
+  recheck expiry before probes; hash response-header values; harden nmap imports.
+- **Behavior and architecture:** separate response rules, local auditing and
+  report comparison; guide the agent through hypotheses, evidence, fixes and retests.
+- **Windows reliability:** correct storage relocation path handling.
+
+Start with the [RC20-to-RC21 comparison and examples](docs/rc21-security.md#what-changed-from-rc20),
+or read the [full changelog](CHANGELOG.md). The published [RC21 release](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.21)
+contains the wheel, source, VS Code connector and verified engine bundles.
+For the Windows NUL-byte dependency/startup failure and its post-release source
+fix, see [runtime recovery](docs/native-runtime.md#windows-damaged-runtime-dependencies).
+
+### Harness principles
 
 codelaboon follows PI harness principles:
 

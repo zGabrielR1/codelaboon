@@ -744,3 +744,27 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   running-service changes, privileged execution or remote assessment was performed.
 - Requested RC21 publication is complete. Future expansion can address broader
   authenticated web/host coverage and the documented isolation/timeout limitations.
+
+## RC21 documentation and Windows runtime recovery - 2026-11-16
+
+- Expanded README and rc21-security.md with the RC20-to-RC21 comparison, behavior
+  and architecture changes, published-version installation, command examples,
+  comparison fields and explicit coverage limits. RC20's guide now links forward
+  instead of mixing later changes into its baseline. Changelog separates the
+  published release from subsequent source fixes.
+- Reproduced the Windows NUL-filled @actions/core package manifest despite an old
+  ready marker. Setup now validates and hashes hoisted manifests, preserves
+  damaged node_modules, repairs from a fresh temporary cache, uses copyfile on
+  Windows, checks real startup imports and atomically records readiness only on
+  success. Corruption's original cause remains unknown.
+- Repaired the affected local runtime without modifying provider/account files:
+  803 packages installed, 708 manifests validated, actual codelaboon home screen
+  opened in a temporary terminal session and closed successfully. Native startup
+  completed its own database migration. Damaged dependencies remain preserved.
+- Four new runtime integrity regressions pass. Full local suite: 314 tests,
+  zero failures/errors, 3 platform skips. Documentation checks pass for 25 relative
+  links/anchors, balanced code fences and CLI option examples. Diff whitespace
+  check passes. Review distinguished manifest checks from full content integrity
+  and the post-release source fix from immutable RC21 artifacts.
+- Original RC21 tag/assets remain unchanged. These source changes require the
+  updated checkout/installation; the affected installed launcher uses this checkout.

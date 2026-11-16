@@ -1,25 +1,12 @@
 # RC20 security and operations
 
 RC20 adds an evaluated assessment workflow alongside the security agent profile.
-Post-RC20 adds opt-in `--check methods` and `--check cookies` scope checks.
-Methods sends one OPTIONS request to each exact approved URL, recording known
-Allow tokens. Advertised PUT/DELETE/TRACE/CONNECT are informational observations;
-they are never executed and do not establish exploitability. Cookies sends one
-GET, recording attribute counts without retaining cookie names or values.
-Missing HttpOnly/SameSite, missing Secure on HTTPS, and SameSite=None without
-Secure produce contextual low-severity observations. Unparseable headers are
-counted; cookie purpose still requires independent review. Both probes consume
-the existing request budget; default checks remain headers/TLS/exposure.
-
-Pure response analysis lives in `security_checks.py`; the runner owns scope,
-network access, budgets and evidence identities. Scope validation rejects
-nonfinite timings, future/overlong lifetimes and ambiguous URL characters before
-probing. The security profile separates scope, hypothesis, probe, evidence review,
-remediation and retest, treating tool/target content as untrusted evidence.
-Profile guidance is not deterministic enforcement or an OS sandbox.
-
 The profile guides an agent; the assessment runner executes bounded checks and
 records reproducible observations. They are distinct parts of the same harness.
+
+This page documents the RC20 baseline. For methods/cookies/CORS/browser checks,
+local audits, defensive report comparison and subsequent hardening, read the
+[RC21 changes and usage guide](rc21-security.md#what-changed-from-rc20).
 
 ## Security assessment
 

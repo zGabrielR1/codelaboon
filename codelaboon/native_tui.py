@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import uuid
 
 import requests
 
@@ -87,6 +88,51 @@ def source_root(engine):
     return destination
 
 
+def dependency_snapshot(root):
+    """Check hoisted package manifests without descending into dependency trees."""
+    modules = root / 'node_modules'
+    snapshot = {}
+    for directory in modules.iterdir():
+        if directory.name.startswith('.') or not directory.is_dir():
+            continue
+        packages = directory.iterdir() if directory.name.startswith('@') else [directory]
+        for package in packages:
+            manifest = package / 'package.json'
+            if not manifest.is_file():
+                continue
+            with manifest.open('rb') as stream:
+                raw = stream.read(1024 * 1024 + 1)
+            if len(raw) > 1024 * 1024 or b'\0' in raw or not isinstance(json.loads(raw), dict):
+                raise ValueError('Invalid runtime dependency manifest: '+str(manifest))
+            snapshot[manifest.relative_to(root).as_posix()] = hashlib.sha256(raw).hexdigest()
+    if not snapshot:
+        raise ValueError('Runtime dependencies are missing')
+    return snapshot
+
+
+def check_startup(engine, root, bun):
+    """Exercise the actual startup imports before accepting an installation."""
+    if engine == 'opencode':
+        command = [bun, 'run', '--conditions=browser', '--preload',
+                   str(root / 'node_modules/@opentui/solid/scripts/preload.ts'),
+                   str(root / 'packages/opencode/src/index.ts'), '--help']
+    else:
+        command = [bun, str(root / 'packages/coding-agent/src/cli.ts'), '--help']
+    env = {**os.environ, 'OPENCODE_DISABLE_MODELS_FETCH':'true',
+           'OPENCODE_DISABLE_DEFAULT_PLUGINS':'true', 'OPENCODE_DISABLE_AUTOUPDATE':'true'}
+    with tempfile.TemporaryFile() as diagnostic:
+        try:
+            result = subprocess.run(command, cwd=root, env=env, stdout=subprocess.DEVNULL,
+                                    stderr=diagnostic, timeout=60)
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError('Runtime startup verification timed out; setup was not marked ready') from error
+        if result.returncode:
+            diagnostic.seek(0, os.SEEK_END)
+            diagnostic.seek(max(0, diagnostic.tell()-2048))
+            detail = diagnostic.read().decode('utf-8', errors='replace').replace('\0', '<NUL>')
+            raise RuntimeError('Runtime startup verification failed; setup was not marked ready. '+detail)
+
+
 def setup(engine):
     if engine in ("claude", "kilo", "crush", "jcode", "codex"):
         from codelaboon.external_engines import setup as install_external
@@ -96,12 +142,37 @@ def setup(engine):
     version = subprocess.check_output([bun, "--version"], text=True).strip().split(".")
     if tuple(int(part) for part in version[:3]) < (1, 3, 10):
         raise RuntimeError("The source TUI requires Bun >=1.3.10")
+    marker = root / '.codelaboon-ready'
+    repair = False
+    if (root / 'node_modules').exists():
+        try:
+            current = dependency_snapshot(root)
+            if marker.is_file():
+                previous = json.loads(marker.read_text(encoding='utf-8'))
+                repair = bool(previous.get('dependency_manifests') and previous['dependency_manifests'] != current)
+        except (OSError, ValueError, AttributeError):
+            repair = True
+    marker.unlink(missing_ok=True)
+    if repair:
+        modules = root / 'node_modules'
+        if modules.is_symlink() or modules.resolve().parent != root.resolve():
+            raise RuntimeError('Refusing to relocate dependencies outside the selected runtime')
+        backup = root / ('.codelaboon-corrupt-dependencies-'+uuid.uuid4().hex)
+        modules.rename(backup)
+        print('Preserved damaged runtime dependencies at '+str(backup), file=sys.stderr)
     command = [bun, "install", "--ignore-scripts", "--linker", "hoisted"]
+    if os.name == 'nt':
+        command.extend(['--backend', 'copyfile'])
     if os.environ.get("CODELABOON_DEV_RUNTIME") != "1":
         command.append("--production")
     # Importing only runtime workspaces changes the root manifest. Bun must
     # reconcile the upstream lockfile with that reduced workspace on setup.
-    subprocess.run(command, cwd=root, check=True)
+    if repair:
+        # A hardlinked cache can share the corruption. Never reuse it for repair.
+        with tempfile.TemporaryDirectory(prefix='.codelaboon-clean-cache-', dir=root.parent) as cache:
+            subprocess.run([*command, '--cache-dir', cache], cwd=root, check=True)
+    else:
+        subprocess.run(command, cwd=root, check=True)
     if engine == "omp":
         install_omp_native(root)
         subprocess.run([bun, "scripts/generate-docs-index.ts"],
@@ -116,13 +187,20 @@ def setup(engine):
         except (requests.RequestException, ValueError):
             data = {}
         models.write_text(json.dumps(data), encoding="utf-8")
-    (root / ".codelaboon-ready").write_text(json.dumps({"format": 2, "engine": engine,
-        "development": os.environ.get("CODELABOON_DEV_RUNTIME") == "1"}) + "\n", encoding="utf-8")
+    print('Verifying '+engine+' dependency manifests and startup imports...', file=sys.stderr)
+    snapshot = dependency_snapshot(root)
+    check_startup(engine, root, bun)
+    temporary_marker = root / ('.codelaboon-ready-'+uuid.uuid4().hex+'.tmp')
+    temporary_marker.write_text(json.dumps({'format':3, 'engine':engine,
+        'development':os.environ.get('CODELABOON_DEV_RUNTIME') == '1',
+        'dependency_manifests':snapshot})+'\n', encoding='utf-8')
+    temporary_marker.replace(marker)
 
 
 def ready(root):
     try:
-        return json.loads((root / ".codelaboon-ready").read_text()).get("format") == 2
+        marker = json.loads((root / '.codelaboon-ready').read_text(encoding='utf-8'))
+        return marker.get('format') == 3 and marker.get('dependency_manifests') == dependency_snapshot(root)
     except (OSError, ValueError, AttributeError):
         return False
 
@@ -195,7 +273,7 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
 
     root = source_root(engine)
     if not ready(root):
-        print(f"Preparing {engine} runtime (first launch only)...", file=sys.stderr)
+        print(f"Preparing or repairing {engine} runtime...", file=sys.stderr)
         setup(engine)
     bun = bun_executable()
     project = Path.cwd().resolve()

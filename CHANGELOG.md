@@ -1,4 +1,17 @@
+## Unreleased
+
+- Detect damaged cached source-runtime dependency manifests instead of trusting
+  a ready marker alone. Preserve corrupted dependencies, reinstall from a fresh
+  cache, and use copyfile installs on Windows. Verify actual startup imports
+  before writing an atomic readiness record. See
+  [Windows runtime recovery](docs/native-runtime.md#windows-damaged-runtime-dependencies).
+- Expand RC21 documentation with a before/after comparison, behavior and
+  architecture explanation, installation steps, examples and report interpretation.
+
 ## 1.0.0rc21 - 2026-11-16
+
+Published as [v1.0.0-rc.21](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.21).
+See the [RC20-to-RC21 comparison and examples](docs/rc21-security.md#what-changed-from-rc20).
 
 - Expand explicit-scope web assessments with OPTIONS method advertisements,
   cookie attributes, synthetic-origin CORS probes and browser policy analysis.

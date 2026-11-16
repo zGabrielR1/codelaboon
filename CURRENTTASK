@@ -12,4 +12,12 @@ scope/pin/expiry/XML hardening and Windows storage relocation fix are shipped.
 See docs/rc21-security.md, docs/review-1.0.0rc21.md and docs/PROGRESS.md.
 No global install/service changes, privileged case or remote security assessment.
 Manual OS-consent and documented observation/isolation limitations remain.
-Requested publication is complete; no outstanding release work. No delegation.
+RC21 documentation expanded with before/after changes, usage, reports and limits.
+Subsequent Windows runtime repair implemented: damaged @actions/core manifest
+detected despite ready marker; dependencies preserved and rebuilt with fresh
+cache/copyfile; startup imports checked and readiness recorded atomically.
+Actual installed Windows codelaboon home screen verified and test session closed.
+314 local tests pass with 3 platform skips; 4 new runtime regressions pass.
+Original RC21 tag/assets remain unchanged; source fix is post-release.
+See docs/native-runtime.md Windows recovery and docs/PROGRESS.md for evidence.
+Requested publication is complete. No delegation authorized.
