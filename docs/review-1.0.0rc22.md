@@ -1,0 +1,7 @@
+# RC22 candidate review
+
+Reviewed checkpoint guidance against immutable task policy, privilege snapshots, stale workers, duplicate submissions, browser origins and model failure. Human text enters an ordinary attempt prompt, never task policy or command arguments. Inclusion means capture, not successful inference. Elevated worker copies carry an explicit private-case marker and ignore live conversation guidance. Message content uses textContent in the browser; task endpoints require a per-server token and trusted loopback origin. Log output remains bounded and redacted; transcripts label captured output separately from orchestrator status.
+
+Validation: 340 tests passed, three skipped, using an isolated configuration and disabled model checks/metrics. Browser fixture note submission persisted and displayed a Saved note receipt. Responsive screenshots inspected at 1440, 768 and 390 pixels. Inspector: zero failures, one chart-hue warning caused by the SVG task navigation icon (there is no chart). The monospace lint warning is literal task IDs/code output. No real user task was paused, messaged, restarted or elevated. Seven engine protocol contracts pass; this does not establish live provider availability or seven native parallel swarm implementations.
+
+Limitations: human guidance joins the next attempt rather than immediately interrupting the current process. Elevated work is note-only and changes require a new reviewed task/case. Recent guidance and displayed history are bounded. RC22 has not been published.

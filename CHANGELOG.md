@@ -1,4 +1,15 @@
-## Unreleased
+## 1.0.0rc23
+
+- Fix task clicks to open a dedicated chat route with live output, a visible composer, browser history and mobile navigation.
+- Add engine-independent terminal task chats and a visible Tasks option in bare engine launchers. All seven engine aliases accept `--tasks`; `--direct` bypasses the launcher.
+- Add a real Chromium task-chat regression to release CI and terminal interaction tests.
+- Include the unpublished RC22 recovery, monitoring and task-orchestration work below.
+
+
+- RC22 candidate: tasks open as conversations with execution updates, captured worker output, durable operator guidance and notes. Guidance is included at the next attempt checkpoint with explicit receipts; active cycles continue. Older workers and elevated approval cases accept notes only.
+- Add authenticated browser task queue, installed-engine selection, controls and live monitoring. Add updater runtime-integrity maintenance, force repair, update receipts, terminal resume shortcuts and recovery diagnostics.
+- See [RC22 usage and limitations](docs/rc22-updater-and-terminal.md).
+
 
 - Detect damaged cached source-runtime dependency manifests instead of trusting
   a ready marker alone. Preserve corrupted dependencies, reinstall from a fresh

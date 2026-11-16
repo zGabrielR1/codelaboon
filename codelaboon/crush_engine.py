@@ -40,7 +40,7 @@ def launch(binary, arguments, profile, local_only, rows, url, token):
     project_data=root/'projects'/identity
     project_data.mkdir(parents=True,exist_ok=True)
     (project_data/'.codelaboon-project.json').write_text(json.dumps({'cwd':str(project)}))
-    default = rows[0]['id'] if local_only else 'free'
+    default = os.environ.get('CODELABOON_TASK_MODEL') or (rows[0]['id'] if local_only else 'free')
     env = dict(os.environ, CODELABOON_GATEWAY_URL=url, CODELABOON_GATEWAY_TOKEN=token,
                CRUSH_GLOBAL_DATA=str(root / 'global'), CRUSH_DATA_DIR=str(root / 'projects' / identity),
                CRUSH_CACHE_DIR=str(root / 'cache'), CRUSH_DISABLE_METRICS='true',

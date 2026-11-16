@@ -158,9 +158,10 @@ def add(project, instruction, checks, path=None, swarm=None, permissions='defaul
             isinstance(check, list) and check and all(isinstance(p, str) for p in check)
             for check in checks):
         raise ValueError('An instruction and at least one acceptance command are required')
-    if (supervise or permissions!='default' or profile!='coding') and running(root):
+    if (supervise or permissions!='default' or profile!='coding' or (swarm and swarm.get('engine','jcode')!='jcode')) and running(root):
         info=root/'service-info.json';features=json.loads(info.read_text()).get('features',[]) if info.exists() else []
         required={'task-execution-policy'} | ({'active-supervision'} if supervise else set()) | ({'privilege-cases'} if elevation!='none' else set())
+        if swarm and swarm.get('engine','jcode')!='jcode':required.add('task-engine-selection')
         if not required.issubset(features):raise ValueError('Restart the background worker after upgrading before queuing supervised/policy tasks; nothing was queued')
     task_id = 'instruction-' + uuid.uuid4().hex
     task = {'id': task_id, 'project': str(project), 'prompt': instruction,
@@ -240,6 +241,10 @@ def main(argv=None):
     parser.add_argument('--project')
     parser.add_argument('--check', action='append', default=[])
     parser.add_argument('--checks-json', help='Exact JSON array of argument arrays')
+    parser.add_argument('--task', dest='task_id', help='Filter status/logs to one task ID')
+    parser.add_argument('--watch', action='store_true', help='Refresh status every two seconds; Ctrl+C closes the view')
+    parser.add_argument('--follow', action='store_true', help='Follow logs, including new attempts for --task')
+    parser.add_argument('--lines', type=int, default=30, help='Initial log tail length (1-2000)')
     parser.add_argument('--elevation',choices=['none','root','administrator'],default='none',help='Queue awaiting an explicitly approved native privileged case')
     parser.add_argument('--permissions',choices=['default','full'],default='default',help='Full disables agent approval gates; it does not grant root')
     parser.add_argument('--profile',choices=['coding','security'],default='coding')
@@ -249,6 +254,9 @@ def main(argv=None):
     parser.add_argument('--allow-path',action='append',default=[],help='Relative file pattern; pause if observed edits leave this list')
     parser.add_argument('--json', action='store_true')
     args = parser.parse_args(argv)
+    if args.watch and args.action!='status':parser.error('--watch belongs to status')
+    if args.follow and args.action!='logs':parser.error('--follow belongs to logs')
+    if args.task_id and args.action not in ('status','logs'):parser.error('--task belongs to status/logs')
     if args.action == 'init':
         initialize(args.config)
     elif args.action == 'enable':
@@ -266,12 +274,18 @@ def main(argv=None):
     elif args.action in ('stop', 'pause', 'resume'):
         control(args.action, args.config,args.instruction)
     elif args.action == 'status':
+        if args.watch or args.task_id:
+            from codelaboon.work_monitor import watch
+            watch(args.config,args.task_id,follow=args.watch,as_json=args.json)
+            return
         if args.json:
             print(json.dumps(status(args.config), indent=2))
         else:
             inspect(args.config)
     elif args.action == 'logs':
-        logs(args.config)
+        if not 1<=args.lines<=2000:parser.error('--lines must be between 1 and 2000')
+        from codelaboon.work_monitor import logs as follow_logs
+        follow_logs(args.config,args.task_id,args.follow,args.lines)
     elif args.action == 'add':
         if not args.project or not args.instruction:
             parser.error('add requires --project and an instruction')

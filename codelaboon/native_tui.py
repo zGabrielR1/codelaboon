@@ -133,7 +133,7 @@ def check_startup(engine, root, bun):
             raise RuntimeError('Runtime startup verification failed; setup was not marked ready. '+detail)
 
 
-def setup(engine):
+def setup(engine, force=False):
     if engine in ("claude", "kilo", "crush", "jcode", "codex"):
         from codelaboon.external_engines import setup as install_external
         return install_external(engine)
@@ -143,17 +143,17 @@ def setup(engine):
     if tuple(int(part) for part in version[:3]) < (1, 3, 10):
         raise RuntimeError("The source TUI requires Bun >=1.3.10")
     marker = root / '.codelaboon-ready'
-    repair = False
+    repair = bool(force)
     if (root / 'node_modules').exists():
         try:
             current = dependency_snapshot(root)
             if marker.is_file():
                 previous = json.loads(marker.read_text(encoding='utf-8'))
-                repair = bool(previous.get('dependency_manifests') and previous['dependency_manifests'] != current)
+                repair = repair or bool(previous.get('dependency_manifests') and previous['dependency_manifests'] != current)
         except (OSError, ValueError, AttributeError):
             repair = True
     marker.unlink(missing_ok=True)
-    if repair:
+    if repair and (root / 'node_modules').exists():
         modules = root / 'node_modules'
         if modules.is_symlink() or modules.resolve().parent != root.resolve():
             raise RuntimeError('Refusing to relocate dependencies outside the selected runtime')

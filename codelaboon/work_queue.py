@@ -25,14 +25,19 @@ def validate_swarm(options):
             raise ValueError(f'Swarm {key} must be {minimum}–{maximum}')
     if not isinstance(options.get('model'), str) or not options['model'].strip():
         raise ValueError('A swarm model is required')
+    from codelaboon.engine_tasks import ENGINES
+    engine=options.get('engine','jcode')
+    if engine not in ENGINES:raise ValueError('Unsupported task engine')
+    if engine!='jcode' and options['workers']!=1:
+        raise ValueError('Portable engine coordinators require --workers 1; Jcode supports the native worker pool')
     return options
 
 
 def swarm_harness(task):
     options = validate_swarm(task['swarm'])
     return {'id': 'swarm-' + task['id'], 'location': 'cloud', 'stages': ['build'],
-            'model': options['model'], 'capabilities': ['native-swarm'],
+            'model': options['model'], 'capabilities': ['native-swarm'] if options.get('engine','jcode')=='jcode' else ['portable-coordinator'],
             'timeout_seconds': options['timeout'] + 15, 'cooldown_seconds': max(30, options['interval']),
             'argv': ['{python}', '{source}/codelaboon/swarm.py', '--task-file', '{prompt_file}',
                      '--workers', str(options['workers']), '--timeout', str(options['timeout']),
-                     '--model', options['model']]}
+                     '--model', options['model'],'--engine',options.get('engine','jcode')]}

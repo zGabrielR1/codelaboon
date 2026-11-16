@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task operations · codelaboon</title><link rel="icon" href="/logo.svg"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/tasks.css"><script src="/tasks.js" defer></script></head>
+<body class="tasks-body">
+<div class="ops-shell">
+  <nav class="ops-rail" aria-label="Workspace"><a href="/" title="Conversations" aria-label="Conversations"><img src="/logo.svg" width="30" height="30" alt="codelaboon"></a><a href="/" title="Conversations" aria-label="Conversations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16v12H9l-5 4z"/></svg><span>Chat</span></a><a href="/tasks" aria-current="page" title="Task operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5h12M9 12h12M9 19h12M2 5l2 2 3-4M2 12l2 2 3-4M2 19l2 2 3-4"/></svg><span>Tasks</span></a><button id="ops-theme" title="Switch theme" aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="7"/><path d="M12 5v14"/></svg><span>Theme</span></button></nav>
+  <main class="ops-main">
+    <header class="ops-header"><div><a class="ops-brand" href="/">codelaboon <span>/ Task operations</span></a><h1>Continuous work</h1><p id="worker-summary">Reading worker status…</p></div><div class="ops-header-actions"><button id="ops-refresh">Refresh</button><button id="new-task" class="primary">Queue task</button></div></header>
+    <div class="ops-freshness"><label><input id="live-refresh" type="checkbox" checked> Live updates</label><span id="ops-updated">Not refreshed yet</span></div>
+    <div id="ops-error" class="ops-notice" role="alert" hidden><span></span><button id="ops-retry">Retry</button></div>
+    <p id="worker-compatibility" class="ops-notice" hidden></p>
+    <div class="task-board">
+      <section class="task-queue" aria-labelledby="queue-heading"><div class="section-heading"><h2 id="queue-heading">Tasks <span id="task-total">0</span></h2></div><label class="sr-only" for="task-filter">Filter tasks</label><input id="task-filter" type="search" placeholder="Find a task or project"><div id="task-list" class="task-list" aria-label="Task list"><p class="ops-empty">Reading the task queue…</p></div></section>
+      <section id="task-detail" class="task-detail" aria-label="Selected task"><div class="ops-empty"><h2>No task selected</h2><p>Choose a task to inspect its verified cycles, execution policy and live output.</p></div></section>
+    </div>
+    <footer class="ops-footer"><span id="ops-version"></span><span>Local supervisor · native engines · independent checks</span><a href="/">Back to conversations</a></footer>
+  </main>
+</div>
+<dialog id="task-dialog" aria-labelledby="task-dialog-title"><form id="task-form"><div class="dialog-heading"><div><h2 id="task-dialog-title">Queue continuous work</h2><p>One fixed objective. Every cycle has its own budget and verification.</p></div><button id="close-task" type="button" aria-label="Close task form">Close</button></div>
+  <div id="task-fields">
+    <label>Objective<textarea id="task-objective" required maxlength="12000" rows="3" placeholder="Assess and harden the authorization boundary in my approved local lab."></textarea></label>
+    <label>Project directory<input id="task-project" required maxlength="4096" placeholder="Absolute project directory"></label>
+    <label>Authorized scope<textarea id="task-scope" required maxlength="4096" rows="3" placeholder="Exact authorized hosts, ports, files, allowed actions and exclusions."></textarea></label>
+    <div class="form-row"><label>Engine<select id="task-engine"></select></label><label>Model<input id="task-model" value="free" required maxlength="512"></label></div><p id="engine-note" class="field-note"></p>
+    <div class="form-row form-budgets"><label>Worker limit<input id="task-workers" type="number" min="1" max="1000" value="4" required></label><label>Cycle timeout (seconds)<input id="task-timeout" type="number" min="1" max="86400" value="1800" required></label><label>Interval (seconds)<input id="task-interval" type="number" min="1" max="86400" value="300" required></label><label>Verified cycle limit<input id="task-cycles" type="number" min="0" max="1000000" value="0" required></label></div><p class="field-note">A cycle limit of 0 repeats until stopped. Free model lanes can rate limit; select an available configured model.</p>
+    <label>Verification commands (JSON argument arrays)<textarea id="task-checks" required rows="3" spellcheck="false">[["python", "tools/verify_security_cycle.py"]]</textarea></label><p class="field-note">Create and review the verifier first. Require relevant nonempty tests and fresh in-scope evidence.</p>
+    <div class="form-row"><label>Profile<select id="task-profile"><option value="security">Security</option><option value="coding">Coding</option></select></label><label>Requested OS elevation<select id="task-elevation"><option value="none">Current OS account</option><option value="administrator">Administrator case (Windows)</option><option value="root">Root case (POSIX)</option></select></label></div>
+    <label class="check-label"><input id="task-full" type="checkbox"> Allow full native tool permissions for this task</label><p class="field-note">Full permissions do not grant administrator authority. Elevated tasks wait for a reviewed, single-use native approval case; the browser cannot approve it.</p>
+    <label class="check-label"><input id="task-supervise" type="checkbox"> Use the configured local scope reviewer</label><label>Observed file allowlist (one relative pattern per line)<textarea id="task-paths" rows="2" placeholder="reports/**&#10;tests/**"></textarea></label><p class="field-note">An allowlist requires the local reviewer. Scope and sampled review are not an OS sandbox or a network firewall.</p>
+  </div>
+  <section id="task-review" hidden><h3>Review this task</h3><dl id="review-values"></dl><p>Queueing starts the background worker when possible. Native elevation still requires a separate approval.</p></section>
+  <div id="task-form-error" role="alert" hidden></div><div class="dialog-actions"><button id="edit-task" type="button" hidden>Edit details</button><button id="review-task" type="submit" class="primary">Review task</button><button id="confirm-task" type="button" class="primary" hidden>Queue and start worker</button></div>
+</form></dialog>
+</body></html>

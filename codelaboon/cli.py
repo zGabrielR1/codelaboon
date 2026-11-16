@@ -6,6 +6,7 @@ Declarative, provider-agnostic interface for accessing free AI models.
 """
 
 import argparse
+from contextlib import chdir
 import json
 import os
 import stat
@@ -130,11 +131,11 @@ class CodelaboonCLI:
         def check(name: str, condition: bool, detail: str = "") -> None:
             nonlocal failures
             if condition:
-                print(f"  âœ“ {name}")
+                print(f"  [ok] {name}")
             else:
                 failures += 1
-                suffix = f" â€” {detail}" if detail else ""
-                print(f"  âœ— {name}{suffix}")
+                suffix = f" - {detail}" if detail else ""
+                print(f"  [fail] {name}{suffix}")
 
         print("codelaboon doctor")
         print("-" * 40)
@@ -173,7 +174,7 @@ class CodelaboonCLI:
             except OSError as e:
                 check("config directory is writable and private", False, str(e))
         else:
-            print("  â„¹ config directory permissions: not applicable on this platform")
+            print("  [info] config directory permissions: managed by Windows ACLs")
 
         from config.providers import get_providers_config
 
@@ -187,13 +188,13 @@ class CodelaboonCLI:
             except OSError as e:
                 check("configuration file is private", False, str(e))
         else:
-            print("  â„¹ configuration file permissions: not applicable on this platform")
+            print("  [info] configuration file permissions: managed by Windows ACLs")
 
         configured = sorted(
             name for name, values in config.items()
             if isinstance(values, dict) and str(values.get("api_key") or "").strip()
         )
-        print(f"  â„¹ providers configured: {', '.join(configured) or 'none yet'}")
+        print(f"  [info] providers configured: {', '.join(configured) or 'none yet'}")
 
         tracked_secrets = self._tracked_secret_files()
         check("no real credentials are tracked by git", not tracked_secrets,
@@ -547,6 +548,7 @@ class CodelaboonCLI:
         parser = argparse.ArgumentParser(
             description="codelaboon - Harness for free AI model access",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog='Start: codelaboon\nContinue: codelaboon tui --continue\nTasks: codelaboon tasks (or ENGINE --tasks)\nHealth: codelaboon status\nRepair: codelaboon runtime repair --engine opencode',
         )
         try:
             from codelaboon import __version__
@@ -557,6 +559,8 @@ class CodelaboonCLI:
         )
 
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
+        subparsers.add_parser('status', help='Show workspace, runtime health and last update without loading models')
+        subparsers.add_parser('runtime', help='Inspect or repair cached source runtimes')
         subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
         subparsers.add_parser("controller-eval", help="Evaluate the optional local supervisor against scope fixtures")
         subparsers.add_parser("routing", help="Measured task-aware routing status and policy")
@@ -658,11 +662,19 @@ class CodelaboonCLI:
 
         # TUI command
         tui_parser = subparsers.add_parser("tui", help="Native OpenCode/OMP source TUI")
-        tui_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"], default="opencode", help=argparse.SUPPRESS)
+        tui_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"], default="opencode", help='Native engine to open (default: opencode)')
         tui_parser.add_argument("--setup", action="store_true", help="Install the selected fork's dependencies")
         tui_parser.add_argument("--profile", choices=["coding", "security"], default="coding")
         tui_parser.add_argument("--local-only", action="store_true", help="Use only local inference; disable cloud model fallback")
         tui_parser.add_argument("--theme", help="Native theme name; saved native theme selections are preserved by default")
+        session = tui_parser.add_mutually_exclusive_group()
+        session.add_argument('--continue', dest='continue_session', action='store_true', help='Continue the last native session (OpenCode/OMP)')
+        session.add_argument('--session', help='Open a native session ID or path (OpenCode/OMP)')
+        tui_parser.add_argument('--model', help='Native model ID, for example codelaboon/free (OpenCode/OMP)')
+        tui_parser.add_argument('--project', type=Path, help='Open a project directory without changing the calling shell')
+        tui_parser.add_argument('--no-animation', action='store_true', help='Disable launcher animation and the animated OpenCode logo')
+        tui_parser.add_argument('--tasks', nargs='?', const='', help='Open task conversations, optionally at a task ID')
+        tui_parser.add_argument('--direct', action='store_true', help='Skip the engine/task launcher and open the native engine directly')
         tui_parser.add_argument("native_args", nargs=argparse.REMAINDER, help="Arguments after -- go to the native TUI")
 
         install_parser = subparsers.add_parser(
@@ -687,7 +699,8 @@ class CodelaboonCLI:
             "--no-editable", action="store_true", help="Install as a regular package instead of editable"
         )
         update_parser.add_argument("--prepare-runtime", action="store_true", help="Prepare the engine now instead of on first use")
-        update_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"], default="opencode", help=argparse.SUPPRESS)
+        update_parser.add_argument('--no-runtime-check', action='store_true', help='Skip automatic checks/repair of installed source runtimes')
+        update_parser.add_argument("--engine", choices=["opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"], default="opencode", help='Engine to prepare when --prepare-runtime is selected')
 
         web_parser = subparsers.add_parser("web", help="Open the localhost web workspace")
         web_parser.add_argument("--port", type=int, default=8765)
@@ -712,8 +725,13 @@ class CodelaboonCLI:
             from codelaboon.update import update
 
             if not update(editable=not args.no_editable, pull=not args.no_pull,
-                          runtime=args.prepare_runtime, engine=args.engine):
+                          runtime=args.prepare_runtime, engine=args.engine, check_runtime=not args.no_runtime_check):
                 sys.exit(1)
+            return
+
+        if args.command == 'tui' and args.tasks is not None:
+            from codelaboon.task_console import main as tasks_main
+            tasks_main([args.tasks] if args.tasks else [])
             return
 
         # Load providers
@@ -850,16 +868,40 @@ class CodelaboonCLI:
                 arguments = args.native_args
                 if arguments[:1] == ["--"]:
                     arguments = arguments[1:]
-                run_tui(args.engine, arguments, args.profile, args.local_only, args.theme)
+                if (args.continue_session or args.session or args.model) and args.engine not in ('opencode','omp'):
+                    parser.error('Session/model shortcuts support OpenCode and OMP; use -- to pass other engines their native flags')
+                if args.continue_session: arguments = ['--continue', *arguments]
+                if args.session: arguments = ['--session', args.session, *arguments]
+                if args.model: arguments = ['--model', args.model, *arguments]
+                project = args.project.expanduser().resolve() if args.project else Path.cwd()
+                if not project.is_dir(): parser.error('Project must be an existing directory')
+                previous = os.environ.get('CODELABOON_NO_ANIMATION')
+                try:
+                    if args.no_animation: os.environ['CODELABOON_NO_ANIMATION'] = '1'
+                    with chdir(project):
+                        run_tui(args.engine, ['--direct',*arguments] if args.direct else arguments, args.profile, args.local_only, args.theme)
+                finally:
+                    if previous is None: os.environ.pop('CODELABOON_NO_ANIMATION', None)
+                    else: os.environ['CODELABOON_NO_ANIMATION'] = previous
 
 
 def run_tui(engine="opencode", arguments=(), profile="coding", local_only=False, theme=None) -> None:
     """Launch the actual source fork; never silently fall back to Textual."""
     try:
+        from codelaboon.task_console import launcher, main as tasks_main
+        arguments=list(arguments)
+        if arguments[:1]==['--tasks']:
+            tasks_main(arguments[1:])
+            return
+        direct=arguments[:1]==['--direct']
+        if direct:arguments=arguments[1:]
+        if not direct and not launcher(engine,arguments):return
         from codelaboon.native_tui import launch
         code = launch(engine, arguments, profile, local_only, theme)
     except (RuntimeError, OSError, subprocess.CalledProcessError, requests.RequestException) as error:
         print(str(error), file=sys.stderr)
+        if engine in ('opencode', 'omp'):
+            print(f'Inspect: codelaboon runtime status --engine {engine}\nRepair:  codelaboon runtime repair --engine {engine} --force', file=sys.stderr)
         sys.exit(2)
     if code:
         sys.exit(code)
@@ -867,6 +909,11 @@ def run_tui(engine="opencode", arguments=(), profile="coding", local_only=False,
 
 def main() -> None:
     """Main entry point."""
+    if os.environ.get('CODELABOON_HEADLESS_TASK')=='1':
+        import signal
+        def interrupted(signum,frame):raise KeyboardInterrupt
+        signal.signal(signal.SIGTERM,interrupted)
+        if os.name!='nt':signal.signal(signal.SIGHUP,interrupted)
     # Piped/redirected streams on Windows default to a legacy code page that
     # cannot encode the status marks; degrade instead of crashing.
     for stream in (sys.stdout, sys.stderr):
@@ -877,6 +924,14 @@ def main() -> None:
                 pass
     if sys.argv[1:2] and sys.argv[1] in ("opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"):
         run_tui(sys.argv[1], sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['tasks']:
+        from codelaboon.task_console import main as tasks_main
+        tasks_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] in (['runtime'], ['status']):
+        from codelaboon.runtime_management import main as runtime_main
+        runtime_main(sys.argv[2:], overview=sys.argv[1]=='status')
         return
     if sys.argv[1:2] == ['controller-eval']:
         from codelaboon.controller_evaluation import main as evaluate

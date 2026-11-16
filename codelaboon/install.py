@@ -59,12 +59,12 @@ def _paint(text: str, *styles: str) -> str:
     return "".join(styles) + text + _RESET
 
 
-def _banner() -> None:
+def _banner(title='installer') -> None:
     width = max(44, min(shutil.get_terminal_size((72, 20)).columns, 72))
-    mark = _paint("▲ codelaboon", _BOLD, _CYAN)
+    mark = _paint("codelaboon", _BOLD, _CYAN)
     print()
-    print(f"  {mark}  {_paint('installer', _DIM)}")
-    print("  " + _paint("─" * (width - 4), _DIM))
+    print(f"  {mark}  {_paint(title, _DIM)}")
+    print("  " + _paint("-" * (width - 4), _DIM))
 
 
 def _step(label: str, action: Callable[[], tuple[bool, str]], detail: str = "") -> tuple[bool, str]:
@@ -74,6 +74,7 @@ def _step(label: str, action: Callable[[], tuple[bool, str]], detail: str = "") 
     plain_frames = "-\\|/"
     frames = itertools.cycle(_SPINNER if _color_enabled() else plain_frames)
     done = threading.Event()
+    started = time.monotonic()
     result: list[tuple[bool, str]] = [(False, "")]
 
     def run() -> None:
@@ -93,16 +94,19 @@ def _step(label: str, action: Callable[[], tuple[bool, str]], detail: str = "") 
             sys.stdout.write("\r" + f"  {_paint(frame, _CYAN)} {label}")
             if detail:
                 sys.stdout.write(f" {_paint(detail, _DIM)}")
+            elapsed = int(time.monotonic() - started)
+            if elapsed >= 2:
+                sys.stdout.write(f'  {elapsed//60:02d}:{elapsed%60:02d}')
             sys.stdout.write("   ")
             sys.stdout.flush()
             done.wait(0.08)
         sys.stdout.write("\r")
     else:
-        print(f"  … {label}" + (f" ({detail})" if detail else ""))
+        print(f"  [..] {label}" + (f" ({detail})" if detail else ""))
         done.wait()
 
     ok, message = result[0]
-    icon = _paint("✓", _BOLD, _GREEN) if ok else _paint("✗", _BOLD, _RED)
+    icon = (_paint('✓', _BOLD, _GREEN) if ok else _paint('✗', _BOLD, _RED)) if _color_enabled() else ('[ok]' if ok else '[fail]')
     line = f"  {icon} {label}"
     if message:
         color = _DIM if ok else _YELLOW
@@ -132,26 +136,35 @@ def user_scripts_dir() -> Path:
     return Path(path)
 
 
+def installation_python(create=False):
+    """Return the interpreter that owns the installed command, including PEP 668."""
+    private = None
+    interpreter = sys.executable
+    if sys.prefix == sys.base_prefix and (Path(sysconfig.get_path('stdlib'))/'EXTERNALLY-MANAGED').exists():
+        from codelaboon.paths import config_dir
+        private = config_dir()/'runtime/python'
+        interpreter = str(private/('Scripts/python.exe' if os.name == 'nt' else 'bin/python'))
+        if not Path(interpreter).is_file():
+            if not create:
+                raise RuntimeError('The private installation interpreter is missing')
+            venv.EnvBuilder(with_pip=True).create(private)
+    return interpreter, private
+
+
 def install_package(
     editable: bool = False,
     extra: Optional[str] = None,
     quiet: bool = False,
+    artifact: Optional[Path] = None,
 ) -> tuple[int, str]:
     """Run ``pip install --user`` against the current source checkout."""
     root = package_root()
-    if not (root / "pyproject.toml").is_file():
+    if artifact is None and not (root / "pyproject.toml").is_file():
         return 0, "source checkout not found"
-    target = str(root)
+    target = str(Path(artifact).resolve()) if artifact is not None else str(root)
     if extra:
         target += f"[{extra}]"
-    interpreter = sys.executable
-    private = None
-    if sys.prefix == sys.base_prefix and (Path(sysconfig.get_path("stdlib")) / "EXTERNALLY-MANAGED").exists():
-        from codelaboon.paths import config_dir
-        private = config_dir() / "runtime/python"
-        interpreter = str(private / ("Scripts/python.exe" if os.name == "nt" else "bin/python"))
-        if not Path(interpreter).is_file():
-            venv.EnvBuilder(with_pip=True).create(private)
+    interpreter, private = installation_python(create=True)
     command = [interpreter, "-m", "pip", "install", "--progress-bar", "off"]
     if sys.prefix == sys.base_prefix and private is None:
         command.append("--user")
@@ -362,11 +375,15 @@ def install(editable: bool = False, update_path: bool = True, runtime: bool = Fa
 
 def setup_runtime(engine="opencode"):
     from codelaboon.native_tui import setup
-    def prepare():
+    print(f'  [prepare] {engine}: dependency installation and startup verification', flush=True)
+    try:
         setup(engine)
-        return True, engine
-    ok, _ = _step("Prepare source TUI", prepare)
-    return ok
+    except Exception as error:
+        print(f'  [fail] {engine}: {error}')
+        print(f'  Recovery: codelaboon runtime repair --engine {engine}')
+        return False
+    print(f'  [ok] {engine}: ready')
+    return True
 
 
 def main(argv: Optional[List[str]] = None) -> int:

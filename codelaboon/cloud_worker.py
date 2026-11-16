@@ -35,12 +35,16 @@ def completion(provider, model, prompt):
 
 
 def agent(model, prompt_file, runtime, engine="jcode"):
+    if engine != 'jcode':
+        from codelaboon.engine_tasks import run
+        return run(engine,model,prompt_file,runtime)
     if engine == "jcode":
         command = [sys.executable, str(Path(__file__).with_name("cli.py")), "jcode",
                    "--model", model.removeprefix("codelaboon/"), "run", "--json",
                    prompt_file.read_text(encoding="utf-8")]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=sys.stderr,
-                                   text=True, encoding="utf-8", errors="replace")
+                                   text=True, encoding="utf-8", errors="replace",start_new_session=os.name!='nt',
+                                   env=dict(os.environ,CODELABOON_HEADLESS_TASK='1'))
         try:
             output, _ = process.communicate()
         except BaseException:
@@ -54,45 +58,6 @@ def agent(model, prompt_file, runtime, engine="jcode"):
             raise RuntimeError("Lightweight agent returned no final response")
         return result["text"]
 
-    environment = os.environ.copy()
-    environment['CODELABOON_NATIVE_DIR'] = str(runtime / 'opencode')
-    for kind in ('DATA', 'STATE', 'CACHE', 'CONFIG'):
-        environment['XDG_' + kind + '_HOME'] = str(runtime / 'opencode' / kind.lower())
-    source = Path(__file__).resolve().parent
-    process = subprocess.Popen([sys.executable, str(source / 'cli.py'), 'tui', '--engine', engine, '--', 'run', '--format', 'json',
-                                '--model', model, '--file', str(prompt_file),
-                                'Execute the attached task specification.'],
-                               stdout=subprocess.PIPE, stderr=sys.stderr, text=True,
-                               encoding='utf-8', errors='replace', env=environment)
-    texts = []
-    failure = False
-    complete = False
-    try:
-        for line in process.stdout:
-            try:
-                event = json.loads(line)
-            except ValueError:
-                print(line, file=sys.stderr, end='')
-                continue
-            kind = event.get('type')
-            if kind == 'error':
-                failure = True
-            if kind == 'text':
-                texts.append(event.get('part', {}).get('text', ''))
-            if kind == 'step_finish' and event.get('part', {}).get('reason') == 'stop':
-                complete = True
-            if kind != 'text':
-                print(json.dumps(event), file=sys.stderr, flush=True)
-        code = process.wait()
-    except BaseException:
-        from codelaboon.watch import terminate
-        terminate(process)
-        raise
-    if code or failure or not complete or not any(text.strip() for text in texts):
-        raise RuntimeError(f'Cloud agent incomplete or failed (exit={code}, final={complete})')
-    return '\n'.join(texts)
-
-
 def main():
     import signal
     def stopped(signum,frame):raise KeyboardInterrupt
@@ -105,7 +70,7 @@ def main():
     parser.add_argument('--provider', default='kilo')
     parser.add_argument('--model', required=True)
     parser.add_argument('--agent', action='store_true')
-    parser.add_argument('--engine', default='jcode', choices=['jcode', 'opencode', 'omp', 'kilo'])
+    parser.add_argument('--engine', default='jcode', choices=['jcode', 'opencode', 'omp', 'kilo','claude','codex','crush'])
     parser.add_argument('--runtime', required=True)
     parser.add_argument('prompt_file', type=Path)
     args = parser.parse_args()

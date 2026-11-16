@@ -85,7 +85,7 @@ def fixture(engine, setup=False, tools=False, development=False, responder=None)
             '[kilo]\napi_key=""\nmodels=["kilo-auto/free"]\n' + base +
             '[pollinations]\napi_key=""\nmodels=["fixture"]\n' + base,
             encoding="utf-8")
-        env = dict(os.environ, CODELABOON_CONFIG_DIR=str(config), CODELABOON_NO_ANIMATION="1", CODELABOON_MODEL_CHECKS="0",
+        env = dict(os.environ, CODELABOON_CONFIG_DIR=str(config), CODELABOON_NO_ANIMATION="1", CODELABOON_MODEL_CHECKS="0", CODELABOON_DIRECT="1",
                    CODELABOON_DATA_DIR=str(project / "data"))
         for key in ('OPENROUTER_API_KEY','ZAI_API_KEY','GEMINI_API_KEY','GOOGLE_API_KEY','FREEBUFF_API_KEY',
                     'CODEBUFF_API_KEY','QODER_PERSONAL_ACCESS_TOKEN','QODER_PAT','ANTHROPIC_API_KEY',

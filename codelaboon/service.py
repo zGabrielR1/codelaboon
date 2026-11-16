@@ -78,7 +78,7 @@ def serve(config_path):
         from codelaboon import __version__
         from codelaboon.watch import save
         save(runtime/'service-info.json', {'version': __version__, 'pid': os.getpid(),
-                                           'features': ['continuous-swarm','task-execution-policy','active-supervision','privilege-cases']})
+                                           'features': ['continuous-swarm','task-execution-policy','active-supervision','privilege-cases','task-engine-selection','operator-interventions']})
         with (local / 'service-server.log').open('ab') as server_log, \
                 (runtime / 'supervisor.log').open('ab') as worker_log:
             while not (runtime / 'STOP').exists():

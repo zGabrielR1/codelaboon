@@ -34,3 +34,32 @@ jobs:
         run: python -m unittest discover -s tests -p '*security*.py' -v
       - name: Cached runtime integrity and recovery contracts
         run: python -m unittest discover -s tests -p test_runtime_integrity.py -v
+      - name: RC22 updater and terminal quality of life
+        run: python -m unittest discover -s tests -p test_rc22_quality.py -v
+      - name: Live task monitor and log following
+        run: python -m unittest discover -s tests -p test_work_monitor.py -v
+      - name: Portable task engines
+        run: python -m unittest discover -s tests -p test_engine_tasks.py -v
+      - name: Authenticated task GUI
+        run: python -m unittest discover -s tests -p test_task_gui.py -v
+      - name: Human task guidance
+        run: python -m unittest discover -s tests -p test_task_conversation.py -v
+      - name: RC23 task entry points
+        run: python -m unittest discover -s tests -p test_rc23_tasks.py -v
+  browser-chat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install . playwright
+      - run: python -m playwright install --with-deps chromium
+      - name: Open and follow a task conversation in a real browser
+        run: python scripts/smoke_task_chat.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: task-chat-browser
+          path: .runtime/task-chat-qa/

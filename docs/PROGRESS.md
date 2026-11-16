@@ -768,3 +768,18 @@ Data terminal direction applied to web shell, typography, starter rows, action m
   and the post-release source fix from immutable RC21 artifacts.
 - Original RC21 tag/assets remain unchanged. These source changes require the
   updated checkout/installation; the affected installed launcher uses this checkout.
+
+
+## RC22 candidate / task conversations
+- Added updater/runtime recovery, status diagnostics, live monitors, installed-engine task routing and authenticated browser operations.
+- Tasks now open as conversations with durable human guidance, notes and checkpoint inclusion receipts. Immutable elevated cases stay note-only. Existing running workers are not restarted.
+- GUI fixture verified note submission; conversation, API and engine contracts added to portable CI. RC22 remains unpublished.
+
+
+## RC23 / task access and release
+- Fixed task navigation with real chat routes, history, visible composer and mobile detail navigation.
+- Added shared terminal task conversation viewer, launcher Tasks entry, seven engine aliases and direct bypass.
+- Added real-browser navigation/live-output/guidance smoke and Textual interaction tests. Full347 tests pass (3 skipped) before final release validation.
+- RC23 publication explicitly requested; release build and CI pending. RC22 candidate is included without publishing a separate RC22 tag.
+
+RC23 local release verification: Chromium regression passed;347 unit tests pass with3 platform skips. Thin wheel290334 bytes, source499258 bytes; VSIX built, both engine archives pass provenance. Release CI/publication pending.

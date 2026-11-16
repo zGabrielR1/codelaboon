@@ -51,3 +51,6 @@ qoder-machine.json
 releases/
 .taste-skill/
 .watch/
+
+# Browser regression artifacts
+.playwright-mcp/

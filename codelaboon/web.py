@@ -1,5 +1,6 @@
 ﻿"""Loopback-only web workspace. Credentials remain in the provider adapters."""
 import json
+import hashlib
 import secrets
 import threading
 import webbrowser
@@ -19,6 +20,8 @@ def create_server(port=8765, cli=None):
     auth_providers = ("chatgpt", "claude", "gemini", "freebuff", "qoder")
     auth_states = {name: {"status": "idle"} for name in auth_providers}
     auth_lock = threading.Lock()
+    task_lock=threading.Lock()
+    task_requests={}
 
     def login_job(provider):
         import importlib
@@ -61,6 +64,23 @@ def create_server(port=8765, cli=None):
             if not self.trusted():
                 return self.respond(403, {"error": "Use the printed loopback URL"})
             url = urlsplit(self.path)
+            if url.path == '/api/session':
+                from codelaboon import __version__
+                import platform
+                return self.respond(200,{'token':token,'version':__version__,'workspace':str(Path.cwd().resolve()),'platform':platform.system()})
+            if url.path in ('/api/tasks','/api/tasks/logs','/api/tasks/messages'):
+                if self.headers.get('X-Codelaboon-Token') != token:
+                    return self.respond(403,{'error':'Reload this workspace and retry'})
+                from codelaboon import task_api
+                try:
+                    if url.path == '/api/tasks/messages':
+                        return self.respond(200,task_api.conversation(parse_qs(url.query).get('task',[''])[0]))
+                    if url.path == '/api/tasks/logs':
+                        identity=parse_qs(url.query).get('task',[''])[0]
+                        return self.respond(200,task_api.logs(identity))
+                    return self.respond(200,task_api.snapshot())
+                except (OSError,ValueError,KeyError,TypeError):
+                    return self.respond(400,{'error':'Task state could not be read. Check worker configuration and retry.'})
             if url.path == "/api/auth/status":
                 provider = parse_qs(url.query).get("provider", ["chatgpt"])[0]
                 if provider not in auth_providers:
@@ -78,7 +98,8 @@ def create_server(port=8765, cli=None):
                     return self.respond(200, {"models": models, "names": names if isinstance(names, dict) else {}})
                 except Exception:
                     return self.respond(502, {"error": "Model discovery failed. Check provider configuration and retry."})
-            assets = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css"), "/logo.svg": ("logo.svg", "image/svg+xml")}
+            assets = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css"), "/logo.svg": ("logo.svg", "image/svg+xml"),
+                      '/tasks':('tasks.html','text/html; charset=utf-8'),'/tasks.js':('tasks.js','text/javascript; charset=utf-8'),'/tasks.css':('tasks.css','text/css')}
             if url.path not in assets:
                 return self.respond(404, {"error": "Not found"})
             file, mime = assets[url.path]
@@ -87,6 +108,33 @@ def create_server(port=8765, cli=None):
         def do_POST(self):
             if not self.trusted() or self.headers.get("X-Codelaboon-Token") != token:
                 return self.respond(403, {"error": "Reload this workspace and retry"})
+            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages'):
+                from codelaboon import task_api
+                try:
+                    length=int(self.headers.get('Content-Length','0'))
+                    if not 0<length<=131072:return self.respond(413,{'error':'Task request is too large'})
+                    body=json.loads(self.rfile.read(length))
+                    if not isinstance(body,dict):raise ValueError('Invalid task request')
+                    if self.path=='/api/tasks/messages':
+                        with task_lock:result=task_api.message(body)
+                    elif self.path=='/api/tasks':
+                        request_id=body.get('request_id')
+                        if not isinstance(request_id,str) or not 1<=len(request_id)<=64:
+                            raise ValueError('Provide a queue request ID')
+                        digest=hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
+                        with task_lock:
+                            previous=task_requests.get(request_id)
+                            if previous:
+                                if previous[0]!=digest:raise ValueError('Queue request ID was reused with different data')
+                                result=previous[1]
+                            else:
+                                result=task_api.enqueue(body)
+                                if len(task_requests)>=128:task_requests.pop(next(iter(task_requests)))
+                                task_requests[request_id]=(digest,result)
+                    else:result=task_api.control(body['task'],body['action'])
+                    return self.respond(202,result)
+                except (OSError,ValueError,KeyError,TypeError,RuntimeError) as error:
+                    return self.respond(400,{'error':str(error)[:500]})
             if self.path.startswith("/api/auth/"):
                 provider = self.path[len("/api/auth/") :]
                 if provider not in auth_providers:
@@ -125,9 +173,9 @@ def create_server(port=8765, cli=None):
     return ThreadingHTTPServer(("127.0.0.1", port), Handler)
 
 
-def serve(port=8765, open_browser=True):
+def serve(port=8765, open_browser=True, start_path='/'):
     server = create_server(port)
-    url = f"http://127.0.0.1:{server.server_port}"
+    url = f"http://127.0.0.1:{server.server_port}"+start_path
     print(f"codelaboon workspace: {url} (Ctrl+C to stop)", flush=True)
     if open_browser:
         webbrowser.open(url)

@@ -68,7 +68,7 @@ with fixture(args.engine, args.setup, development=args.types) as (project, env, 
         directory = Path(root) if args.engine == "omp" else Path(root) / "packages/opencode"
         subprocess.run([bun, "run", check], cwd=directory, env=env, check=True, timeout=180)
     command = ["env", "CODELABOON_MODEL_CHECKS=0", f"CODELABOON_CONFIG_DIR={env['CODELABOON_CONFIG_DIR']}",
-               "CODELABOON_NO_ANIMATION=1", "COLORTERM=truecolor",
+               "CODELABOON_NO_ANIMATION=1", "CODELABOON_DIRECT=1", "COLORTERM=truecolor",
                *([shutil.which("codelaboon")] if args.installed else [sys.executable, str(ROOT / "codelaboon/cli.py")]),
                "tui", "--engine", args.engine,
                *([] if args.normal_startup else ["--local-only"])]

@@ -12,7 +12,7 @@ def launch(binary,arguments,profile,local_only,rows,url,token):
     home=config_dir()/'codex';home.mkdir(parents=True,exist_ok=True,mode=0o700)
     env=dict(os.environ,CODEX_HOME=str(home),CODELABOON_GATEWAY_TOKEN=token)
     for key in ('OPENAI_API_KEY','OPENAI_BASE_URL','CODEX_API_KEY'):env.pop(key,None)
-    settings={'model':'free' if not local_only else rows[0]['id'],'model_provider':'codelaboon',
+    settings={'model':os.environ.get('CODELABOON_TASK_MODEL') or ('free' if not local_only else rows[0]['id']),'model_provider':'codelaboon',
               'model_providers.codelaboon.name':'Codelaboon', 'model_providers.codelaboon.base_url':url,
               'model_providers.codelaboon.env_key':'CODELABOON_GATEWAY_TOKEN',
               'model_providers.codelaboon.wire_api':'responses','model_providers.codelaboon.requires_openai_auth':False,

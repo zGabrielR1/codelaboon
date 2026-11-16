@@ -160,6 +160,7 @@ def elevated_worker(path,identity):
     if not is_admin():raise ValueError('Privileged worker requires native root/administrator authorization')
     from codelaboon.watch import run,save
     payload=case['worker'];task=dict(payload['task']);task.pop('elevation',None)
+    task['_privileged_case']=True
     if task.get('swarm'):task['swarm']=dict(task['swarm'],cycles=1)
     runtime=path.parent/(identity+'-runtime');runtime.mkdir(mode=0o700)
     from contextlib import nullcontext

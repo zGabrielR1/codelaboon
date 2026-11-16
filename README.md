@@ -8,6 +8,22 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
+### What changed in RC23
+
+Tasks now open as dedicated conversations with live worker output, a visible composer,
+checkpoint guidance and delivery receipts. Click a task in the browser to open its
+own URL; reload, Back and mobile navigation preserve the task route.
+
+Running `codelaboon` or a bare engine opens a launcher with **Task conversations**.
+Use `codelaboon tasks` for terminal task chats, `codelaboon tasks --open` for the browser,
+or `codelaboon opencode --tasks TASK_ID` (works with all seven engine aliases).
+Use `codelaboon opencode --direct` to skip the launcher. Terminal chats use the
+optional `tui` extra; the base install opens task chats in the browser if it is absent.
+
+RC23 also ships the previously unpublished RC22 updater/runtime recovery, diagnostics,
+live monitoring and installed-engine task routing. See [RC23 usage](docs/rc23-task-conversations.md)
+and the [full changelog](CHANGELOG.md).
+
 ### What changed in RC21
 
 RC21 expands the security workflow introduced in RC20:

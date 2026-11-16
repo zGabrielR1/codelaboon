@@ -309,7 +309,11 @@ def supervise(config, base, root, once):
         correction=state.setdefault('corrections',{}).get(task['id'])
         if correction:content+='\n\nSupervisor correction (within the original scope): '+correction
         content+='\nStay within this objective and scope. Full process permissions do not expand task scope.'
+        from codelaboon.task_conversation import context, included
+        guidance,message_ids=context(root,task)
+        content+=guidance
         prompt.write_text(content, encoding='utf-8')
+        included(root,task['id'],message_ids,attempt.name)
         values = {'python': sys.executable, 'project': str(project),
                   'source': str(Path(__file__).resolve().parent.parent),
                   'runtime': str(root), 'stage': stage,

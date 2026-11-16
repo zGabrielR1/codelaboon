@@ -69,6 +69,21 @@ class RuntimeIntegrity(unittest.TestCase):
                     with self.assertRaises(RuntimeError): runtime.setup('opencode')
                 self.assertFalse((root/'.codelaboon-ready').exists())
 
+    def test_force_repair_rebuilds_valid_manifest_tree_from_fresh_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.manifest(root)
+            self.mark(root)
+            def install(command, **kwargs):
+                self.assertIn('--cache-dir', command)
+                self.manifest(root)
+            with patch.object(runtime,'source_root',return_value=root), patch.object(runtime,'ensure_bun',return_value='bun'), \
+                 patch.object(runtime.subprocess,'check_output',return_value='1.4.4'), patch.object(runtime.subprocess,'run',side_effect=install), \
+                 patch.object(runtime,'check_startup'), patch.object(runtime.requests,'get',return_value=Mock(json=lambda:{})):
+                runtime.setup('opencode',force=True)
+            self.assertTrue(runtime.ready(root))
+            self.assertEqual(len(list(root.glob('.codelaboon-corrupt-dependencies-*'))),1)
+
     def test_startup_verification_bounds_failure_output_and_timeout(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

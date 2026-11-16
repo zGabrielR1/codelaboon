@@ -196,3 +196,7 @@ Each extension follows the existing patterns and conventions.
 RC15 separates the lean core, engine assets and external development trees.
 OpenCode remains the interactive default; native Jcode handles bounded swarms and
 background building. See [lean runtime operations](lean-runtime.md).
+
+
+### RC22 task operations
+`task_api.py` exposes authenticated loopback queue/control/conversation endpoints through `web.py`; `static/tasks.*` renders task conversations and policy. `task_conversation.py` persists human messages under hashed task control directories and appends bounded guidance at `watch.py` attempt checkpoints. Inclusion receipts identify prompt capture, not model acknowledgement. Privileged snapshots never read live guidance. `engine_tasks.py` provides the portable coordinator adapters; `work_monitor.py` projects real scheduler attempts and logs. `runtime_management.py` and `release_update.py` implement cache health, repair receipts and verified installed-wheel updates.
