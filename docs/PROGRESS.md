@@ -727,3 +727,20 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Next release gate: cross-platform CI and native release verification. Existing
   upstream engine assets remain pinned to their verified RC20 source archives.
   Known scope/timeouts, local race and observation limits remain documented.
+
+## RC21 publicly shipped - 2026-11-16
+
+- Published v1.0.0-rc.21 from 5551407574761c42f610a7b61acf5540c682c1f9:
+  https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.21
+- Verify 43865002117, portable 43865002090 and release 43865513858 succeeded.
+  Python 3.11/3.12/3.13, Linux/macOS/Windows security contracts, native engines,
+  terminals, editor, worker and tool gates all passed. Manual genuine native
+  OS-consent coverage remains distinct from automated disposable/parser tests.
+- Downloaded all public release artifacts and verified every SHA256SUMS entry:
+  wheel 253762 bytes, source 440068 bytes, connector 10281 bytes, and both engine
+  source archives. Release notes document features, evidence and coverage limits.
+- Installed the exact public wheel only into the isolated build/test environment;
+  32 RC20/RC21 security tests passed with one platform skip. No global install,
+  running-service changes, privileged execution or remote assessment was performed.
+- Requested RC21 publication is complete. Future expansion can address broader
+  authenticated web/host coverage and the documented isolation/timeout limitations.

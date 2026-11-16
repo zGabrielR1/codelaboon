@@ -57,3 +57,13 @@ checks passed. Core wheel and source archive build successfully below 1 MiB.
 An isolated installed wheel with declared dependencies also passed all 32
 RC20/RC21 security tests (one platform skip). Source archive contents, connector
 version 1.0.21 and artifact checksums were verified.
+
+## Publication verification
+
+[Public RC21](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.21)
+ships commit `5551407574761c42f610a7b61acf5540c682c1f9`.
+[Verify](https://github.com/zGabrielR1/codelaboon/actions/runs/43865002117),
+[portable contracts](https://github.com/zGabrielR1/codelaboon/actions/runs/43865002090)
+and [release](https://github.com/zGabrielR1/codelaboon/actions/runs/43865513858)
+all succeeded. Every downloaded asset matched the public checksum manifest.
+The exact public wheel passed 32 isolated security tests (one platform skip).

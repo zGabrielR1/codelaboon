@@ -1,12 +1,15 @@
-RC21 web and IT security candidate implemented, 2026-11-16.
-Python 1.0.0rc21 / connector 1.0.21. Scoped methods, cookies/prefixes, CORS and
-browser policies; explicit bounded local config audit; evidence-backed defensive
-retest comparison. Scope/URL/pin/expiry and XML import hardening. Windows storage
-relocation fixed and portable fixtures corrected. Full Windows/Python3.14 suite:
-310 tests, zero failures/errors, 3 platform skips. Final security contracts
-rechecked after comparison evidence validation. Builds in dist/rc21, thin core
-under 1MiB. See docs/rc21-security.md and docs/review-1.0.0rc21.md.
-No release/publication/global installation, privileged case or remote assessment.
-Next release gates: cross-platform CI and native release verification; manual
-OS-consent checks remain separate. Existing engine archives retain RC20 pins.
-No delegation authorized. Build tools isolated in .runtime/rc21-build.
+RC21 PUBLICATION COMPLETE, 2026-11-16, release commit 5551407574761c42f610a7b61acf5540c682c1f9.
+https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.21
+Verify43865002117, portable43865002090 and release43865513858 all succeeded.
+Python3.11/3.12/3.13 suites, Linux/macOS/Windows security contracts, native engine,
+terminal/editor/worker/tool release gates passed. Local Windows/Python3.14:
+310 tests, zero failures/errors, 3 platform skips. Exact public wheel passed
+32 isolated RC20/RC21 security tests, 1 platform skip. Every published artifact
+matches SHA256SUMS: wheel253762B, source440068B, VSIX10281B and both engine archives.
+Python1.0.0rc21 / connector1.0.21. Web methods/cookies/prefix/CORS/browser policies,
+bounded explicit local configuration audit, evidence-backed retest comparison,
+scope/pin/expiry/XML hardening and Windows storage relocation fix are shipped.
+See docs/rc21-security.md, docs/review-1.0.0rc21.md and docs/PROGRESS.md.
+No global install/service changes, privileged case or remote security assessment.
+Manual OS-consent and documented observation/isolation limitations remain.
+Requested publication is complete; no outstanding release work. No delegation.
