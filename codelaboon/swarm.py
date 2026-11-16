@@ -35,9 +35,9 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free', engine='jcod
         from codelaboon.cli import CodelaboonCLI
         from codelaboon.external_engines import executable
         from codelaboon.jcode_engine import run
-        from codelaboon.native_gateway import serve, FREE_COMPATIBLE
+        from codelaboon.native_gateway import serve, COMPATIBLE
         binary=executable('jcode');cli=CodelaboonCLI();cli.load_providers()
-        providers={name:value for name,value in cli.providers.items() if name in FREE_COMPATIBLE or name=='local'}
+        providers={name:value for name,value in cli.providers.items() if name in COMPATIBLE}
         with serve(providers) as (gateway,url):
             rows=gateway.models(startup=True)
             try:
@@ -77,7 +77,7 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free', engine='jcod
 
 
 def enqueue(task, workers=4, timeout=1800, checks=(), model='free', controller='local',
-            interval=60, cycles=0, config=None, project=None, permissions='default', profile='coding', supervise=None, scope='', review_interval=15, allowed_paths=None, elevation='none',engine='jcode',start_worker=True):
+            interval=60, cycles=0, config=None, project=None, permissions='default', profile='coding', supervise=None, scope='', review_interval=15, allowed_paths=None, elevation='none',engine='jcode',start_worker=True,execution_settings=None):
     from codelaboon import work
     from codelaboon.work_queue import validate_swarm
     options = validate_swarm(dict(workers=workers, timeout=timeout, model=model,
@@ -95,7 +95,7 @@ def enqueue(task, workers=4, timeout=1800, checks=(), model='free', controller='
         if 'continuous-swarm' not in features:
             raise ValueError('The running worker predates continuous swarms. Use work stop, wait until stopped, '
                              'then work start after upgrading; no task was queued.')
-    task_id = work.add(project or Path.cwd(), task, checks, target, swarm=options,permissions=permissions,profile=profile,supervise=supervise,scope=scope,review_interval=review_interval,allowed_paths=allowed_paths,elevation=elevation)
+    task_id = work.add(project or Path.cwd(), task, checks, target, swarm=options,permissions=permissions,profile=profile,supervise=supervise,scope=scope,review_interval=review_interval,allowed_paths=allowed_paths,elevation=elevation,execution_settings=execution_settings)
     if start_worker:work.start(target)
     print('Continuous swarm: ' + task_id + ' | controller: ' + controller)
     print('Use swarm --status, --pause ID, --resume ID or --stop ID. work enable persists across reboots.')
@@ -130,6 +130,7 @@ def _main(arguments=None):
     parser.add_argument('--engine',choices=ENGINES,default='jcode')
     parser.add_argument('--timeout', type=int, default=1800)
     parser.add_argument('--model', default='free')
+    parser.add_argument('--execution-settings-file',type=Path,help='JSON worker/planner model and prompt settings, captured before queue publication (--continuous)')
     parser.add_argument('--check', action='append', default=[], help='Independent acceptance command; repeat for multiple checks')
     parser.add_argument('--continuous', action='store_true', help='Queue recurring verified cycles in the background supervisor')
     parser.add_argument('--controller', choices=['local', 'worker'], default='local')
@@ -171,11 +172,11 @@ def _main(arguments=None):
     checks = [shlex.split(item) for item in args.check]
     if args.continuous:
         enqueue(task, args.workers, args.timeout, checks, args.model, args.controller,
-                args.interval, args.cycles, args.config, args.project,args.permissions,args.profile,args.supervise,args.scope,args.review_interval,args.allow_path,args.elevation,args.engine)
+                args.interval, args.cycles, args.config, args.project,args.permissions,args.profile,args.supervise,args.scope,args.review_interval,args.allow_path,args.elevation,args.engine,execution_settings=json.loads(args.execution_settings_file.read_text(encoding='utf-8')) if args.execution_settings_file else None)
         return
     if args.elevation!='none' or args.permissions!='default' or args.profile!='coding' or args.scope or args.supervise is not None or args.allow_path:
         parser.error('Execution policy options belong to --continuous tasks')
-    if args.project or args.config:
+    if args.project or args.config or args.execution_settings_file:
         parser.error('--project/--config belong to continuous mode or status/controls')
     raise SystemExit(execute(task, args.workers, args.timeout, checks, args.model,args.engine))
 

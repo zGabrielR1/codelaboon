@@ -32,6 +32,8 @@ def pending_work(config, runtime):
         state = json.loads((runtime / 'state.json').read_text()) if (runtime / 'state.json').exists() else {}
         tasks = list(config.get('tasks', []))
         tasks.extend(json.loads(path.read_text()) for path in (runtime / 'inbox').glob('*.json'))
+        from codelaboon.task_settings import apply as apply_settings
+        tasks=[apply_settings(runtime,task) for task in tasks]
         from codelaboon.work_queue import ready
         return any(ready(task, state, runtime) and (task.get('swarm', {}).get('controller') != 'worker' or task.get('supervision',{}).get('enabled'))
                    for task in tasks)
@@ -78,7 +80,7 @@ def serve(config_path):
         from codelaboon import __version__
         from codelaboon.watch import save
         save(runtime/'service-info.json', {'version': __version__, 'pid': os.getpid(),
-                                           'features': ['continuous-swarm','task-execution-policy','active-supervision','privilege-cases','task-engine-selection','operator-interventions']})
+                                           'features': ['continuous-swarm','task-execution-policy','active-supervision','privilege-cases','task-engine-selection','operator-interventions','task-execution-settings']})
         with (local / 'service-server.log').open('ab') as server_log, \
                 (runtime / 'supervisor.log').open('ab') as worker_log:
             while not (runtime / 'STOP').exists():

@@ -56,9 +56,31 @@ def main(argv=None):
     parser.add_argument('--port',type=int,default=0,help='Browser port (default: an available loopback port)')
     parser.add_argument('--list',action='store_true',help='List tasks without opening an interface')
     parser.add_argument('--json',action='store_true',help='List task state as JSON')
+    parser.add_argument('--settings',action='store_true',help='Show task model/prompt settings')
+    parser.add_argument('--worker-model',help='Default worker/swarm model: free or PROVIDER/MODEL')
+    parser.add_argument('--orchestrator',choices=['worker','cloud','local'],help='Embedded worker coordinator or separate planning model')
+    parser.add_argument('--orchestrator-model',help='Planning model: free, PROVIDER/MODEL or local/MODEL')
+    parser.add_argument('--system-prompt-file',help='UTF-8 additive worker system instructions (empty file clears)')
+    parser.add_argument('--orchestrator-prompt-file',help='UTF-8 additive planning system instructions')
+    parser.add_argument('--changes',action='store_true',help='Show current project diff and observed attempt changes')
     args=parser.parse_args(argv)
     try:
-        if args.browser:browser(args.task,args.port)
+        edits=any(value is not None for value in (args.worker_model,args.orchestrator,args.orchestrator_model,args.system_prompt_file,args.orchestrator_prompt_file))
+        if args.settings or args.changes or edits:
+            if not args.task:parser.error('Provide a task ID for settings/changes')
+            from codelaboon import task_api
+            if args.changes:print(json.dumps(task_api.changes(args.task),indent=2));return
+            row=task_api.settings(args.task)
+            if edits:
+                from pathlib import Path
+                values=dict(row['values'])
+                for key,value in (('worker_model',args.worker_model),('orchestrator_mode',args.orchestrator),('orchestrator_model',args.orchestrator_model)):
+                    if value is not None:values[key]=value
+                for key,path in (('worker_system_prompt',args.system_prompt_file),('orchestrator_system_prompt',args.orchestrator_prompt_file)):
+                    if path is not None:values[key]=Path(path).read_text(encoding='utf-8')
+                row=task_api.settings(args.task,{'values':values,'expected_revision':row['revision']})
+            print(json.dumps(row,indent=2))
+        elif args.browser:browser(args.task,args.port)
         elif args.list or args.json or not sys.stdin.isatty():
             from codelaboon.task_api import snapshot
             state=snapshot()

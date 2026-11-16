@@ -791,3 +791,9 @@ RC23 local release verification: Chromium regression passed;347 unit tests pass 
 - Downloaded and verified five artifacts against SHA256SUMS: wheel290155 bytes, source495136 bytes, VSIX10281 bytes, both immutable engine source bundles. Published wheel task-entry tests pass; optional Textual tests covered by the full local347-test run.
 - Existing real task was found through the new projection in retry wait; no task controls or messages were applied.
 - Updated public release notes with entry commands, checkpoint delivery and old-worker/elevation limitations. RC22 was not separately published.
+
+
+## RC24 in progress
+Implemented independent task worker/planner models, local/cloud planning, additive system prompts, checkpoint revisions and initial queue configuration. Browser, terminal and CLI settings/changes views share one control plane. Added read-only Git diffs and per-attempt observed files. Native wire and local-no-fallback tests pass; final full/browser/package/release verification pending. Real user task settings untouched.
+
+RC24 local verification complete:360 tests pass,3 skipped; isolated built-wheel settings tests11 pass; real Chromium settings/changes/navigation regression passes at1440/768/390. Wheel300672 bytes and source518108 bytes; VSIX rebuilt, engine provenance unchanged and verified. Publication gates pending.

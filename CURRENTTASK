@@ -1,6 +1,3 @@
-RC23 COMPLETE AND PUBLISHED: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.23
-Release source94dac7bc6187e9ffe7511ac65cc1cd86b86805a4. Release workflow43937514148 and verify43937484881 succeeded.
-All release portable/native/browser gates passed. Five downloadable artifacts verified against SHA256SUMS; published wheel entrypoint tests passed (optional Textual tests skipped in base build venv; full local347 tests passed,3 platform skips).
-Task navigation opens dedicated live chat routes; engine launchers expose Tasks, all7 aliases support --tasks, shared terminal viewer and --direct implemented. RC22 unpublished candidate features included.
-Read-only check found existing task instruction-43a3a186387f49d0b0b9fec9924ecd91 in retry wait. Never restarted, paused, messaged or elevated it.
-Local QA browser and fixture processes closed. No outstanding release work.
+RC24 ready for publication requested by user.360 tests pass,3 skipped; isolated wheel settings tests11 pass; browser and responsive checks passed.
+Source contains checkpoint/initial task models, independent local/cloud planner, additive system-channel prompts, safe revision controls and Git Changes in browser/terminal/CLI.
+Next commit/push, tag v1.0.0-rc.24, observe all release gates, verify download checksums/notes and record completion. Real user task untouched; no delegation.

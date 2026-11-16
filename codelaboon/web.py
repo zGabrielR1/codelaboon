@@ -68,11 +68,14 @@ def create_server(port=8765, cli=None):
                 from codelaboon import __version__
                 import platform
                 return self.respond(200,{'token':token,'version':__version__,'workspace':str(Path.cwd().resolve()),'platform':platform.system()})
-            if url.path in ('/api/tasks','/api/tasks/logs','/api/tasks/messages'):
+            if url.path in ('/api/tasks','/api/tasks/logs','/api/tasks/messages','/api/tasks/settings','/api/tasks/changes','/api/tasks/models'):
                 if self.headers.get('X-Codelaboon-Token') != token:
                     return self.respond(403,{'error':'Reload this workspace and retry'})
                 from codelaboon import task_api
                 try:
+                    if url.path=='/api/tasks/models':return self.respond(200,task_api.model_choices(cli))
+                    if url.path=='/api/tasks/settings':return self.respond(200,task_api.settings(parse_qs(url.query).get('task',[''])[0]))
+                    if url.path=='/api/tasks/changes':return self.respond(200,task_api.changes(parse_qs(url.query).get('task',[''])[0]))
                     if url.path == '/api/tasks/messages':
                         return self.respond(200,task_api.conversation(parse_qs(url.query).get('task',[''])[0]))
                     if url.path == '/api/tasks/logs':
@@ -108,14 +111,16 @@ def create_server(port=8765, cli=None):
         def do_POST(self):
             if not self.trusted() or self.headers.get("X-Codelaboon-Token") != token:
                 return self.respond(403, {"error": "Reload this workspace and retry"})
-            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages'):
+            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages','/api/tasks/settings'):
                 from codelaboon import task_api
                 try:
                     length=int(self.headers.get('Content-Length','0'))
                     if not 0<length<=131072:return self.respond(413,{'error':'Task request is too large'})
                     body=json.loads(self.rfile.read(length))
                     if not isinstance(body,dict):raise ValueError('Invalid task request')
-                    if self.path=='/api/tasks/messages':
+                    if self.path=='/api/tasks/settings':
+                        with task_lock:result=task_api.settings(body.get('task'),body)
+                    elif self.path=='/api/tasks/messages':
                         with task_lock:result=task_api.message(body)
                     elif self.path=='/api/tasks':
                         request_id=body.get('request_id')

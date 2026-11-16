@@ -44,6 +44,8 @@ def snapshot():
             'elevation':task.get('elevation','none'),'supervision':task.get('supervision',{'enabled':False}),
             'engine':task.get('swarm',{}).get('engine','jcode') if task.get('swarm') else 'configured harness',
             'swarm':task.get('swarm'),'verification':task.get('verify_argv',[])})
+        from codelaboon.task_settings import read
+        result['tasks'][-1]['execution_settings']=read(root,task)
     return result
 
 
@@ -87,6 +89,13 @@ def conversation(identity):
                 events.append({'id':path.parent.name,'created':row.get('started',0),
                     'text':'Attempt '+path.parent.name+' · '+row.get('stage','work')+' · '+row.get('status','unknown')+
                     (' · exit '+str(row['exit_code']) if 'exit_code' in row else '')})
+                planner=path.parent/'orchestrator.log'
+                if planner.is_file():
+                    from codelaboon.task_changes import redact
+                    with planner.open('rb') as stream:text=stream.read(16000).decode('utf-8',errors='replace')
+                    config=row.get('execution_settings',{})
+                    events.append({'id':path.parent.name+'-planner','created':row.get('started',0)+0.01,
+                        'text':'Planning orchestrator / '+config.get('orchestrator_mode','')+' / '+config.get('orchestrator_model','')+'\n'+redact(text)})
         except (OSError,ValueError):continue
     return {'task':identity,'messages':history(root,identity),'events':sorted(events,key=lambda row:row['created'])[-40:]}
 
@@ -110,6 +119,53 @@ def message(body):
 def _completed(root):
     try:return json.loads((root/'state.json').read_text(encoding='utf-8')).get('done',[])
     except FileNotFoundError:return []
+
+
+def settings(identity,body=None):
+    path,root,task=selected(identity)
+    from codelaboon.task_settings import read,write
+    row=read(root,task)
+    from codelaboon.work import status
+    worker=status(path)
+    compatible=not worker['running'] or 'task-execution-settings' in worker.get('service',{}).get('features',[])
+    pending=next((item for item in worker['pending'] if item['id']==identity),None)
+    editable=bool(task.get('swarm')) and task.get('elevation','none')=='none' and compatible and identity not in _completed(root) and not (pending and pending.get('stopped'))
+    reason='' if editable else 'Settings require a continuous non-elevated active task and a current worker. Older workers must be restarted safely first.'
+    if body is not None:
+        if not editable:raise ValueError(reason)
+        row=write(root,task,body.get('values'),body.get('expected_revision'))
+    latest=None
+    for file in root.glob('*/result.json'):
+        try:
+            attempt=json.loads(file.read_text(encoding='utf-8'))
+            if attempt.get('task')==identity and (latest is None or attempt.get('started',0)>latest.get('started',0)):latest=attempt
+        except (OSError,ValueError):continue
+    return {**row,'editable':editable,'reason':reason,'latest_attempt':None if latest is None else {'status':latest.get('status'),'settings':latest.get('execution_settings')}}
+
+
+def changes(identity):
+    _,root,task=selected(identity)
+    from codelaboon.task_changes import snapshot
+    result=snapshot(task['project']);latest=None
+    for file in root.glob('*/result.json'):
+        try:
+            attempt=json.loads(file.read_text(encoding='utf-8'))
+            if attempt.get('task')==identity and (latest is None or attempt.get('started',0)>latest[0]):latest=(attempt.get('started',0),file.parent)
+        except (OSError,ValueError):continue
+    result['attempt_observation']=None
+    if latest:
+        try:result['attempt_observation']=json.loads((latest[1]/'project-changes.json').read_text(encoding='utf-8'))
+        except FileNotFoundError:pass
+    return result
+
+
+def model_choices(cli):
+    rows=[{'id':'free','kind':'cloud','provider':'auto'}]
+    for name,provider in cli.providers.items():
+        models=getattr(provider,'models',None) or getattr(provider,'default_models',[])
+        if isinstance(models,(list,tuple)):
+            rows.extend({'id':name+'/'+model,'kind':'local' if name=='local' else 'cloud','provider':name} for model in models if isinstance(model,str))
+    return {'models':rows,'notice':'Configured/default IDs, not availability guarantees. You may enter another provider/model ID. No model requests are made by this picker.'}
 
 
 def control(identity,action):
@@ -152,7 +208,7 @@ def enqueue(body):
     identity=add(objective,checks=checks,model=model,controller='worker',project=Path(project).expanduser(),
         permissions=permissions,profile=body.get('profile','security'),scope=scope,
         supervise=body.get('supervise',False),allowed_paths=allowed,
-        elevation=body.get('elevation','none'),engine=engine,start_worker=False,**options)
+        elevation=body.get('elevation','none'),engine=engine,start_worker=False,execution_settings=body.get('execution_settings'),**options)
     from codelaboon.work import start
     try:start()
     except (OSError,RuntimeError,ValueError):

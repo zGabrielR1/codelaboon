@@ -98,3 +98,17 @@ class TaskGui(unittest.TestCase):
         self.assertEqual(self.post('/api/tasks',[]).status_code,400)
         self.assertEqual(self.post('/api/tasks',{**self.body(),'engine':'claude','workers':4}).status_code,400)
         self.worker.assert_not_called()
+    def test_settings_are_authenticated_versioned_and_old_worker_gated(self):
+        identity=self.post('/api/tasks',self.body()).json()['task']
+        endpoint='/api/tasks/settings?task='+identity
+        self.assertEqual(self.client.get(self.url+endpoint).status_code,403)
+        row=self.client.get(self.url+endpoint,headers=self.headers).json()
+        values={**row['values'],'worker_model':'nvidia/fixture','orchestrator_mode':'local','orchestrator_model':'local/fixture','worker_system_prompt':'Prefer regression evidence'}
+        with patch('codelaboon.work.running',return_value=False):
+            response=self.post('/api/tasks/settings',{'task':identity,'expected_revision':row['revision'],'values':values})
+            self.assertEqual(response.status_code,202)
+            self.assertEqual(self.post('/api/tasks/settings',{'task':identity,'expected_revision':row['revision'],'values':values}).status_code,400)
+        with patch('codelaboon.work.running',return_value=True):
+            self.assertEqual(self.post('/api/tasks/settings',{'task':identity,'expected_revision':response.json()['revision'],'values':values}).status_code,400)
+        data=self.client.get(self.url+'/api/tasks/changes?task='+identity,headers=self.headers).json()
+        self.assertIn('pre-existing',data['notice'])

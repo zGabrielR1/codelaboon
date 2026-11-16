@@ -8,6 +8,17 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
+### What changed in RC24
+
+Task conversations now include **Models & prompts** and **Changes**. Choose independent
+worker and planning models, local or cloud planning, and additive system instructions.
+Settings take effect at an attempt checkpoint with revision tracking. Inspect current
+Git diffs and filenames observed changing during an attempt in the same task view.
+
+Use `codelaboon tasks TASK_ID --settings`, `--worker-model PROVIDER/MODEL`,
+`--orchestrator local --orchestrator-model local/MODEL`, or `--changes`.
+See [RC24 task configuration and examples](docs/rc24-task-models-and-changes.md).
+
 ### What changed in RC23
 
 Tasks now open as dedicated conversations with live worker output, a visible composer,

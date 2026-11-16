@@ -46,6 +46,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_task_conversation.py -v
       - name: RC23 task entry points
         run: python -m unittest discover -s tests -p test_rc23_tasks.py -v
+      - name: RC24 task model settings and project changes
+        run: python -m unittest discover -s tests -p test_rc24_task_settings.py -v
   browser-chat:
     runs-on: ubuntu-latest
     timeout-minutes: 5

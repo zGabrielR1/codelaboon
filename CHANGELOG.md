@@ -1,3 +1,11 @@
+## 1.0.0rc24
+
+- Add revisioned per-task worker models, independent cloud/local planning models and additive system instructions across the shared worker gateway.
+- Add browser and terminal settings, CLI updates and atomic initial queue settings; edits apply at checkpoints without mutating active or approved elevated attempts.
+- Add read-only Git changes, bounded diffs and observed per-attempt filenames with explicit pre-existing/concurrent-edit labels.
+- Add planner failure/budget checks, local-no-cloud-fallback tests, gateway model/prompt tests, API concurrency/auth tests and real-browser settings/changes regression.
+- See [RC24 usage](docs/rc24-task-models-and-changes.md).
+
 ## 1.0.0rc23
 
 - Fix task clicks to open a dedicated chat route with live output, a visible composer, browser history and mobile navigation.

@@ -4,8 +4,57 @@ import uuid
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Checkbox, Footer, Input, Label, ListItem, ListView, RichLog, Static
+from textual.widgets import Button, Checkbox, Footer, Input, Label, ListItem, ListView, RichLog, Static,Select,TextArea
+from textual.screen import ModalScreen
+from textual.containers import VerticalScroll
 from codelaboon import task_api
+
+
+class TaskSettingsScreen(ModalScreen):
+    CSS='''TaskSettingsScreen {align: center middle;} #settings-box {width: 85%;height: 90%;border: solid #73daca;padding: 1 2;background: #171719;} #settings-fields {height: 1fr;} #settings-buttons {height: 3;} #settings-box TextArea {height: 7;} #settings-box Label {height: auto;margin-top: 1;} #settings-buttons Button {margin-right: 1;}'''
+    BINDINGS=[('escape','dismiss','Close')]
+
+    def __init__(self,identity):super().__init__();self.identity=identity;self.row=task_api.settings(identity)
+
+    def compose(self):
+        values=self.row['values']
+        with Vertical(id='settings-box'):
+            yield Label('Task models and system instructions',markup=False)
+            with VerticalScroll(id='settings-fields'):
+                yield Label('Applies at the next attempt. Active work keeps its captured settings.',markup=False)
+                yield Label('Worker / default swarm-agent model');yield Input(values['worker_model'],id='setting-worker')
+                yield Label('Planning orchestrator');yield Select([('Embedded worker coordinator','worker'),('Cloud planning model','cloud'),('Local planning model','local')],value=values['orchestrator_mode'],allow_blank=False,id='setting-mode')
+                yield Label('Planning model (local/MODEL or PROVIDER/MODEL)');yield Input(values['orchestrator_model'],id='setting-planner')
+                yield Label('Additive worker system instructions');yield TextArea(values['worker_system_prompt'],id='setting-system')
+                yield Label('Additive planning system instructions');yield TextArea(values['orchestrator_system_prompt'],id='setting-planner-system')
+            yield Label(self.row['reason'],id='settings-error',markup=False)
+            with Horizontal(id='settings-buttons'):
+                yield Button('Save for next attempt',id='settings-save',disabled=not self.row['editable'])
+                yield Button('Close',id='settings-close')
+
+    def on_button_pressed(self,event):
+        if event.button.id=='settings-close':self.dismiss();return
+        if event.button.id!='settings-save':return
+        values={'worker_model':self.query_one('#setting-worker',Input).value,'orchestrator_mode':self.query_one('#setting-mode',Select).value,
+            'orchestrator_model':self.query_one('#setting-planner',Input).value,'worker_system_prompt':self.query_one('#setting-system',TextArea).text,
+            'orchestrator_system_prompt':self.query_one('#setting-planner-system',TextArea).text}
+        try:task_api.settings(self.identity,{'values':values,'expected_revision':self.row['revision']});self.dismiss()
+        except (OSError,ValueError) as error:self.query_one('#settings-error',Label).update(Text(str(error)))
+
+
+class TaskChangesScreen(ModalScreen):
+    CSS='''TaskChangesScreen {align: center middle;} #changes-box {width: 95%;height: 90%;border: solid #73daca;padding: 1;background: #171719;} #changes-log {height: 1fr;}'''
+    BINDINGS=[('escape','dismiss','Close')]
+    def __init__(self,identity):super().__init__();self.identity=identity
+    def compose(self):
+        with Vertical(id='changes-box'):
+            yield Label('Project changes / read-only Git evidence')
+            yield RichLog(id='changes-log',wrap=True,markup=False)
+            yield Button('Close',id='changes-close')
+    def on_mount(self):
+        row=task_api.changes(self.identity)
+        self.query_one('#changes-log',RichLog).write(Text(row['notice']+'\n\n'+('Git metadata unavailable\n' if not row['available'] else '')+row['status']+'\n'+row['stat']+'\n'+row['diff']+'\n\nAttempt observation: '+json.dumps(row['attempt_observation'])))
+    def on_button_pressed(self,event):self.dismiss()
 
 
 class TaskApp(App):
@@ -18,7 +67,7 @@ class TaskApp(App):
     #chat {width: 1fr; padding: 0 1;} #task-title {height: auto; max-height: 4; padding: 1 0;}
     #feed {height: 1fr; border-top: solid #45454b;}
     #hint {height: auto; max-height: 3; color: #a3a3ac;}
-    #actions {height: 3;} #actions Button {min-width: 10; margin-right: 1;}
+    #actions {height: 3;} #actions Button {min-width: 8; margin-right: 1;}
     #compose {height: 3;} #message {width: 1fr;} #send {min-width: 10;}
     #note {height: 3;} #error {height: auto; max-height: 3; color: #ff9aaa;}
     ListItem {height: auto; padding: 1;} Label {width: 100%;}
@@ -46,6 +95,8 @@ class TaskApp(App):
                     yield Button('Pause',id='pause')
                     yield Button('Resume',id='resume')
                     yield Button('Refresh',id='refresh')
+                    yield Button('Settings',id='settings')
+                    yield Button('Changes',id='changes')
                 yield Checkbox('Save note only',id='note')
                 with Horizontal(id='compose'):
                     yield Input(placeholder='Guide the next attempt within scope...',max_length=4096,id='message')
@@ -58,6 +109,7 @@ class TaskApp(App):
         self.set_interval(2,self.action_refresh)
 
     async def action_refresh(self):
+        if isinstance(self.screen,ModalScreen):return
         try:
             state=task_api.snapshot()
             self.records={task['id']:task for task in state['tasks']}
@@ -128,6 +180,9 @@ class TaskApp(App):
     async def on_button_pressed(self,event:Button.Pressed):
         action=event.button.id
         if action=='send':await self.send_message()
+        elif action in ('settings','changes') and self.identity in self.records:
+            try:self.push_screen(TaskSettingsScreen(self.identity) if action=='settings' else TaskChangesScreen(self.identity))
+            except (OSError,ValueError) as error:self.query_one('#error',Static).update(str(error))
         elif action=='refresh':await self.action_refresh()
         elif action in ('pause','resume') and self.identity in self.records:
             try:task_api.control(self.identity,action);await self.action_refresh()

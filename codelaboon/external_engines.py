@@ -202,9 +202,9 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
     cli.load_providers()
     providers = {"local": cli.providers["local"]} if local_only else cli.providers
     if engine in ("claude", "crush", "jcode", "codex") and not local_only:
-        from codelaboon.native_gateway import FREE_COMPATIBLE
+        from codelaboon.native_gateway import COMPATIBLE
         providers = {name: provider for name, provider in providers.items()
-                     if name in FREE_COMPATIBLE or name == "local"}
+                     if name in COMPATIBLE}
     with serve(providers,task_class='security' if profile=='security' else None) as (gateway, url):
         rows = gateway.models(startup=True)
         if not rows:

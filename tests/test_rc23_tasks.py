@@ -71,3 +71,21 @@ class TerminalTaskConversation(unittest.IsolatedAsyncioTestCase):
             app=TaskApp('fixture')
             async with app.run_test(size=(90,30)) as pilot:
                 await pilot.pause();self.assertTrue(app.query_one('#note',Checkbox).value);self.assertTrue(app.query_one('#note',Checkbox).disabled)
+    async def test_terminal_settings_dialog_saves_model_and_prompt_at_checkpoint(self):
+        from codelaboon.task_tui import TaskApp
+        from codelaboon.task_settings import defaults
+        from textual.widgets import Input,TextArea
+        task={'id':'fixture','title':'Fixture','objective':'Fixture','state':'queued','engine':'jcode','elevation':'none'}
+        row={'revision':'initial','values':defaults(task),'reason':'','editable':True}
+        with patch('codelaboon.task_api.snapshot',return_value={'tasks':[task],'worker':{'running':False}}),patch('codelaboon.task_api.conversation',return_value={'events':[],'messages':[]}),patch('codelaboon.task_api.logs',return_value={'text':''}),patch('codelaboon.task_api.settings',return_value=row) as save:
+            app=TaskApp('fixture')
+            async with app.run_test(size=(110,45)) as pilot:
+                await pilot.pause();await pilot.click('#settings');await pilot.pause()
+                app.screen.query_one('#setting-worker',Input).value='nvidia/fixture'
+                app.screen.query_one('#setting-system',TextArea).load_text('Prefer regression evidence')
+                await app.action_refresh()  # A periodic refresh must not query the hidden main screen.
+                app.screen.query_one('#settings-save').scroll_visible();await pilot.pause();await pilot.click('#settings-save');await pilot.pause()
+                writes=[call.args[1] for call in save.call_args_list if len(call.args)>1]
+                self.assertEqual(len(writes),1)
+                self.assertEqual(writes[0]['values']['worker_model'],'nvidia/fixture')
+                self.assertEqual(writes[0]['values']['worker_system_prompt'],'Prefer regression evidence')

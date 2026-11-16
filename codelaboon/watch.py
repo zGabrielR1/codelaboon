@@ -189,6 +189,13 @@ def supervise(config, base, root, once):
         for task in queued:
             if task['id'] not in all_tasks:
                 all_tasks[task['id']] = task
+        from codelaboon.task_settings import apply as apply_settings
+        all_tasks={identity:apply_settings(root,task) for identity,task in all_tasks.items()}
+        for identity,task in all_tasks.items():
+            revision=task.get('execution_settings',{}).get('revision')
+            if revision and state.setdefault('execution_revisions',{}).get(identity)!=revision:
+                state['plans'].pop(identity,None)
+                state['execution_revisions'][identity]=revision
         from codelaboon.privilege import digest
         for elevated_task in all_tasks.values():
             if elevated_task.get('elevation','none')=='none':continue
@@ -324,11 +331,24 @@ def supervise(config, base, root, once):
                   'profile':task.get('profile','coding'),'scope':task.get('scope',''),
                   'supervision':task.get('supervision',{'enabled':False})}
         save(attempt / 'result.json', record)
+        settings=task.get('execution_settings')
+        if settings:
+            record['execution_settings']=settings
+            save(attempt/'result.json',record)
+        from codelaboon.task_changes import fingerprints
+        before_changes=fingerprints(project)
         print(f"Running {task['id']} with {harness['id']}", flush=True)
         build_started = time.monotonic()
         try:
             from codelaboon.execution_policy import child_environment
             execution={'env':child_environment(task)}
+            if settings:
+                from codelaboon.task_settings import system_text
+                settings_file=attempt/'execution-settings.json';save(settings_file,settings)
+                system_file=attempt/'system-prompt.txt';system_file.write_text(system_text(task,settings),encoding='utf-8')
+                execution['env']['CODELABOON_TASK_SYSTEM_PROMPT_FILE']=str(system_file)
+                execution['env']['CODELABOON_TASK_MODEL']=settings['worker_model']
+                execution['env']['CODELABOON_HEADLESS_TASK']='1'
             execution['env']['CODELABOON_ROUTING_TASK']='planning' if stage=='plan' else ('security' if task.get('profile')=='security' else 'coding')
             execution['env']['CODELABOON_ROUTING_TRACE']=str(attempt/'routing.jsonl')
             if stage!='plan' and task.get('supervision',{}).get('enabled'):
@@ -336,8 +356,22 @@ def supervise(config, base, root, once):
                 options=validate(task['supervision'])
                 if not orchestrator:raise ValueError('Live supervision requires a local orchestrator')
                 execution.update(monitor=Monitor(orchestrator,task,project,attempt),review_interval=options.get('interval',15))
-            code = execute(argv, project, attempt / 'output.log',
-                           max(1, float(harness.get('timeout_seconds', 1800))),**execution)
+            budget=max(1,float(task['swarm']['timeout'] if settings and task.get('swarm') else harness.get('timeout_seconds',1800)))
+            code=0
+            if settings and settings['orchestrator_mode']!='worker':
+                plan_file=attempt/'orchestrator-plan.md'
+                planner=[sys.executable,str(Path(__file__).with_name('task_orchestrator.py')),str(settings_file),str(prompt),str(plan_file)]
+                code=execute(planner,project,attempt/'orchestrator.log',min(180,budget),**execution)
+                if code==0:
+                    content+='\n\nPlanning orchestrator output (within the immutable scope):\n'+plan_file.read_text(encoding='utf-8')
+                    prompt.write_text(content,encoding='utf-8')
+                    values['prompt']=content
+                    argv=[part.format_map(values) for part in harness['argv']]
+            remaining=budget-(time.monotonic()-build_started) if settings and settings['orchestrator_mode']!='worker' else budget
+            if code==0:
+                code=execute(argv,project,attempt/'output.log',remaining,**execution) if remaining>0 else 124
+            elif not (attempt/'output.log').exists():
+                (attempt/'output.log').write_text('Planning failed; workers were not dispatched. Inspect orchestrator.log.',encoding='utf-8')
         except OSError as error:
             (attempt / 'output.log').write_text(str(error), encoding='utf-8')
             code = 127
@@ -382,6 +416,9 @@ def supervise(config, base, root, once):
             continue
         record.update(status='succeeded' if code == 0 else 'failed',
                       exit_code=code, finished=time.time())
+        after_changes=fingerprints(project)
+        save(attempt/'project-changes.json',{'observed_files':sorted(name for name in before_changes.keys()|after_changes.keys() if before_changes.get(name)!=after_changes.get(name)),
+             'notice':'Observed between attempt checkpoints; concurrent editors may also have changed these files.'})
         health = state['health'].setdefault(harness['id'], {'succeeded': 0, 'failed': 0})
         health['succeeded' if code == 0 else 'failed'] += 1
         health['last_seconds'] = round(record['finished'] - record['started'], 2)

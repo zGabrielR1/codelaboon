@@ -39,6 +39,9 @@ class Gateway:
         self.local.trust_env = False
         self.closed = threading.Event()
         self.discovery_errors = {}
+        prompt_path=os.environ.get('CODELABOON_TASK_SYSTEM_PROMPT_FILE')
+        self.task_system_prompt=Path(prompt_path).read_text(encoding='utf-8')[:20000] if prompt_path else ''
+        self.task_model=os.environ.get('CODELABOON_TASK_MODEL') if os.environ.get('CODELABOON_HEADLESS_TASK')=='1' else None
 
     def health_applies(self,name,provider):
         from providers.base import BaseProvider
@@ -204,6 +207,7 @@ class Gateway:
         return [(name, identifier)]
 
     def request(self, body, api, timeout=(15,180)):
+        if self.task_model:body=dict(body,model=self.task_model.removeprefix('codelaboon/'))
         if api == "anthropic" and not body.get("model", "").startswith("claude/"):
             from codelaboon.anthropic_bridge import MessagesResponse, to_chat
             routed = dict(body, model=body["model"].removesuffix("[1m]"))
@@ -211,6 +215,17 @@ class Gateway:
         if api == "responses" and not body.get("model", "").startswith("chatgpt/"):
             from codelaboon.responses_bridge import ResponsesResponse, to_chat
             return ResponsesResponse(self.request(to_chat(body), "chat", timeout=timeout), body)
+        if self.task_system_prompt:
+            body=dict(body)
+            if api=='chat':body['messages']=[{'role':'system','content':self.task_system_prompt},*body.get('messages',[])]
+            elif api=='responses':body['instructions']=str(body.get('instructions') or '')+'\n\n'+self.task_system_prompt
+            elif api=='anthropic':
+                original=body.get('system') or []
+                if isinstance(original,str):original=[{'type':'text','text':original}]
+                body['system']=[*original,{'type':'text','text':self.task_system_prompt}]
+            elif api=='google':
+                original=body.get('systemInstruction') or {}
+                body['systemInstruction']={**original,'parts':[*original.get('parts',[]),{'text':self.task_system_prompt}]}
         from codelaboon import routing_metrics
         category=routing_metrics.task_class(body.get('messages',[]),self.task_class)
         routes = self.routes(body.get("model", ""),task=category)
