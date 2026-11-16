@@ -30,7 +30,7 @@ class TransferTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             path=Path(root)/'session.jsonl';_,value=encode(decode('opencode',self.source()),'codex')
             write_export(path,value)
-            self.assertEqual(path.stat().st_mode & 0o777,0o600)
+            if os.name != 'nt':self.assertEqual(path.stat().st_mode & 0o777,0o600)
             self.assertEqual(read_file(path),value)
             with self.assertRaises(FileExistsError):write_export(path,value)
     def test_history_policy_and_foreign_tools_are_inert(self):

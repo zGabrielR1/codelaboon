@@ -1,4 +1,4 @@
-name: portable RC20 contracts
+name: portable security and operations contracts
 on:
   workflow_call:
   push:
@@ -27,3 +27,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_rc20_portable.py -v
       - name: Native elevation bootstrap / Windows UAC parser
         run: python scripts/smoke_privilege_ci.py
+      - name: RC21 web and IT security fixtures
+        env:
+          CODELABOON_MODEL_CHECKS: '0'
+          CODELABOON_METRICS: '0'
+        run: python -m unittest discover -s tests -p '*security*.py' -v

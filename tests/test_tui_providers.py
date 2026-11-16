@@ -51,4 +51,6 @@ class TuiProviderTests(unittest.IsolatedAsyncioTestCase):
                     self.assertLessEqual(max(map(len, app._welcome(width - 8).splitlines())), width - 8)
                     if width == 120:
                         self.assertIn("/ __/", str(home.content))
-                        app.save_screenshot("codelaboon-welcome.svg", path="/tmp")
+                        with tempfile.TemporaryDirectory() as directory:
+                            screenshot = app.save_screenshot("codelaboon-welcome.svg", path=directory)
+                            self.assertTrue(Path(screenshot).is_file())

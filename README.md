@@ -8,6 +8,10 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
+RC21 adds scoped web and local IT security workflows: CORS, browser policies,
+cookie attributes, method advertisements, explicit local configuration audits,
+and defensive report comparison. See [RC21 security usage and limits](docs/rc21-security.md).
+
 codelaboon follows PI harness principles:
 
 - **CLI-first means a CLI TUI**: running `codelaboon` opens an interactive

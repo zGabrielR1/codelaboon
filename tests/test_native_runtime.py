@@ -225,9 +225,10 @@ class InstallationTests(unittest.TestCase):
         name, linux = specification(config, "Linux")
         self.assertEqual(name, "codelaboon.service")
         self.assertIn(b"Restart=on-failure", linux)
-        self.assertIn(b'"/tmp/project with spaces/worker.json"', linux)
+        expected_config = str(config.resolve()).replace('\\', '\\\\')
+        self.assertIn(('"'+expected_config+'"').encode(), linux)
         _, mac = specification(config, "Darwin")
-        self.assertEqual(plistlib.loads(mac)["ProgramArguments"][-1], str(config))
+        self.assertEqual(plistlib.loads(mac)["ProgramArguments"][-1], str(config.resolve()))
         _, windows = specification(config, "Windows")
         root = ET.fromstring(windows)
         ns = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
@@ -266,5 +267,5 @@ class OptionalEngineTests(unittest.TestCase):
         from codelaboon.native_tui import ensure_bun
         with patch("codelaboon.native_tui.bun_executable", side_effect=RuntimeError("missing")), patch(
                 "codelaboon.external_engines.setup", return_value=Path("/native/bun")) as install:
-            self.assertEqual(ensure_bun(), "/native/bun")
+            self.assertEqual(ensure_bun(), str(Path("/native/bun")))
             install.assert_called_once_with("bun")

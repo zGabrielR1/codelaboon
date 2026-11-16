@@ -112,12 +112,15 @@ def compact(project, apply=False):
             completed.append(item)
             journal.write_text(json.dumps({'project': str(project), 'moves': completed}, indent=2) + '\n')
         config = config_dir() / 'work.json'
-        if config.is_file() and any(item['source'].endswith('.runtime/work.json') for item in completed):
+        if config.is_file() and any(Path(item['source']) == project / '.runtime/work.json' for item in completed):
             value = json.loads(config.read_text())
-            old = str(project / '.watch/local')
             for key in ('local_executable', 'local_model'):
-                if isinstance(value.get(key), str) and value[key].startswith(old + os.sep):
-                    value[key] = str(config_dir() / 'runtime/local') + value[key][len(old):]
+                if isinstance(value.get(key), str):
+                    try:
+                        relative = Path(value[key]).resolve().relative_to(project / '.watch/local')
+                    except ValueError:
+                        continue
+                    value[key] = str(config_dir() / 'runtime/local' / relative)
             config.write_text(json.dumps(value, indent=2) + '\n')
     except BaseException:
         # Every completed move is recorded; no directory or file is deleted.

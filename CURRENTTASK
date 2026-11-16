@@ -1,21 +1,12 @@
-RC20 RELEASE COMPLETE. Public v1.0.0-rc.20 from1d2dc15:
-https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.20
-Verify43758987841/release43759008899 successful. 296unitcases; allportable
-Linux/macOS/Windows contracts and nativeUI/editor/tool gates pass. POSIX actual
-rootbootstrap/worker tested onlydisposableCI; WindowsUACparserpassed but genuine
-humanconsentmanualnotclaimed. No privilegedcase/real target/task runonuserhost.
-PublishedallSHA256SUMSverified wheel246964B source424523B VSIX10280B plusengine
-bundles. Exactwheel+localconnectorinstalled; idleunitrestarted runningRC20 features
-continuous-swarm/task-execution-policy/active-supervision/privilege-cases. 0pending,
-0completed,noactiveattempts. ReloadexistingVSCodewindowsforDiagnostics.
-Features: explicitfulltaskpermissions, activefixedobjectiveoverseeing/replan,
-fileallowlistsstaged/reversion/missingGitfailclosed; root/admin expiringnative
-sudo/UACcases oneverifiedcycleperapproval; scopedHTTP/TLS/exposureassessments+
-nmapcase/import; measuredtaskawarerouting+presets; offlineCLI/VSCodeDiagnostics;
-Jcodeinteractiveadditivesecurityoverlay. Core~247KB/source~425KB; repo~30MiB.
-Controllerrealregression11/13,0falseinterventions,2misseddrifts. Notheld-out or
-infallible; deterministicguardsindependent. Securitycoverageevaluated forshipped
-checks,notallvulnerabilitycategories; scopesarenotOSsandbox/fullrootconfinement.
-Reviewdocs/review-continuous-supervision.md; usage docs/rc20-security-and-operations.md.
-No outstandingworkforrequestedRC20. Future: broadenlabs/controllermodelquality,
-manualWindowsconsent/nativeMacUI. No delegation authorized. Keepbulkoutsideppp.
+RC21 web and IT security candidate implemented, 2026-11-16.
+Python 1.0.0rc21 / connector 1.0.21. Scoped methods, cookies/prefixes, CORS and
+browser policies; explicit bounded local config audit; evidence-backed defensive
+retest comparison. Scope/URL/pin/expiry and XML import hardening. Windows storage
+relocation fixed and portable fixtures corrected. Full Windows/Python3.14 suite:
+310 tests, zero failures/errors, 3 platform skips. Final security contracts
+rechecked after comparison evidence validation. Builds in dist/rc21, thin core
+under 1MiB. See docs/rc21-security.md and docs/review-1.0.0rc21.md.
+No release/publication/global installation, privileged case or remote assessment.
+Next release gates: cross-platform CI and native release verification; manual
+OS-consent checks remain separate. Existing engine archives retain RC20 pins.
+No delegation authorized. Build tools isolated in .runtime/rc21-build.

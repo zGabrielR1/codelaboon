@@ -1,3 +1,19 @@
+## 1.0.0rc21 - 2026-11-16
+
+- Expand explicit-scope web assessments with OPTIONS method advertisements,
+  cookie attributes, synthetic-origin CORS probes and browser policy analysis.
+  Separate observations from demonstrated exploitability and preserve budgets.
+- Add bounded, read-only audits of explicitly named local configuration files
+  for private-key material and POSIX access permissions; never retain contents.
+- Compare equivalent completed assessments for defensive retesting; label absent
+  findings as not observed rather than claiming a verified fix.
+- Tighten URL/pinned-address/timing validation, recheck scope expiry between
+  probes, hash response-header values, and harden bounded nmap XML imports.
+- Separate pure checks, local audit and report comparison from network execution;
+  strengthen evidence-first security behavior and untrusted-output guidance.
+- Fix Windows storage relocation path handling and platform-sensitive test
+  assumptions; add RC21 web/IT fixtures to portable CI.
+
 ## 1.0.0rc20 - 2026-11-15
 
 - Add per-task native full permissions, active local scope review, redirect/replan,

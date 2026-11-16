@@ -8,6 +8,13 @@ See [native runtime architecture and operations](native-runtime.md) for the curr
 UI, free routing, local/security profiles, installation and OS-managed workers.
 The older Textual implementation below remains a reference implementation.
 
+RC21 security execution separates explicit-scope networking and evidence
+collection (`security_assessment.py`) from pure response rules
+(`security_checks.py`), bounded explicit-file IT auditing (`security_local.py`)
+and defensive retest comparison (`security_reports.py`). The security profile
+guides hypotheses and evidence review; deterministic runner checks enforce the
+approved network scope and budgets. See [usage and limits](rc21-security.md).
+
 A declarative prompt-engineering harness for free AI model access. It wraps free model access into a self-perpetuating lifecycle: any CLI session bootstraps state, operates under a master prompt, verifies adversarially, improves the provider configurations themselves, and condenses context for the next session.
 
 Python source code with a small runtime dependency set (`requests` and PyJWT;

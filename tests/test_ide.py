@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -47,6 +48,10 @@ class EditorIntegrationTests(unittest.TestCase):
     def test_wrapper_script_uses_existing_python_without_downloading_runtime(self):
         with tempfile.TemporaryDirectory() as directory,patch('codelaboon.ide.config_dir',return_value=Path(directory)):
             path=ide.wrapper_path()
+            if os.name == 'nt':
+                self.assertEqual(path.suffix.lower(), '.exe')
+                self.assertTrue(path.is_file())
+                return
             text=path.read_text()
             self.assertIn(sys.executable,text)
             self.assertNotIn('pip install',text)

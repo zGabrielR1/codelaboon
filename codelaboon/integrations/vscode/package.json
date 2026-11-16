@@ -3,7 +3,7 @@
   "displayName": "Codelaboon",
   "description": "Native coding engines, shared sessions, and import/export across seven agents.",
   "publisher": "codelaboon",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "preview": true,
   "engines": {
     "vscode": "^1.85.0"

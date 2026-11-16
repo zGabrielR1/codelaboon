@@ -683,3 +683,47 @@ Data terminal direction applied to web shell, typography, starter rows, action m
 - Source cleanup leaves about30MiB under ppp; optional runtimes/models stay outside.
   RC20 request complete. Further quality work: broader security lab coverage,
   stronger optional controller models and manual Windows UAC/native macOS UI checks.
+
+## Post-RC20 security assessment improvements — 2026-11-16
+
+- Added opt-in exact-URL OPTIONS method advertisement and cookie attribute checks.
+  Pure analyzers are separated from network/scope enforcement. Cookie names and
+  values are not retained; advertised methods are not executed or called exploits.
+- Reject nonfinite scope timing, invalid lifetimes and ambiguous URL characters.
+  Security profile now separates hypothesis/probe/review/remediation/retest and
+  treats target/tool content as untrusted evidence. This guides behavior rather
+  than claiming deterministic model enforcement.
+- Adversarial review checked secret retention, unsupported exploit claims, request
+  budgets, scope bypass and evidence references. New local fixtures and RC20
+  portable tests pass: 21 cases. Diff whitespace check passes.
+- Full Windows/Python 3.14 suite: 299 cases, 4 failures, 2 errors, 2 skipped.
+  Failures are in untouched relocation, autostart, Bun paths, export mode,
+  executable decoding and /tmp screenshot tests; full suite is not green here.
+- Source changes only; no release, installation, privileged execution or remote
+  assessment. Next: platform-neutral full-suite fixtures and broader attack labs.
+
+## RC21 web and IT security candidate - 2026-11-16
+
+- Versioned Python core 1.0.0rc21 and connector 1.0.21. Added browser/CORS probes,
+  cookie prefix checks, bounded explicit local configuration audits and defensive
+  report comparison. Usage: rc21-security.md; review: review-1.0.0rc21.md.
+- Hardened scope/pin/URL validation and expiry before probes; report header hashes
+  replace arbitrary values. Nmap imports are size-bounded before parsing, reject
+  NUL encodings/DTD/entities, and enforce every host/address/port combination.
+- Retest comparison requires equivalent completed coverage and matching evidence;
+  failed response probes cannot masquerade as successful retest coverage.
+- Fixed Windows storage relocation using path comparisons/relative reconstruction;
+  corrected platform-specific unit-test assumptions without claiming Windows ACL
+  or human native elevation coverage. Added RC21 portable CI security fixtures.
+- Full Windows/Python 3.14 offline suite: 310 tests, no failures/errors, 3 platform
+  skips. Final security contracts rechecked after retest evidence validation.
+  Structural files/directories, syntax/import and diff whitespace checks passed.
+- Wheel/source build and thin-core checks pass. Candidate artifacts live under
+  dist/rc21; build tools are isolated under .runtime/rc21-build. No global install,
+  publication, privileged case or remote security assessment was performed.
+  An isolated wheel install with declared dependencies passed 32 security tests
+  (1 platform skip); source contents and public connector version were verified.
+  SHA256SUMS accompanies the wheel, source archive and VSIX.
+- Next release gate: cross-platform CI and native release verification. Existing
+  upstream engine assets remain pinned to their verified RC20 source archives.
+  Known scope/timeouts, local race and observation limits remain documented.
