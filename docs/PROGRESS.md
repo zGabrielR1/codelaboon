@@ -797,3 +797,12 @@ RC23 local release verification: Chromium regression passed;347 unit tests pass 
 Implemented independent task worker/planner models, local/cloud planning, additive system prompts, checkpoint revisions and initial queue configuration. Browser, terminal and CLI settings/changes views share one control plane. Added read-only Git diffs and per-attempt observed files. Native wire and local-no-fallback tests pass; final full/browser/package/release verification pending. Real user task settings untouched.
 
 RC24 local verification complete:360 tests pass,3 skipped; isolated built-wheel settings tests11 pass; real Chromium settings/changes/navigation regression passes at1440/768/390. Wheel300672 bytes and source518108 bytes; VSIX rebuilt, engine provenance unchanged and verified. Publication gates pending.
+
+
+### RC24 published (2026-11-16)
+- Public release: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.24
+- Source8c2f9fd88458bc4187e8f23c0f4ffeb27dc4ee0f. Release43952089523, verify43951889132 and portable43951888967 succeeded.
+-360 local tests pass,3 skipped; all11 settings tests passed against the published wheel in isolation. Browser regression covers model/prompt persistence, Changes and task navigation at three widths.
+- Five artifacts downloaded and SHA256-verified: wheel300344 bytes, source512634 bytes, VSIX10281 bytes and both unchanged engine source bundles.
+- First release attempt hit the pre-existing Jcode UI cleanup /proc race (process exited between exists/read); file-tool smoke had passed. Retried gates passed without runtime edits; tag/source remained unchanged.
+- Public notes and usage guide explain role separation, CLI examples, safe checkpoints, local server requirements, model-protocol limits and graceful restart for old workers. No real task was modified.

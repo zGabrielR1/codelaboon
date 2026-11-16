@@ -1,3 +1,6 @@
-RC24 ready for publication requested by user.360 tests pass,3 skipped; isolated wheel settings tests11 pass; browser and responsive checks passed.
-Source contains checkpoint/initial task models, independent local/cloud planner, additive system-channel prompts, safe revision controls and Git Changes in browser/terminal/CLI.
-Next commit/push, tag v1.0.0-rc.24, observe all release gates, verify download checksums/notes and record completion. Real user task untouched; no delegation.
+RC24 COMPLETE AND PUBLISHED: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.24
+Source8c2f9fd88458bc4187e8f23c0f4ffeb27dc4ee0f. Release43952089523, verify43951889132 and portable43951888967 succeeded.
+360 local tests pass,3 skipped;11 settings tests pass against the downloaded published wheel. Five artifacts verified against SHA256SUMS.
+Delivered worker/planner model controls, independent local/cloud planning, additive system prompts, atomic initial/checkpoint revisions and Git Changes across browser/terminal/CLI.
+Initial release attempt encountered an existing /proc process-exit race in smoke_jcode_ui.py cleanup after the file-tool smoke passed; retry passed all gates without runtime changes.
+All QA used isolated fixture tasks; real user task/settings/worker were not changed or restarted. QA fixture stopped. No outstanding release work.
