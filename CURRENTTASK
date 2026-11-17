@@ -1,8 +1,13 @@
-RC25 RELEASE PREPARATION COMPLETE, public RC24 unchanged until publish.
-User requested publication of task operations plus HowToFix, Copilot OAuth and
-Windsurf/Devin account sources. Finalized1.0.0rc25 and connector1.0.25.
-382tests pass; source and isolated installed-wheel Chromium QA pass; structural,
-JS parsing and thin packaging checks pass. Release wheel/source rebuilt under/tmp.
+RC25 COMPLETE AND PUBLISHED: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.25
+Source87821ffa035e0df88bd35f750ac9b46369a1e125. Release43985673599 and portable
+43985673057 succeeded. Initial verify43985673186 failed in the lightweight Rust
+worker step, which passed in the release run; empty retry16f3255 passed
+verify43986553398 and portable43986553181 without code changes.
+382tests pass; source, final-wheel and published-wheel Chromium QA pass; structural,
+JS parsing and thin packaging checks pass. Published wheel310438B/source535785B.
+Five assets downloaded and SHA256-verified;27 provider/task/retry tests pass
+against the published wheel. Deployed1.0.0rc25 locally, restarted the idle worker
+with no pending/active tasks, and refreshed VS Code connector1.0.25.
 Features: persistent task drafts, keyboardsend/recall, state filters, timestamped
 conversations, scoped50-attempt history/logs, checkpoint-only failed swarm retry,
 worker start/pause/resume with start/resume confirmation, preserved nested policy.
@@ -10,10 +15,7 @@ HowToFix APIkey entry + live authenticatedcatalogue; Copilot GitHub deviceOAuth
 and sharedgateway accountmodels. Credit/subscription sources NOT freeAuto.
 Windsurf/Devin officialCLI auth/models/native taskengine + SHA256verifiedlazy
 installer, no invented rawmodel endpoint. Existing seven session adapters unchanged.
-Owners must authorize accounts and enter keys locally for live verification.
-Usage/review in docs/task-operations-and-accounts.md and
-docs/review-1.0.0rc25.md. Core engine assets remain pinned to publicRC24;
-unchanged provenance. Existing portable/browser CI extended (no duplicateworkflow).
-Next: commit/push, tag v1.0.0-rc.25, wait release/verify/portable gates, verify
-downloaded checksums/notes and record completion. No real user task, worker,
-settings or account changed. No delegation authorized; keep bulk outsideppp.
+Owners must authorize accounts and enter keys locally for live verification; no
+account inference was performed. Usage/review in docs/task-operations-and-accounts.md
+and docs/review-1.0.0rc25.md. Detailed notes in docs/release-rc25.md. No delegation
+authorized; keep bulk outsideppp. No outstanding release work.

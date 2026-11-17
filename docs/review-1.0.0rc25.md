@@ -46,4 +46,10 @@ remain below1MiB. Actual users' worker/tasks/accounts/settings were not touched;
 all permission operations in QA used disposable state. No live account inference
 was claimed. Fresh source modules/flags are feature-gated against older workers.
 Existing CRLF changes were preserved; whitespace verification accounts for CRLF.
-This is the reviewed RC25 release candidate.
+
+Publication: release 43985673599 and portable 43985673057 succeeded for
+87821ffa035e0df88bd35f750ac9b46369a1e125. The initial verify run failed in the
+lightweight Rust worker step, which passed in the release run; empty retry commit
+16f3255 passed verify 43986553398 and portable 43986553181 without code changes.
+All five published artifacts verified against SHA256SUMS; 27 targeted tests and
+the Chromium task-operation smoke pass against the published wheel.

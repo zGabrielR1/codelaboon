@@ -844,4 +844,21 @@ staged the unchanged pinned engine bundles. 382 tests pass; 27 provider/task/ret
 tests pass against the installed final wheel in
 isolation. Structural checks, JS parsing, core packaging and engine provenance
 pass; real Chromium task operations pass for source and installed wheel.
-Publication gates pending.
+
+
+### RC25 published (2026-11-17)
+- Public release: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.25
+- Source 87821ffa035e0df88bd35f750ac9b46369a1e125. Release 43985673599 and
+  portable 43985673057 succeeded. The initial verify run 43985673186 failed in the
+  lightweight Rust worker step (Jcode UI/swarm checks), which passed in the release
+  run; empty retry commit 16f3255 passed verify 43986553398 and portable 43986553181
+  without code changes.
+- Five published artifacts downloaded and SHA256-verified: wheel 310438B, source
+  535785B, VSIX 10287B and both unchanged pinned engine source bundles.
+- The published wheel was installed in isolation; 27 provider/task/retry tests and
+  the real Chromium task-operation smoke pass against it.
+- Deployed the published wheel into the local user environment as 1.0.0rc25,
+  restarted the idle worker (no pending/active tasks) with task-retry and
+  native-account features, and refreshed the VS Code connector to 1.0.25.
+- Detailed release notes are in docs/release-rc25.md; the GitHub release body is
+  the workflow-generated changelog link.
