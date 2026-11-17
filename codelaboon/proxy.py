@@ -51,7 +51,8 @@ def main(arguments=None):
         from codelaboon.cli import CodelaboonCLI
         from codelaboon.native_gateway import serve
         cli=CodelaboonCLI();cli.load_providers()
-        with serve(cli.providers,port=args.port,token=token,model_alias=args.model) as (gateway,url):
+        from codelaboon.connections import loader
+        with serve(cli.providers,port=args.port,token=token,model_alias=args.model,reload_providers=loader(cli)) as (gateway,url):
             # Seed promptly; provider discovery continues in the background so
             # Desktop's first model-list request cannot block on every provider.
             gateway.models(startup=True)

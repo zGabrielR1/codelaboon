@@ -11,12 +11,13 @@ def configuration():
     return load()
 
 
-def task_records(value, root):
+def task_records(value, root, include_deleted=False):
     tasks=list(value.get('tasks',[]))
     for path in (root/'inbox').glob('*.json'):
         try:tasks.append(json.loads(path.read_text(encoding='utf-8')))
         except (OSError,ValueError):continue
-    return {task['id']:task for task in tasks if isinstance(task,dict) and isinstance(task.get('id'),str)}
+    from codelaboon.task_lifecycle import deleted
+    return {task['id']:task for task in tasks if isinstance(task,dict) and isinstance(task.get('id'),str) and (include_deleted or not deleted(root,task['id']))}
 
 
 def snapshot():
@@ -51,12 +52,12 @@ def snapshot():
     return result
 
 
-def selected(identity):
+def selected(identity,include_deleted=False):
     if not isinstance(identity,str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}',identity):
         raise ValueError('Invalid task ID')
     path,value,root=configuration()
     if root is None:raise ValueError('No worker configuration yet')
-    record=task_records(value,root).get(identity)
+    record=task_records(value,root,include_deleted).get(identity)
     if not record:raise ValueError('Unknown task ID')
     return path,root,record
 
@@ -173,6 +174,10 @@ def model_choices(cli):
 
 
 def control(identity,action):
+    if action=='delete':
+        _,root,task=selected(identity,include_deleted=True)
+        from codelaboon.task_lifecycle import delete
+        return delete(root,task)
     if action=='retry':
         path,root,task=selected(identity)
         from codelaboon.task_attempts import retry
@@ -180,7 +185,10 @@ def control(identity,action):
         retry(root,task,status(path))
         return {'task':identity,'action':action,'message':'Retry queued at the next checkpoint; active work and verification policy are unchanged'}
     if action not in ('pause','resume','stop'):raise ValueError('Unsupported task control')
-    path,_,task=selected(identity)
+    path,root,task=selected(identity)
+    if action=='resume':
+        from codelaboon.work_queue import controls
+        reset=controls(root,identity)/'RESET_CHECK_FAILURES';reset.parent.mkdir(parents=True,exist_ok=True);reset.touch()
     if task.get('swarm'):
         from codelaboon.swarm import control as apply
         apply(action,identity,path)

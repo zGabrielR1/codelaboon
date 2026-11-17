@@ -1,3 +1,17 @@
+## Unreleased
+
+- Add task deletion with confirmation, durable scheduler exclusion and retained
+  project files and local attempt logs; expose deletion in chat, operations and CLI.
+- Open a task in an installed native engine from the web UI using a desktop
+  terminal and the existing shared conversation/session route.
+- Add a Connections page with browser account sign-in, device-code progress and
+  API-key setup. Running engine gateways and the proxy reload saved connections.
+- Keep task titles visible on phones, reduce irrelevant controls, preserve
+  unchanged chat DOM during polling, and separate activity from assistant replies.
+- Show actual failed-check commands, exit codes and bounded redacted output;
+  reserve verification time and pause missing verifiers or repeated identical
+  failures. Do not penalize model quality for broken verification infrastructure.
+
 ## 1.0.0rc29
 
 - Open task conversations in the normal web chat sidebar and composer, with

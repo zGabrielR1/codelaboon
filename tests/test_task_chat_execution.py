@@ -101,7 +101,7 @@ class TaskChatExecution(unittest.TestCase):
             (attempt/'result.json').write_text(json.dumps({'task':'fixture','started':1,'finished':2,'status':'failed','verification':'failed'}))
             events=task_conversation.attempt_events(root,'fixture')
             self.assertFalse(next(row for row in events if row['kind']=='reply')['partial'])
-            self.assertIn('independent checks failed',events[-1]['text'])
+            self.assertIn('A project check failed',events[-1]['text']);self.assertIn('check output',events[-1]['text'])
 
 
 class FreeRouteFailures(unittest.TestCase):

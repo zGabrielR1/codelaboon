@@ -6,6 +6,7 @@ import json
 import threading
 import time
 import uuid
+from pathlib import Path
 
 from codelaboon import task_api
 from codelaboon.task_conversation import directory,tail
@@ -38,11 +39,13 @@ def model_rows():
 
 
 def native_document(identity):
-    _,root,_=task_api.selected(identity)
+    config,root,_=task_api.selected(identity)
     value=document(identity)
+    project=Path(value['task']['project']).expanduser()
+    if not project.is_absolute():project=(config.parent if config else Path.cwd())/project
     stable=str(uuid.uuid5(uuid.NAMESPACE_URL,str(directory(root,identity).resolve())))
     return {'format':'codelaboon.session.v1','id':stable,'title':value['task']['title'],
-            'cwd':value['task']['project'],'created_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'cwd':str(project.resolve()),'created_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'messages':[{'role':row['role'],'content':row['content']} for row in value['messages'] if not row.get('note')],
             'origin':{'engine':'task','native_id':identity,'source':str(root.resolve())},
             'archive':{'task':identity,'messages':value['messages']}}

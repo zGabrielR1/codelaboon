@@ -96,7 +96,7 @@ def status(path=None):
     return {'running': alive, 'service': service_info, 'stop_requested': (root / 'STOP').exists(),
             'paused': (root / 'PAUSE').exists(), 'config': str(path),
             'runtime': str(root), 'completed': len(done),
-            'pending': [task_status(task) for task in tasks if task['id'] not in done],
+            'pending': [task_status(task) for task in tasks if task['id'] not in done and not (controls(root,task['id'])/'DELETED.json').exists()],
             'active_or_interrupted_attempts': active,
             'cooldowns': {key: round(until - time.time()) for key, until in
                           state.get('cooldowns', {}).items() if until > time.time()}}

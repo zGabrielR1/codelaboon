@@ -27,7 +27,7 @@ def snapshot(config=None, task_id=None, swarm_only=False):
             continue
         if not isinstance(row.get('started',0),(int,float)):continue
         if row.get('started',0) >= attempts.get(identity,{}).get('started',0):
-            attempts[identity] = {key:row[key] for key in ('status','stage','exit_code','started','finished','harness') if key in row}
+            attempts[identity] = {key:row[key] for key in ('status','stage','exit_code','started','finished','harness','verification','failure_detail','needs_attention','recovery','phase') if key in row}
             attempts[identity]['logs'] = str(path.parent)
     for row in tasks:
         latest = attempts.get(row['id'])

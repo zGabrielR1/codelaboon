@@ -66,9 +66,14 @@ def main(argv=None):
     parser.add_argument('--orchestrator-prompt-file',help='UTF-8 additive planning system instructions')
     parser.add_argument('--changes',action='store_true',help='Show current project diff and observed attempt changes')
     parser.add_argument('--attempts',action='store_true',help='Inspect the last 50 attempts')
+    parser.add_argument('--delete',action='store_true',help='Delete task scheduling; keep project files and local attempt logs')
     parser.add_argument('--retry',action='store_true',help='Retry a failed continuous task at its next checkpoint')
     args=parser.parse_args(argv)
     try:
+        if args.delete:
+            if not args.task:parser.error('Provide a task ID')
+            from codelaboon.task_api import control
+            print(json.dumps(control(args.task,'delete'),indent=2));return
         if args.attempts or args.retry:
             if not args.task:parser.error('Provide a task ID')
             from codelaboon import task_api

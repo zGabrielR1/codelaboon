@@ -91,10 +91,26 @@ class Gateway:
         self.local.trust_env = False
         self.closed = threading.Event()
         self.discovery_errors = {}
+        self.reload_providers=None
+        self.connection_revision=None
+        self.provider_generation=0
+        self.reload_lock=threading.Lock()
         self.model_alias = None
         prompt_path=os.environ.get('CODELABOON_TASK_SYSTEM_PROMPT_FILE')
         self.task_system_prompt=Path(prompt_path).read_text(encoding='utf-8')[:20000] if prompt_path else ''
         self.task_model=os.environ.get('CODELABOON_TASK_MODEL') if os.environ.get('CODELABOON_HEADLESS_TASK')=='1' else None
+
+    def refresh_connections(self):
+        if self.reload_providers is None:return
+        from codelaboon.connections import revision
+        current=revision()
+        if current==self.connection_revision:return
+        with self.reload_lock:
+            if current==self.connection_revision:return
+            self.providers=self.reload_providers()
+            self.provider_generation+=1
+            self.catalog=None;self.cooldowns.clear();self.health_started.clear()
+            self.connection_revision=current
 
     def health_applies(self,name,provider):
         from providers.base import BaseProvider
@@ -124,11 +140,12 @@ class Gateway:
         if not self.health_applies(name,provider) or name in self.health_started:
             return
         self.health_started.add(name)
+        generation=self.provider_generation
         def verify():
             from codelaboon.model_health import check_provider,discover
             try:
                 current=models;refresh=time.monotonic()+300;first=True
-                while not self.closed.is_set():
+                while not self.closed.is_set() and generation==self.provider_generation:
                     if current is None or time.monotonic()>=refresh:
                         current=discover(name,provider);refresh=time.monotonic()+300
                     check_provider(name,provider,closed=self.closed,models=current,limit=2 if first else 1)
@@ -140,6 +157,7 @@ class Gateway:
         threading.Thread(target=verify,daemon=True,name='free-model-check-'+name).start()
 
     def models(self, startup=False):
+        self.refresh_connections()
         if self.catalog is not None:
             return self.visible(self.catalog)
         if startup:
@@ -199,6 +217,7 @@ class Gateway:
         remaining = pending.qsize()
         if not remaining:
             return self.visible(self.catalog)
+        generation=self.provider_generation
         def worker():
             nonlocal remaining
             while not self.closed.is_set():
@@ -214,6 +233,7 @@ class Gateway:
                     rows = [{"id": name + "/" + model, "name": labels.get(model, model), "api": api}
                             for model in models if isinstance(model, str)]
                     with lock:
+                        if generation!=self.provider_generation:return
                         entries[name] = rows
                         self.catalog = snapshot()
                         if not self.closed.is_set():
@@ -263,6 +283,7 @@ class Gateway:
         return [(name, identifier)]
 
     def request(self, body, api, timeout=(15,180)):
+        self.refresh_connections()
         model=body.get('model','')
         if self.model_alias and api=='anthropic' and (model in ('default','sonnet','opus','haiku') or model.startswith('claude-')):
             body=dict(body,model=self.model_alias)
@@ -561,8 +582,11 @@ def handler(gateway):
 
 
 @contextmanager
-def serve(providers,task_class=None,*,port=0,token=None,model_alias=None):
+def serve(providers,task_class=None,*,port=0,token=None,model_alias=None,reload_providers=None):
     gateway = Gateway(providers,task_class=task_class)
+    if reload_providers is not None:
+        from codelaboon.connections import revision
+        gateway.reload_providers=reload_providers;gateway.connection_revision=revision()
     if token is not None:
         if not isinstance(token,str) or len(token)<32 or not token.isascii() or any(c.isspace() for c in token):
             raise ValueError('Gateway token must contain at least 32 non-whitespace ASCII characters')

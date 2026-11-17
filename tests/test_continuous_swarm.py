@@ -132,7 +132,7 @@ class ContinuousSwarmTests(unittest.TestCase):
     def test_swarm_and_checks_share_cycle_budget(self):
         with tempfile.TemporaryDirectory() as directory:
             config,task_id,runtime=self.configure(Path(directory))
-            with patch('codelaboon.watch.execute',side_effect=self.execute) as execute, patch('time.monotonic',side_effect=[0,25]):
+            with patch('codelaboon.watch.execute',side_effect=self.execute) as execute, patch('time.monotonic',side_effect=[0,25,25,25]):
                 run(config,once=True)
             self.assertEqual(execute.call_count,1)
             state=json.loads((runtime/'state.json').read_text())

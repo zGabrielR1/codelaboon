@@ -7,7 +7,7 @@ function restoreDraft(){try{$('#prompt').value=localStorage.getItem('codelaboon.
 $('#prompt').addEventListener('input',saveDraft);
 window.addEventListener('beforeunload',saveDraft);
 function persist(){try{localStorage.setItem('codelaboon.chats',JSON.stringify(sessions))}catch{showError('Browser storage is full. Export your conversation to keep a copy.')}}
-function showError(text){$('#error').textContent=text;$('#error').hidden=!text}
+function showError(text){if($('#error').textContent!==text)$('#error').textContent=text;$('#error').hidden=!text}
 async function api(path,options){const r=await fetch(path,options);const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data}
 function newChat(){if(busy)return;saveDraft();current={id:crypto.randomUUID(),title:'New conversation',provider:$('#provider').value,model:$('#model').value,messages:[]};render();$('#prompt').value='';$('#prompt').focus();document.body.classList.remove('show-sidebar')}
 function render(){document.body.classList.toggle('has-conversation',!!current?.messages.length);$('#session-count').textContent=sessions.filter(s=>!!s.archived===showArchived).length;const nav=$('#sessions');nav.replaceChildren();for(const s of sessions.filter(s=>!!s.archived===showArchived&&s.title.toLowerCase().includes($('#history-search').value.toLowerCase()))){const b=document.createElement('button');b.textContent=s.title;b.className=s.id===current?.id?'active':'';b.onclick=async()=>{if(busy)return;saveDraft();current=s;restoreDraft();$('#provider').value=s.provider;await loadModels(s.model);render();document.body.classList.remove('show-sidebar')};nav.append(b)}$('#title').textContent=current?.title||'New conversation';$('#archive').textContent=current?.archived?'Restore':'Archive';$('#welcome').hidden=!!current?.messages.length;const messages=$('#messages');messages.replaceChildren();for(const m of current?.messages||[]){const item=document.createElement('article');item.className='message '+m.role;const role=document.createElement('div');role.className='role';role.textContent=m.role==='user'?'You':current?.taskId?'Orchestrator':'codelaboon';item.append(role);const content=document.createElement('div');content.className='content';const parts=m.content.split(/```[^\n]*\n([\s\S]*?)```/g);parts.forEach((part,i)=>{const el=document.createElement(i%2?'pre':'span');el.textContent=part;content.append(el)});item.append(content);const copy=document.createElement('button');copy.className='copy';copy.textContent='Copy';copy.onclick=async()=>{try{await navigator.clipboard.writeText(m.content);copy.textContent='Copied'}catch{showError('Clipboard unavailable. Select and copy the message.')}};item.append(copy);messages.append(item)}}
@@ -45,6 +45,7 @@ $('#prompt').addEventListener('keydown',event=>{if(event.key==='ArrowUp'&&!event
 
 // Task threads use the same library, renderer and composer as regular chats.
 let taskChats=[],taskState=null,taskLoading=false;
+const taskPendingMessages=new Map();
 const regularRender=render;
 render=function(){
  regularRender();
@@ -55,10 +56,13 @@ render=function(){
  $('#archive').disabled=active;$('#rename').disabled=active;
  if(active){
   $('#send').disabled=busy;$('#compose-label').textContent='Saved to this task \u00b7 Replies arrive automatically';
-  context.replaceChildren();const label=document.createElement('span');label.textContent='Orchestrator \u00b7 '+(taskState?.activity||'Loading')+' \u00b7 Worker '+(taskState?.worker?.paused?'paused':taskState?.worker?.running?'running':'stopped');context.append(label);
-  for(const [label,action,worker] of [['Start worker','start',true],...(taskState?.worker?.paused?[['Resume worker','resume',true]]:[]),['Resume task','resume',false],['Pause task','pause',false]]){
+  context.replaceChildren();const heading=document.createElement('h1');heading.className='task-chat-title';heading.textContent=current.title;context.append(heading);const label=document.createElement('span');label.textContent='Orchestrator \u00b7 '+(taskState?.activity||'Loading')+' \u00b7 Worker '+(taskState?.worker?.paused?'paused':taskState?.worker?.running?'running':'stopped');context.append(label);
+  const controls=[...(!taskState?.worker?.running?[['Start worker','start',true]]:[]),...(taskState?.worker?.paused?[['Resume worker','resume',true]]:[]),...(taskState?.activity==='paused'?[['Resume task','resume',false]]:!['completed','stopped'].includes(taskState?.activity)?[['Pause task','pause',false]]:[])];
+  for(const [label,action,worker] of controls){
    const b=document.createElement('button');b.textContent=label;b.disabled=worker&&action==='start'&&!!taskState?.worker?.running;b.onclick=async()=>{try{await taskRequest(worker?'/api/tasks/worker':'/api/tasks/control',worker?{action}:{task:current.taskId,action});await refreshTaskChats()}catch(e){showError(e.message)}};context.append(b)
   }
+  const open=document.createElement('button');open.textContent='Open in engine';open.id='open-native-task';open.onclick=()=>TaskActions.open(current.taskId,taskState?.task?.engine);context.append(open);
+  const remove=document.createElement('button');remove.textContent='Delete task';remove.id='delete-chat-task';remove.onclick=()=>TaskActions.remove(current.taskId);context.append(remove);
   const link=document.createElement('a');link.href='/tasks?task='+encodeURIComponent(current.taskId);link.textContent='Task controls';context.append(link);
  }
  if(!showArchived)for(const task of taskChats.filter(t=>t.title.toLowerCase().includes($('#history-search').value.toLowerCase()))){
@@ -77,23 +81,30 @@ async function openTaskChat(identity){
 async function refreshTaskChats(initial=false){
  if(!token||taskLoading)return;taskLoading=true;
  try{
-  const state=await api('/api/tasks',{headers:{'X-Codelaboon-Token':token}});taskChats=state.tasks;
+  const state=await api('/api/tasks',{headers:{'X-Codelaboon-Token':token}});const listChanged=JSON.stringify(taskChats.map(t=>[t.id,t.title,t.state]))!==JSON.stringify(state.tasks.map(t=>[t.id,t.title,t.state]));taskChats=state.tasks;TaskActions.configure(token,state.engines);
+  if(current?.taskId&&!taskChats.some(t=>t.id===current.taskId)){current=null;taskState=null;newChat();showError('This task was deleted.');return}
   const selected=initial?requestedTask:current?.taskId;
   if(selected){
    if(current?.taskId!==selected)await openTaskChat(selected);
    else{const value=await api('/api/task-chat?task='+encodeURIComponent(selected),{headers:{'X-Codelaboon-Token':token}});if(current?.taskId!==selected)return;const thread=$('#thread'),atBottom=thread.scrollHeight-thread.scrollTop-thread.clientHeight<100;
-    const changed=JSON.stringify(current.messages)!==JSON.stringify(value.messages.filter(m=>!m.note));taskState=value;current.messages=value.messages.filter(m=>!m.note);current.title=value.task.title;render();if(changed&&atBottom)thread.scrollTop=thread.scrollHeight;
+    const changed=JSON.stringify(current.messages)!==JSON.stringify(value.messages.filter(m=>!m.note));const stateChanged=taskState?.activity!==value.activity||taskState?.worker?.running!==value.worker.running||taskState?.worker?.paused!==value.worker.paused;taskState=value;current.messages=value.messages.filter(m=>!m.note);current.title=value.task.title;if(changed||stateChanged||listChanged)render();if(changed&&atBottom)thread.scrollTop=thread.scrollHeight;
     showError(value.latest_error||'')}
-  }else render();
+  }else if(initial||listChanged)render();
  }catch(e){if(current?.taskId)showError(e.message)}finally{taskLoading=false}
 }
 $('#composer').addEventListener('submit',async e=>{
  if(!current?.taskId)return;e.preventDefault();e.stopImmediatePropagation();const text=$('#prompt').value.trim();if(busy||!text)return;
  busy=true;$('#send').disabled=true;const identity=current.taskId;
- try{const result=await taskRequest('/api/tasks/messages',{task:identity,text,mode:'guidance',message_id:crypto.randomUUID()});$('#prompt').value='';saveDraft();await refreshTaskChats();showError(result.execution_error||'')}
+ try{let pending=taskPendingMessages.get(identity);if(!pending||pending.text!==text){pending={task:identity,text,mode:'guidance',message_id:crypto.randomUUID()};taskPendingMessages.set(identity,pending)}const result=await taskRequest('/api/tasks/messages',pending);taskPendingMessages.delete(identity);$('#prompt').value='';saveDraft();await refreshTaskChats();showError(result.execution_error||'')}
  catch(error){showError(error.message)}finally{busy=false;render();$('#prompt').focus()}
 },true);
 const normalNewChat=newChat;
 newChat=function(){if(busy)return;history.replaceState(null,'','/');taskState=null;normalNewChat();$('#compose-label').textContent='Conversation stays in this browser';$('#send').disabled=!$('#model').value};
 $('#new').onclick=newChat;
 setInterval(()=>refreshTaskChats(),2500);
+
+document.addEventListener('task-deleted',event=>{
+ const identity=event.detail.task;try{localStorage.removeItem('codelaboon.draft.task:'+identity);const draft=JSON.parse(localStorage.getItem('codelaboon.activeDraft')||'null');if(draft?.chat?.taskId===identity)localStorage.removeItem('codelaboon.activeDraft')}catch{}
+ taskPendingMessages.delete(identity);if(current?.taskId===identity){current=null;taskState=null;newChat()}refreshTaskChats();showError('')
+});
+document.addEventListener('task-opened',event=>{showError('');const note=document.createElement('p');note.className='task-action-notice';note.setAttribute('role','status');note.textContent=event.detail.message;$('#task-context')?.append(note);setTimeout(()=>note.remove(),6000)});

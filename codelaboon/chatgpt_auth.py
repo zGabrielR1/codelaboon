@@ -279,8 +279,9 @@ def login(report=None):
         redirect = f'http://127.0.0.1:{server.server_port}{CALLBACK_PATH}'
         url = _authorize_url(pending_client_id, host['id'], redirect, state, nonce, challenge, old)
         report('Complete ChatGPT authorization in your browser. Waiting up to 5 minutes.')
+        report(url)
         if not webbrowser.open(url):
-            report(url)
+            report('Open the sign-in link to continue.')
         deadline = time.monotonic() + 300
         while not result and time.monotonic() < deadline:
             server.handle_request()

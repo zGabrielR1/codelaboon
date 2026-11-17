@@ -169,8 +169,9 @@ def login(report=None) -> None:
     )
 
     try:
+        report(url)
         if not webbrowser.open(url):
-            report(url)
+            report('Open the sign-in link to continue.')
         deadline = time.monotonic() + LOGIN_TIMEOUT
         while not result and time.monotonic() < deadline:
             server.handle_request()

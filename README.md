@@ -963,3 +963,17 @@ forwarding a reply. A provider requiring account billing setup is cooled down
 and another eligible free provider is tried. If none answer, the request reports
 unavailability with a retry delay; a free model listing alone does not establish
 that the account can access it.
+
+
+### Task actions and shared sign-in
+
+Task chats and operations now include **Open in engine** and **Delete task**.
+Deletion stops future scheduling and removes the task from the library while
+retaining project files and local attempt logs. **Connections** provides browser
+account sign-in and API-key setup shared with engines and the proxy.
+
+Failed checks now show the command, exit code and diagnostic output. Continuous
+cycles reserve time for verification; missing verifiers and repeated identical
+failures pause for review instead of looping indefinitely. Routine scheduling
+updates stay outside the assistant transcript. See [task actions and shared
+connections](docs/task-ux-and-connections.md) for behavior and upgrade details.

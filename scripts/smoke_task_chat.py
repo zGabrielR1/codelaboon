@@ -27,9 +27,11 @@ def run():
         (attempt/'result.json').write_text(json.dumps({'task':identity,'stage':'build','harness':'fixture','status':'running','started':time.time()}))
         output=attempt/'output.log';output.write_text('Fixture cycle started\n')
         reply=attempt/'reply.partial.txt';reply.write_text('I am reviewing the fixture regression and coordinating the workers.')
-        (runtime/'service-info.json').write_text(json.dumps({'features':['task-engine-selection','operator-interventions','task-execution-settings','task-conversations']}))
-        with patch('codelaboon.work.running',return_value=True),patch('codelaboon.engine_tasks.catalog',return_value=[]),patch('codelaboon.work.start') as start:
-            server=create_server(0,Mock(providers={}))
+        (runtime/'service-info.json').write_text(json.dumps({'features':['task-execution-policy','task-engine-selection','operator-interventions','task-execution-settings','task-conversations']}))
+        with patch('codelaboon.work.running',return_value=True),patch('codelaboon.engine_tasks.catalog',return_value=[{'id':'opencode','installed':True,'worker_limit':1,'coordination':'portable coordinator','prepare_command':'fixture'}]),patch('codelaboon.work.start') as start:
+            provider=Mock(keyless=False);provider.validate_api_key.return_value=False;provider.list_models.return_value=['fixture-model']
+            cli=Mock(providers={name:provider for name in ('chatgpt','claude','gemini','freebuff','qoder','copilot','vercel')});cli._current_provider_config.return_value={}
+            server=create_server(0,cli)
             thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
             try:
                 with sync_playwright() as playwright:
@@ -106,6 +108,7 @@ def run():
                         for width in (1440,768,390):
                             page.set_viewport_size({'width':width,'height':900})
                             expect(page.locator('#send')).to_be_in_viewport()
+                            expect(page.locator('.task-chat-title')).to_be_visible()
                             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
                             page.screenshot(path=str(evidence/f'unified-chat-{width}.png'))
                         page.reload();expect(page.locator('#messages')).to_contain_text('Explain the result in this same conversation')
@@ -115,6 +118,57 @@ def run():
                         expect(page.locator('#provider')).to_be_visible()
                         page.locator('#sessions [data-task]').click(force=True)
                         expect(page.locator('#messages')).to_contain_text('Explain the result in this same conversation')
+                        with patch('codelaboon.task_launch.launch',return_value={'task':identity,'engine':'opencode','message':'Opening fixture engine.'}) as launch:
+                            page.locator('#open-native-task').click()
+                            expect(page.locator('#task-action-dialog')).to_be_visible()
+                            expect(page.locator('#task-action-engine')).to_have_value('opencode')
+                            for width in (1440,768,390):
+                                page.set_viewport_size({'width':width,'height':900});expect(page.locator('#task-action-confirm')).to_be_in_viewport()
+                                page.screenshot(path=str(evidence/f'engine-dialog-{width}.png'))
+                            page.locator('#task-action-confirm').click()
+                            expect(page.locator('#task-action-dialog')).not_to_be_visible()
+                            launch.assert_called_once_with(identity,'opencode')
+                        page.locator('#delete-chat-task').click();page.screenshot(path=str(evidence/'delete-dialog-390.png'));page.locator('#task-action-cancel').click()
+                        expect(page.locator('#sessions [data-task]')).to_have_count(1)
+                        page.locator('#delete-chat-task').click()
+                        expect(page.locator('#task-action-description')).to_contain_text('Project files')
+                        page.locator('#task-action-confirm').click()
+                        expect(page.locator('#sessions [data-task]')).to_have_count(0)
+                        expect(page.locator('#title')).to_have_text('New conversation')
+                        page.goto(base+'/tasks');expect(page.locator('.task-row')).to_have_count(0)
+                        # Exercise the same deletion action from operations.
+                        other=work.add(root,'A second removable fixture',[['python','-c','pass']],scope='Temporary fixture only',swarm={'controller':'worker','engine':'opencode','workers':1,'timeout':30,'interval':60,'cycles':1,'model':'fixture'})
+                        page.goto(base+'/tasks?task='+other)
+                        page.locator('#delete-ops-task').click();page.locator('#task-action-confirm').click()
+                        expect(page.locator('.task-row')).to_have_count(0)
+                        # Connections use real web endpoints with fixture authentication only.
+                        page.goto(base+'/connections');expect(page.locator('.connection-row')).to_have_count(14)
+                        login_finished=threading.Event()
+                        def fixture_login(report):
+                            report('https://example.com/fixture-authorization')
+                            report('Complete fixture authorization in your browser')
+                            login_finished.wait(5)
+                            provider.validate_api_key.return_value=True
+                        with patch('codelaboon.freebuff_auth.login',side_effect=fixture_login):
+                            page.locator('[data-provider=freebuff] button').click()
+                            expect(page.locator('[data-provider=freebuff] a')).to_have_text('Open sign-in page')
+                            page.screenshot(path=str(evidence/'connection-pending-390.png'),full_page=True)
+                            login_finished.set()
+                            expect(page.locator('[data-provider=freebuff] .connection-status')).to_have_text('Connected on this computer',timeout=10000)
+                        def save_fixture_key(name,values):
+                            assert name=='vercel' and values['api_key']=='fixture-key'
+                            return True
+                        with patch('config.providers.save_provider_config',side_effect=save_fixture_key):
+                            page.locator('[data-provider=vercel] button').click()
+                            page.locator('#connection-key').fill('fixture-key')
+                            page.locator('#save-connection-key').click()
+                            expect(page.locator('#connection-key-dialog')).not_to_be_visible()
+                            expect(page.locator('#connection-key')).to_have_value('')
+                        for width in (1440,768,390):
+                            page.set_viewport_size({'width':width,'height':900})
+                            assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
+                            expect(page.get_by_role('heading',name='Connections',exact=True)).to_be_visible()
+                            page.screenshot(path=str(evidence/f'connections-{width}.png'),full_page=True)
                         page.goto(base+'/tasks?task=missing-task')
                         expect(page.get_by_role('heading',name='Task unavailable')).to_be_visible()
                         assert not errors,errors
@@ -122,7 +176,7 @@ def run():
                         start.assert_not_called()
                     finally:browser.close()
             finally:server.shutdown();server.server_close();thread.join(3)
-    print('PASS task chat/settings/changes: navigation, live output, durable guidance, independent model settings and prompts, desktop/tablet/mobile, no model execution')
+    print('PASS unified tasks: chat/settings/changes, native handoff, deletion/cancel, shared web sign-in/key setup, desktop/tablet/mobile; no model execution or real sign-in')
 
 
 if __name__=='__main__':run()

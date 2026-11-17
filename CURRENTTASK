@@ -1,13 +1,23 @@
-RC29 PREPARED FOR PUBLICATION: actual web chat task threads, native engine task
-session imports, shared task/ID gateway routing, planning-to-worker response
-streaming, and successful-HTTP billing-error free failover. Version 1.0.0rc29;
-connector 1.0.29. Release notes: RELEASE-RC29.md.
+UNRELEASED TASK UX IMPROVEMENTS after RC29.
 
-423 offline tests passed (3 skips); 8 focused task/protocol tests pass against the
-installed wheel. Chromium at1440/768/390, structural, syntax, pinned bundle and
-thin-core checks pass. Assets/checksums are under releases/rc29. Installed native
-engine UIs and real account admissions have not been verified here.
+Done: task deletion in normal chat/operations/CLI; native engine terminal handoff
+from the web; shared Connections sign-in/API-key UI; live gateway/proxy provider
+reload; compact operational activity outside assistant transcripts; phone task
+titles and conditional controls. Deletion excludes scheduling durably, keeps
+project/log files and allows active work to finish. Native launch is explicit,
+authenticated, shell-free, and validates installed engines/project paths.
 
-Push main and v1.0.0-rc.29 to trigger release CI. Confirm the remote release and
-assets before reporting published. GitHub HTTPS publication failed previously
-because this session could not use Windows credential storage. Never paste tokens.
+Verification now reserves cycle time, records check argv/exit/output, pauses
+missing verifiers and three identical failures, and avoids model-quality penalties
+for broken verification infrastructure. Web resume clears the review counter.
+See docs/task-ux-and-connections.md and docs/PROGRESS.md.
+
+No new release/version/tag has been created for these changes. Do not modify the
+RC29 tag. Live sign-ins, actual terminal UIs, and upgrading the owner's running
+service were not performed. New gateway processes are needed once after upgrading
+before connection changes can hot-reload. Native picker caches may need reopening.
+Design inspector CDP fails; Playwright screenshots/actions independently pass.
+
+Validation: 434 offline tests passed (3 skips), including 11 task UX tests; browser
+QA at1440/768/390 covers launch/delete/sign-in/key states. Structural, source lint
+(0FAIL/0WARN) and JS syntax checks pass. See .runtime/ux-tests.log for the run.

@@ -280,7 +280,8 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
     cli = CodelaboonCLI()
     cli.load_providers()
     providers = {"local": cli.providers["local"]} if local_only else cli.providers
-    with serve(providers,task_class='security' if profile=='security' else None) as (gateway, url), tempfile.TemporaryDirectory(prefix="codelaboon-models-") as temporary:
+    from codelaboon.connections import loader
+    with serve(providers,reload_providers=loader(cli,set(providers)),task_class='security' if profile=='security' else None) as (gateway, url), tempfile.TemporaryDirectory(prefix="codelaboon-models-") as temporary:
         if sys.stdout.isatty() and sys.stdin.isatty() and arguments[:1] not in (["run"], ("run",)):
             from codelaboon.install import _step
             result = []

@@ -137,7 +137,12 @@ def attempt_events(root,identity):
                 output=tail(attempt/'output.log')+'\n'+tail(attempt/'orchestrator.log');kind=row.get('failure_kind') or failure_kind(output)
                 if kind=='provider_unavailable':text='The local gateway is reachable, but free providers are rate limited or unavailable. No paid model was used. The orchestrator will retry after the cooldown; you can choose another model in Models & prompts.'
                 elif kind=='engine_arguments':text='The engine treated the task instruction as a filename. Update Codelaboon to use the corrected OpenCode/Kilo launcher, then retry this conversation.'
-                else:text='This attempt could not finish'+(' because independent checks failed.' if row.get('verification')=='failed' else '. Inspect attempt output for the error and send a follow-up to the orchestrator.')
+                elif row.get('verification')=='failed':
+                    from codelaboon.task_diagnostics import failed_check
+                    detail=row.get('failure_detail') or failed_check(attempt,row)
+                    text=(detail['summary']+'\n'+detail['output'] if detail else 'A project check failed. Open Attempts to inspect the check output.')+'\n'+row.get('recovery','The orchestrator receives the check output on its next attempt.')
+                    kind=detail['kind'] if detail else 'verification'
+                else:text='The worker did not finish this attempt. Open Attempts for the engine output; your task and messages are saved.'
                 result.append({'id':attempt.name+'-result','created':finished,'role':'orchestrator','kind':'error','text':text,'failure_kind':kind})
             elif state=='succeeded':
                 text='Planning is complete. The workers will execute the plan.' if row.get('stage')=='plan' else 'This cycle passed its independent checks. The orchestrator will continue automatically if more cycles are scheduled; you can reply here to continue the conversation.'

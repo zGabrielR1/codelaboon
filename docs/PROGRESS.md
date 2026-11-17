@@ -909,3 +909,33 @@ structural and JS syntax checks pass. Wheel, source distribution, connector,
 engine modules and SHA256SUMS are staged under releases/rc29. Release workflow
 uses RELEASE-RC29.md. Installed native UIs and account admission remain unverified.
 Publication must be confirmed remotely; a local tag alone is not a release.
+
+
+### Task UX, lifecycle and shared connections (2026-11-17; unreleased)
+
+Implemented deletion from normal chat and operations, with confirmation and a
+shared CLI control. Stop plus a durable deletion receipt excludes future cycles
+and hides the task while active work finishes; project files/logs are preserved.
+Added authenticated native terminal handoff with installed-engine selection and
+configuration-relative project paths. Added a Connections page for six account
+flows and eight API-key providers. Saved credentials trigger provider/catalogue
+reload in running engine gateways and the proxy; native picker caches may still
+require reopening the engine. No account credentials were changed during QA.
+
+Routine status entries no longer appear as assistant messages in operations.
+Phone task titles, conditional controls, neutral action notices and stable chat
+DOM during unchanged polling improve navigation. Failed checks carry their real
+command, exit and bounded redacted output. Continuous cycles reserve 20 percent
+(up to120 seconds) for independent checks. Missing verifiers and three identical
+check failures pause for review; application missing-file failures remain
+repairable. Broken check infrastructure does not penalize model quality.
+
+Verification: 434 offline tests passed (3 platform skips), including 11 focused lifecycle/diagnostics/
+connection tests; Chromium checks at1440/768/390 exercise task navigation,
+launch requests, deletion/cancel, sign-in progress, key clearing and reload.
+All native launches and external account sign-ins use fixtures in browser QA;
+real installed native UIs and live provider admission remain unverified.
+Structural verification and JS syntax checks pass. Frontend source lint reports
+0 failures/warnings. The design inspector still fails at CDP Page.enable;
+independent Chromium screenshots and interactions are verified instead.
+This work is not published or installed over the owner's running worker.

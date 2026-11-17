@@ -290,6 +290,9 @@ def supervise(config, base, root, once):
                 continue
             task, harness, stage = jobs[selection]
         from codelaboon.work_queue import controls
+        reset_checks=controls(root,task['id'])/'RESET_CHECK_FAILURES'
+        if reset_checks.exists():
+            state.setdefault('check_failures',{}).pop(task['id'],None);reset_checks.unlink(missing_ok=True)
         reset=controls(root,task['id'])/'RESET_SUPERVISION'
         if reset.exists():
             state.setdefault('redirects',{}).pop(task['id'],None);reset.unlink(missing_ok=True)
@@ -367,6 +370,14 @@ def supervise(config, base, root, once):
                 if not orchestrator:raise ValueError('Live supervision requires a local orchestrator')
                 execution.update(monitor=Monitor(orchestrator,task,project,attempt),review_interval=options.get('interval',15))
             budget=max(1,float(task['swarm']['timeout'] if settings and task.get('swarm') else harness.get('timeout_seconds',1800)))
+            from codelaboon.task_diagnostics import reserve_seconds
+            cycle_budget=float(task['swarm']['timeout']) if task.get('swarm') else budget
+            reserved=reserve_seconds(task,stage,cycle_budget)
+            budget=min(budget,cycle_budget-reserved) if reserved else budget
+            record['verification_reserved_seconds']=reserved
+            if stage!='plan':content+='\n\nIndependent project checks (run these before reporting completion):\n'+json.dumps(task.get('verify_argv',[]))+'\nKeep implementation within '+str(round(budget,1))+' seconds; time is reserved for independent verification.'
+            prompt.write_text(content,encoding='utf-8');values['prompt']=content
+            argv=[part.format_map(values) for part in harness['argv']]
             code=0
             if settings and settings['orchestrator_mode']!='worker':
                 record['phase']='planning';save(attempt/'result.json',record)
@@ -396,6 +407,7 @@ def supervise(config, base, root, once):
             record['phase']='verifying';save(attempt/'result.json',record)
             for number, check in enumerate(task.get('verify_argv', [])):
                 checks_run=True
+                check_started=time.monotonic()
                 try:
                     remaining = (task['swarm']['timeout'] - (time.monotonic()-build_started)
                                  if task.get('swarm') else float(task.get('verify_timeout_seconds', 600)))
@@ -407,11 +419,17 @@ def supervise(config, base, root, once):
                 except OSError as error:
                     (attempt / f'check-{number}.log').write_text(str(error), encoding='utf-8')
                     code = 127
+                record.setdefault('checks',[]).append({'index':number,'argv':check,'exit_code':code,'seconds':round(time.monotonic()-check_started,3)})
+                save(attempt/'result.json',record)
                 if code:
                     break
         if checks_run:
-            from codelaboon.routing_metrics import feedback
-            feedback(attempt/'routing.jsonl',code==0)
+            from codelaboon.task_diagnostics import failed_check
+            diagnostic=failed_check(attempt,{**record,'exit_code':code}) if code else None
+            # A broken verifier is not evidence that the selected model writes bad code.
+            if diagnostic is None or diagnostic['kind']=='verification':
+                from codelaboon.routing_metrics import feedback
+                feedback(attempt/'routing.jsonl',code==0)
         decision=json.loads((attempt/'supervision.json').read_text()) if (attempt/'supervision.json').exists() else {}
         if task.get('supervision',{}).get('enabled') and decision.get('action')=={75:'redirect',76:'pause'}.get(code,'never'):
             if code==75:
@@ -433,6 +451,8 @@ def supervise(config, base, root, once):
         if code:
             from codelaboon.task_conversation import failure_kind,tail
             record['failure_kind']=failure_kind(tail(attempt/'output.log')+'\n'+tail(attempt/'orchestrator.log'))
+        from codelaboon.task_diagnostics import record_failure
+        record_failure(root,task,state,record,attempt)
         after_changes=fingerprints(project)
         save(attempt/'project-changes.json',{'observed_files':sorted(name for name in before_changes.keys()|after_changes.keys() if before_changes.get(name)!=after_changes.get(name)),
              'notice':'Observed between attempt checkpoints; concurrent editors may also have changed these files.'})

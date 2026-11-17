@@ -9,6 +9,12 @@
 
 .tasks-link{color:var(--ink);text-decoration:none;font-size:13px;padding:8px 12px;border-radius:6px}.tasks-link:hover{background:var(--raised)}
 
-dialog{max-width:min(560px,90vw);border:1px solid var(--border);border-radius:16px;padding:24px;background:var(--bg);color:var(--text)}dialog::backdrop{background:#0008}dialog label{display:grid;gap:8px;margin:16px 0}dialog input,dialog select{padding:10px;max-width:100%}dialog p{line-height:1.6;overflow-wrap:anywhere}
+dialog{max-width:min(560px,90vw);border:1px solid var(--line);border-radius:16px;padding:24px;background:var(--bg);color:var(--ink)}dialog::backdrop{background:#0008}dialog label{display:grid;gap:8px;margin:16px 0}dialog input,dialog select{padding:10px;max-width:100%}dialog p{line-height:1.6;overflow-wrap:anywhere}
 
 .task-chat main > .toolbar:not(#task-context),.task-chat #qoder-alert{display:none}.task-chat .footnote{visibility:hidden}#task-context{flex-wrap:wrap;gap:12px}#task-context[hidden]{display:none}#task-context span{margin-right:auto}#task-context a{color:var(--accent, #70ddd0)}
+
+.dialog-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}#task-action-dialog{width:min(520px,calc(100vw - 40px));padding:28px}#task-action-dialog label[hidden]{display:none}#task-action-description{color:var(--muted);line-height:1.6}#task-action-error{color:var(--danger,#ff9da5)}#task-context{padding:12px 24px;font-size:13px}#task-context span{flex-basis:100%}#task-context button,#task-context a{font-size:12px}#task-context #delete-chat-task{color:var(--muted)}#task-context #open-native-task{border:1px solid var(--line);border-radius:4px;padding:7px 10px}#error{white-space:pre-wrap;overflow-wrap:anywhere;max-height:170px;overflow:auto}
+
+.task-chat-title{font-size:16px;line-height:1.4;font-weight:600;margin:0;flex-basis:100%;overflow-wrap:anywhere} .task-chat header .route b{display:none}@media(max-width:800px){.task-chat-title{font-size:15px}#task-context{padding:12px 20px;gap:8px}#task-context span{font-size:12px}}
+
+.task-action-notice{font-size:12px;color:var(--accent);flex-basis:100%;margin:0;line-height:1.5}

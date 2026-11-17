@@ -217,7 +217,8 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
         from codelaboon.native_gateway import COMPATIBLE
         providers = {name: provider for name, provider in providers.items()
                      if name in COMPATIBLE}
-    with serve(providers,task_class='security' if profile=='security' else None) as (gateway, url):
+    from codelaboon.connections import loader
+    with serve(providers,reload_providers=loader(cli,set(providers)),task_class='security' if profile=='security' else None) as (gateway, url):
         rows = gateway.models(startup=True)
         if not rows:
             raise RuntimeError("No model is listed for this session")

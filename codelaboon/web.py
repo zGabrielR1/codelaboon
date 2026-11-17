@@ -17,7 +17,8 @@ def create_server(port=8765, cli=None):
     cli = cli or CodelaboonCLI()
     cli.load_providers()
     token = secrets.token_urlsafe(32)
-    auth_providers = ("chatgpt", "claude", "gemini", "freebuff", "qoder", "copilot")
+    from codelaboon.connections import ACCOUNT_PROVIDERS,changed
+    auth_providers=ACCOUNT_PROVIDERS
     auth_states = {name: {"status": "idle"} for name in auth_providers}
     auth_lock = threading.Lock()
     task_lock=threading.Lock()
@@ -29,11 +30,20 @@ def create_server(port=8765, cli=None):
         module = importlib.import_module(f"codelaboon.{provider}_auth")
         try:
             if provider=="copilot":module.login(notify=lambda row:auth_states[provider].update(row))
-            else:module.login()
+            else:
+                def report(message):
+                    text=str(message)[:2000]
+                    with auth_lock:
+                        if text.startswith(('https://','http://127.0.0.1:')):auth_states[provider]['verification_uri']=text
+                        else:auth_states[provider]['message']=text
+                module.login(report=report)
+            changed()
         except Exception:
-            auth_states[provider].update(status="failed")
+            auth_states[provider].clear()
+            auth_states[provider].update(status="failed",message='Sign-in could not finish. Retry, or run codelaboon login '+provider+' to inspect the provider response.')
             return
-        auth_states[provider].update(status="connected")
+        auth_states[provider].clear()
+        auth_states[provider].update(status="connected",message='Connected. This sign-in is shared with the web workspace and engines.')
         try:
             cli.load_providers()
         except Exception:
@@ -89,6 +99,11 @@ def create_server(port=8765, cli=None):
                     return self.respond(200,task_api.snapshot())
                 except (OSError,ValueError,KeyError,TypeError):
                     return self.respond(400,{'error':'Task state could not be read. Check worker configuration and retry.'})
+            if url.path=='/api/connections':
+                if self.headers.get('X-Codelaboon-Token')!=token:return self.respond(403,{'error':'Reload this workspace and retry'})
+                from codelaboon.connections import KEY_PROVIDERS
+                cli.load_providers()
+                return self.respond(200,{'connections':[{'id':name,'kind':'account' if name in auth_providers else 'key','configured':bool(cli.providers[name].validate_api_key()) if name in cli.providers else False,'login':dict(auth_states.get(name,{}))} for name in (*auth_providers,*KEY_PROVIDERS)],'shared':True})
             if url.path == "/api/auth/status":
                 provider = parse_qs(url.query).get("provider", ["chatgpt"])[0]
                 if provider not in auth_providers:
@@ -108,6 +123,7 @@ def create_server(port=8765, cli=None):
                     return self.respond(502, {"error": "Model discovery failed. Check provider configuration and retry."})
             assets = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css"), "/logo.svg": ("logo.svg", "image/svg+xml"),
                       '/tasks':('tasks.html','text/html; charset=utf-8'),'/tasks.js':('tasks.js','text/javascript; charset=utf-8'),'/tasks.css':('tasks.css','text/css')}
+            assets.update({'/connections':('connections.html','text/html; charset=utf-8'),'/connections.js':('connections.js','text/javascript; charset=utf-8'),'/connections.css':('connections.css','text/css'),'/task-actions.js':('task-actions.js','text/javascript; charset=utf-8')})
             if url.path not in assets:
                 return self.respond(404, {"error": "Not found"})
             file, mime = assets[url.path]
@@ -126,16 +142,19 @@ def create_server(port=8765, cli=None):
                     from config.providers import save_provider_config
                     existing=cli._current_provider_config(name);existing['api_key']=key.strip()
                     if not save_provider_config(name,existing):raise ValueError('Could not save provider settings')
-                    cli.load_providers();return self.respond(200,{'provider':name,'configured':True})
+                    changed();cli.load_providers();return self.respond(200,{'provider':name,'configured':True})
                 except (OSError,ValueError,TypeError,AttributeError):return self.respond(400,{'error':'Provider settings could not be saved. Check the provider and key.'})
-            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages','/api/tasks/settings','/api/tasks/worker'):
+            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages','/api/tasks/settings','/api/tasks/worker','/api/tasks/open'):
                 from codelaboon import task_api
                 try:
                     length=int(self.headers.get('Content-Length','0'))
                     if not 0<length<=131072:return self.respond(413,{'error':'Task request is too large'})
                     body=json.loads(self.rfile.read(length))
                     if not isinstance(body,dict):raise ValueError('Invalid task request')
-                    if self.path=='/api/tasks/worker':
+                    if self.path=='/api/tasks/open':
+                        from codelaboon.task_launch import launch
+                        with task_lock:result=launch(body.get('task'),body.get('engine'))
+                    elif self.path=='/api/tasks/worker':
                         with task_lock:result=task_api.worker_control(body.get('action'))
                     elif self.path=='/api/tasks/settings':
                         with task_lock:result=task_api.settings(body.get('task'),body)
@@ -166,7 +185,7 @@ def create_server(port=8765, cli=None):
                 with auth_lock:
                     state = auth_states[provider]
                     if state["status"] != "pending":
-                        state.update(status="pending")
+                        state.clear();state.update(status="pending",message='Opening provider sign-in. Complete authorization in your browser.')
                         threading.Thread(
                             target=login_job, args=(provider,), daemon=True
                         ).start()
