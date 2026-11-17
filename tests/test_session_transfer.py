@@ -19,6 +19,23 @@ class TransferTests(unittest.TestCase):
                 other=decode(engine,value,'export')
                 self.assertEqual(other['origin']['native_id'],identity)
                 self.assertEqual(other['messages'],doc['messages'])
+    def test_omp_installs_windows_project_in_native_session_directory(self):
+        from codelaboon.session_transfer import install_export
+
+        cwd = r'D:\Downloads\stuff\project'
+        document = decode('opencode', self.source(), 'source')
+        identity, payload = encode(document, 'omp', cwd)
+        with tempfile.TemporaryDirectory() as home:
+            resolve = Path.resolve
+
+            def resolve_project(path):
+                return cwd if str(path) == cwd else resolve(path)
+
+            with patch.object(Path, 'resolve', resolve_project):
+                target = install_export('omp', payload, identity, home, cwd)
+            self.assertEqual(target.parent.name, '--D--Downloads-stuff-project--')
+            self.assertEqual(decode('omp', read_file(target))['messages'], document['messages'])
+
     def test_library_deduplicates_and_preserves_native_archives(self):
         with tempfile.TemporaryDirectory() as root,patch.dict(os.environ,CODELABOON_DATA_DIR=root):
             doc=decode('opencode',self.source(),'original.json');identity=save(doc)

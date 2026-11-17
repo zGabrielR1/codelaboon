@@ -1,3 +1,7 @@
+## 1.0.0rc32
+
+- Opening a web task in Oh My Pi on Windows now uses OMP-compatible session paths. Drive colons and path separators are encoded before writing the imported conversation.
+
 ## 1.0.0rc31
 
 - Redesigned Chat, Tasks, and Connections with ivory typography, chartreuse accents, and a pointer-reactive welcome screen that respects reduced motion.

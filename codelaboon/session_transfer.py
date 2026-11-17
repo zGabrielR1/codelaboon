@@ -382,7 +382,11 @@ def install_export(engine,value,identity,home,cwd):
     if engine=='jcode':relative=Path('sessions')/(identity+'.json')
     elif engine=='codex':relative=Path('sessions')/datetime.now().strftime('%Y/%m/%d')/('rollout-'+now().replace(':','-')+'-'+identity+'.jsonl')
     elif engine=='claude':relative=Path('projects')/re.sub(r'[^A-Za-z0-9]','-',str(Path(cwd).resolve()))/(identity+'.jsonl')
-    else:relative=Path('sessions')/('--'+str(Path(cwd).resolve()).strip('/').replace('/','-')+'--')/(now().replace(':','-')+'_'+identity+'.jsonl')
+    else:
+        # Match OMP's legacy absolute session directory format on both platforms.
+        project = re.sub(r'[/\\:]', '-', re.sub(r'^[/\\]', '', str(Path(cwd).resolve())))
+        filename = now().replace(':', '-').replace('.', '-') + '_' + identity + '.jsonl'
+        relative = Path('sessions') / f'--{project}--' / filename
     return write_export(home/relative,value)
 
 
