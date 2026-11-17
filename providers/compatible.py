@@ -148,3 +148,46 @@ class ZaiFreeProvider(CompatibleProvider):
             return []
         models=super().list_models()
         return models if self.live_models is not None else [model for model in self.models or sorted(self.priced_free) if self.accepts({'id':model})]
+
+
+class HowToFixProvider(CompatibleProvider):
+    """Account-scoped live catalogue; credits/prices are not a zero-cost promise."""
+    base_url = 'https://api.howtofix.id/v1'
+    environment = 'HOWTOFIX_API_KEY'
+    signup_url = 'https://howtofix.id/'
+
+    def credential(self):
+        return super().credential() or os.environ.get('HTF_API_KEY','').strip()
+
+
+class CopilotProvider(CompatibleProvider):
+    """GitHub Copilot account models using the pinned OpenCode OAuth protocol."""
+    base_url = 'https://api.githubcopilot.com'
+    signup_url = 'https://github.com/settings/copilot'
+    environment = 'COPILOT_GITHUB_TOKEN'
+
+    def __init__(self,api_key='',models=None,base_url=None):
+        super().__init__(api_key,models,base_url)
+        if self.base_url.rstrip('/')!=type(self).base_url:
+            raise ValueError('Copilot account tokens require the official Copilot API endpoint')
+
+    def credential(self):
+        from codelaboon.copilot_auth import credential
+        return self.api_key.strip() or credential()
+
+    def headers(self,messages=()):
+        return {**super().headers(),'User-Agent':'codelaboon','Openai-Intent':'conversation-edits',
+                'x-initiator':'agent' if messages and messages[-1].get('role')!='user' else 'user'}
+
+    def accepts(self,row):
+        endpoints=row.get('supported_endpoints')
+        policy=row.get('policy',{})
+        return (not endpoints or '/chat/completions' in endpoints) and (not isinstance(policy,dict) or policy.get('state','enabled')=='enabled')
+
+    def chat(self,model,messages,**kwargs):
+        if not self.validate_api_key():raise ValueError('Run codelaboon login copilot first')
+        response=self.transport.post(self.base_url+'/chat/completions',headers=self.headers(messages),
+            json={'model':model,'messages':messages,'stream':False,'max_tokens':kwargs.get('max_tokens',4096)},timeout=kwargs.get('timeout',180),allow_redirects=False)
+        try:
+            response.raise_for_status();return response.json()['choices'][0]['message']['content']
+        finally:response.close()

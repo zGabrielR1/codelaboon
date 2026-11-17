@@ -26,12 +26,12 @@ CODEX_VERSION = "0.169.0"
 
 def target(engine):
     systems = {"Linux": "linux", "Darwin": "darwin", "Windows": "windows"}
-    architectures = {"x86_64": "x64", "AMD64": "x64", "aarch64": "arm64", "arm64": "arm64"}
+    architectures = {"x86_64": "x64", "AMD64": "x64", "aarch64": "arm64", "arm64": "arm64", "ARM64": "arm64"}
     try:
         system, arch = systems[platform.system()], architectures[platform.machine()]
     except KeyError as error:
         raise RuntimeError("This platform does not have a supported native CLI build") from error
-    if engine in ("crush", "jcode"):
+    if engine in ("crush", "jcode", "devin"):
         return f"{system}-{arch}"
     musl = system == "linux" and platform.libc_ver()[0] == "musl"
     if engine == "claude" and system == "windows":
@@ -50,7 +50,7 @@ def metadata(url):
 
 
 def setup(engine):
-    if engine not in ("kilo", "claude", "bun", "crush", "jcode", "codex"):
+    if engine not in ("kilo", "claude", "bun", "crush", "jcode", "codex", "devin"):
         raise ValueError("Unknown optional engine")
     directory = config_dir() / "runtime" / "native-clis" / engine
     directory.mkdir(parents=True, exist_ok=True)
@@ -65,6 +65,18 @@ def setup(engine):
         url = f"{CLAUDE_RELEASES}/{version}/{system}/claude" + (".exe" if os.name == "nt" else "")
         digest = release["checksum"]
         algorithm = "sha256"
+    elif engine == "devin":
+        from urllib.parse import urlsplit
+        manifest=metadata('https://static.devin.ai/cli/current/manifest.json')
+        version=manifest.get('version','')
+        if not isinstance(version,str) or not re.fullmatch(r'[0-9][A-Za-z0-9._-]{0,79}',version):raise RuntimeError('Invalid Devin release version')
+        operating_system,architecture=system.split('-',1)
+        architecture='x86_64' if architecture=='x64' else 'aarch64'
+        native=architecture+'-'+{'linux':'unknown-linux','darwin':'apple-darwin','windows':'pc-windows'}[operating_system]
+        release=manifest['platforms'][native];url=release['url'];digest=release.get('sha256','');algorithm='sha256'
+        parsed=urlsplit(url)
+        if parsed.scheme!='https' or parsed.hostname!='static.devin.ai' or parsed.username or parsed.password or parsed.query or parsed.fragment or not parsed.path.startswith('/cli/'+version+'/'):raise RuntimeError('Unexpected Devin release asset host/path')
+        if not re.fullmatch(r'[a-fA-F0-9]{64}',digest):raise RuntimeError('Devin release lacks a valid checksum')
     elif engine == "codex":
         version = CODEX_VERSION
         arch = "aarch64" if platform.machine() in ("aarch64", "arm64") else "x86_64"
@@ -129,7 +141,7 @@ def setup(engine):
         content.mkdir()
         if engine == "claude":
             shutil.move(download, content / binary_name)
-        elif engine == "crush" and system.startswith("windows-"):
+        elif engine in ("crush","devin") and system.startswith("windows-"):
             with zipfile.ZipFile(download) as archive:
                 for member in archive.infolist():
                     if not (content / member.filename).resolve().is_relative_to(content.resolve()):

@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 
-ENGINES = ('jcode','opencode','omp','kilo','claude','codex','crush')
+ENGINES = ('jcode','opencode','omp','kilo','claude','codex','crush','devin')
 
 
 def catalog():
@@ -14,7 +14,11 @@ def catalog():
     from codelaboon.runtime_management import inspect
     rows=[]
     for engine in ENGINES:
-        if engine in ('opencode','omp'):
+        if engine=='devin':
+            from codelaboon.account_engines import executable
+            try:executable();installed=True
+            except ValueError:installed=False
+        elif engine in ('opencode','omp'):
             state=inspect(engine)
             installed=state['state'] not in ('not_installed','unavailable')
         else:
@@ -28,12 +32,16 @@ def catalog():
         rows.append({'id':engine,'installed':installed,'native_swarm':engine=='jcode',
             'worker_limit':1000 if engine=='jcode' else 1,
             'coordination':'native swarm' if engine=='jcode' else 'portable coordinator',
-            'prepare_command':f'codelaboon tui --engine {engine} --setup'})
+            'native_account':engine=='devin',
+            'prepare_command':'codelaboon accounts devin setup' if engine=='devin' else f'codelaboon tui --engine {engine} --setup'})
     return rows
 
 
 def command(engine, model, prompt_file):
     if engine not in ENGINES:raise ValueError('Unsupported task engine')
+    if engine=='devin':
+        from codelaboon.account_engines import task_command
+        return task_command(model,prompt_file)
     native_model=model if model.startswith('codelaboon/') else 'codelaboon/'+model
     wire_model=model.removeprefix('codelaboon/')
     if engine in ('opencode','kilo'):
@@ -48,6 +56,9 @@ def command(engine, model, prompt_file):
 
 def run(engine, model, prompt_file, runtime):
     """Require a complete native response; acceptance checks remain independent."""
+    if engine=='devin':
+        from codelaboon.account_engines import run_task
+        return run_task(model,prompt_file,runtime)
     arguments=command(engine,model,prompt_file)
     env=dict(os.environ,CODELABOON_NATIVE_DIR=str(runtime/engine),CODELABOON_TASK_MODEL=model.removeprefix('codelaboon/'),CODELABOON_HEADLESS_TASK='1')
     source=Path(__file__).with_name('cli.py')

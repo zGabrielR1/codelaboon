@@ -273,13 +273,14 @@ class Picker(ModalScreen[str]):
         self.dismiss("")
 
 
-ACCOUNT_PROVIDERS = {"chatgpt", "claude", "gemini", "freebuff", "qoder"}
+ACCOUNT_PROVIDERS = {"chatgpt", "claude", "gemini", "freebuff", "qoder", "copilot"}
 ACCOUNT_LABELS = {
     "chatgpt": "ChatGPT",
     "claude": "Claude",
     "gemini": "Gemini",
     "freebuff": "Freebuff",
     "qoder": "Qoder",
+    "copilot": "GitHub Copilot",
 }
 # Lanes already covered by free (Auto); their individual catalogues stay out
 # of the picker so the list is short and the default is obvious.
@@ -301,7 +302,7 @@ class ProviderKey(ModalScreen[bool]):
         self.provider = provider
 
     def compose(self):
-        url = "https://wusrouter.com/" if self.provider == "wusrouter" else "https://qoder.com/account/integrations"
+        url = {"wusrouter":"https://wusrouter.com/","howtofix":"https://howtofix.id/"}.get(self.provider,"https://qoder.com/account/integrations")
         with Vertical(id="key-dialog"):
             yield Label(f"Connect {self.provider.title()}", markup=False)
             yield Static(f"Sign in or create an account in your browser:\n{url}\nPaste its API key here. Save a new key to switch accounts.", markup=False)
@@ -318,7 +319,7 @@ class ProviderKey(ModalScreen[bool]):
             self.dismiss(False)
         elif event.button.id == "key-signup":
             import webbrowser
-            url = "https://wusrouter.com/" if self.provider == "wusrouter" else "https://qoder.com/account/integrations"
+            url = {"wusrouter":"https://wusrouter.com/","howtofix":"https://howtofix.id/"}.get(self.provider,"https://qoder.com/account/integrations")
             webbrowser.open(url)
         elif event.button.id == "key-save":
             key = self.query_one("#provider-key", Input).value.strip()
@@ -702,7 +703,7 @@ class CodelaboonTuiApp(App[None]):
                 pass
         if name == AUTO_PROVIDER:
             self._on_models(name, self._auto_models(), "")
-        elif name == "wusrouter" and prompt_login and not self.cli.providers[name].validate_api_key():
+        elif name in ("wusrouter","howtofix") and prompt_login and not self.cli.providers[name].validate_api_key():
             self.push_screen(ProviderKey(name))
         elif (
             name in ACCOUNT_PROVIDERS
@@ -1302,10 +1303,10 @@ class CodelaboonTuiApp(App[None]):
             self.notify(f"{label} sign-in failed: {error or 'unknown error'}", severity="error")
 
     def action_provider_key(self):
-        if self._current_provider in ("wusrouter", "qoder"):
+        if self._current_provider in ("wusrouter", "qoder", "howtofix"):
             self.push_screen(ProviderKey(self._current_provider))
         else:
-            self.notify("Select WusRouter or Qoder to configure its account key.")
+            self.notify("Select HowToFix, WusRouter or Qoder to configure its account key.")
 
     def action_refresh_models(self) -> None:
         name = self._selected_provider()

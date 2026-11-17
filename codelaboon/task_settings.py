@@ -43,6 +43,7 @@ def read(root,task):
 
 def write(root,task,values,expected):
     values=validate(values)
+    if task.get('swarm',{}).get('engine')=='devin' and (not values['worker_model'].startswith('devin/') or not values['worker_model'].split('/',1)[1]):raise ValueError('Devin requires a native devin/MODEL, not free Auto or a different provider')
     if not task.get('swarm'):raise ValueError('Execution settings currently apply to continuous swarm tasks')
     if task.get('elevation','none')!='none' or task.get('_privileged_case'):raise ValueError('Elevated task settings are immutable; queue a new reviewed task/case')
     directory=controls(root,task['id']);directory.mkdir(parents=True,exist_ok=True,mode=0o700)

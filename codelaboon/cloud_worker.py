@@ -70,7 +70,7 @@ def main():
     parser.add_argument('--provider', default='kilo')
     parser.add_argument('--model', required=True)
     parser.add_argument('--agent', action='store_true')
-    parser.add_argument('--engine', default='jcode', choices=['jcode', 'opencode', 'omp', 'kilo','claude','codex','crush'])
+    parser.add_argument('--engine', default='jcode', choices=['jcode', 'opencode', 'omp', 'kilo','claude','codex','crush','devin'])
     parser.add_argument('--runtime', required=True)
     parser.add_argument('prompt_file', type=Path)
     args = parser.parse_args()

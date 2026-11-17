@@ -1,7 +1,10 @@
 'use strict';
 const $=selector=>document.querySelector(selector);
 const drafts=new Map();
-const pendingMessages=new Map();
+let logAttempt='',conversationVersion=0;
+try{for(const [key,value] of Object.entries(JSON.parse(sessionStorage.getItem('codelaboon.taskDrafts')||'{}')))if(typeof value==='string')drafts.set(key,value)}catch{}
+function saveDrafts(){try{sessionStorage.setItem('codelaboon.taskDrafts',JSON.stringify(Object.fromEntries(drafts)))}catch{}}
+const pendingMessages=new Map();const lastSentMessages=new Map();
 let token='',state=null,selectedId=new URL(location.href).searchParams.get('task')||'',refreshing=false,autoScroll=true,logController=null,reviewed=null;
 try{if(localStorage.getItem('codelaboon.theme')==='light')document.body.classList.add('light')}catch{}
 $('#ops-theme').onclick=()=>{document.body.classList.toggle('light');try{localStorage.setItem('codelaboon.theme',document.body.classList.contains('light')?'light':'dark')}catch{}};
@@ -16,7 +19,8 @@ function pill(element,task){element.textContent=taskState(task);element.classNam
 function engineCompatibility(){return !!state?.worker.running&&!state.worker.service?.features?.includes('task-engine-selection')}
 function renderList(){
   const query=$('#task-filter').value.toLowerCase();
-  const tasks=(state?.tasks||[]).filter(task=>[task.id,task.title,task.project,task.engine].some(value=>String(value).toLowerCase().includes(query)));
+  const filter=$('#task-state-filter').value;
+  const tasks=(state?.tasks||[]).filter(task=>filter==='all'||(filter==='attention'?attention(task):filter==='active'?taskState(task)==='active attempt':filter==='finished'?['completed','stopped'].includes(taskState(task)):taskState(task)==='paused')).filter(task=>[task.id,task.title,task.project,task.engine].some(value=>String(value).toLowerCase().includes(query)));
   $('#task-total').textContent=String(tasks.length);
   const list=$('#task-list');const ids=tasks.map(task=>task.id).join('|');
   if(list.dataset.ids!==ids){
@@ -40,7 +44,7 @@ function renderList(){
 }
 function selected(){return state?.tasks.find(task=>task.id===selectedId)}
 async function selectTask(identity,push=true){
-  selectedId=identity;logController?.abort();
+  if(selectedId!==identity)logAttempt='';selectedId=identity;logController?.abort();
   if(push){const url=new URL(location.href);if(identity)url.searchParams.set('task',identity);else url.searchParams.delete('task');history.pushState({},'',url)}
   renderList();renderDetail();await loadLogs();await loadConversation();
   if(identity)$('#detail-title')?.focus({preventScroll:true});
@@ -55,13 +59,13 @@ function renderDetail(){
   if(!task){detail.dataset.task='';detail.innerHTML='<div class="ops-empty"><h2></h2><p></p></div>';detail.querySelector('h2').textContent=selectedId?'Task unavailable':'Open a task conversation';detail.querySelector('p').textContent=selectedId?'This task ID was not found in this worker configuration. Choose another task or refresh.':'Select a task to watch its orchestrator, read live output and send guidance.';return}
   if(detail.dataset.task!==task.id){
     detail.dataset.task=task.id;
-    detail.innerHTML='<div class="chat-navigation"><button id="back-tasks">Back to tasks</button><div class="chat-tools"><button id="open-task-settings">Models &amp; prompts</button><button id="open-task-changes">Changes</button><span id="chat-live">Live task conversation</span></div></div><div class="detail-top"><h1 id="detail-title" tabindex="-1"></h1><span id="detail-state" class="state-pill"></span></div><div class="task-id-row"><code id="detail-id"></code><button id="copy-task-id">Copy ID</button></div><details class="task-information"><summary>Task details, scope and checks</summary><p id="detail-project" class="detail-project"></p><dl class="cycle-strip"><div><dt>Verified cycles</dt><dd id="detail-cycles" class="cycle-number">0</dd></div><div><dt>Engine</dt><dd id="detail-engine"></dd></div><div><dt>Latest attempt</dt><dd id="detail-attempt"></dd></div></dl><details><summary>Objective and authorized scope</summary><dl class="policy-values"><dt>Objective</dt><dd id="detail-objective"></dd><dt>Scope</dt><dd id="detail-scope"></dd></dl></details><details><summary>Permissions and verification</summary><dl class="policy-values"><dt>Profile</dt><dd id="detail-profile"></dd><dt>Permissions</dt><dd id="detail-permissions"></dd><dt>Elevation</dt><dd id="detail-elevation"></dd><dt>Scope reviewer</dt><dd id="detail-reviewer"></dd><dt>Cycle policy</dt><dd id="detail-budget"></dd></dl><pre id="detail-checks"></pre><div id="detail-privilege" hidden><p class="field-note">This task needs a reviewed native privilege case. The browser does not approve or run elevation.</p><pre id="privilege-command"></pre></div></details></details><div class="task-controls"><button id="task-pause">Pause</button><button id="task-resume">Resume</button><button id="task-stop" class="stop-control">Stop task</button></div><p id="task-control-note" class="task-controls-note"></p><section class="task-conversation" aria-label="Task conversation"><div id="conversation-feed" role="log" aria-label="Task messages" aria-live="polite"></div><form id="message-form"><label for="task-message">Intervene in this task</label><textarea id="task-message" rows="3" maxlength="4096" required placeholder="Guide the next attempt within the authorized scope..."></textarea><div class="composer-actions"><select id="message-mode" aria-label="Message delivery"><option value="guidance">Guide next attempt</option><option value="note">Save note only</option></select><button class="primary" id="send-message">Send</button></div><p id="message-hint" class="field-note"></p><p id="message-error" role="alert"></p></form></section><details><summary>Raw attempt output</summary><div class="log-heading"><h3>Latest attempt output</h3><label><input id="follow-output" type="checkbox"> Follow output</label></div><p id="log-meta" class="log-meta">Waiting for attempt output…</p><pre id="task-log" class="log-output" aria-label="Latest task output">No output yet.</pre></details>';
-    $('#open-task-settings').onclick=openTaskSettings;$('#open-task-changes').onclick=openTaskChanges;
+    detail.innerHTML='<div class="chat-navigation"><button id="back-tasks">Back to tasks</button><div class="chat-tools"><button id="open-attempts">Attempts</button><button id="open-task-settings">Models &amp; prompts</button><button id="open-task-changes">Changes</button><span id="chat-live">Live task conversation</span></div></div><div class="detail-top"><h1 id="detail-title" tabindex="-1"></h1><span id="detail-state" class="state-pill"></span></div><div class="task-id-row"><code id="detail-id"></code><button id="copy-task-id">Copy ID</button></div><details class="task-information"><summary>Task details, scope and checks</summary><p id="detail-project" class="detail-project"></p><dl class="cycle-strip"><div><dt>Verified cycles</dt><dd id="detail-cycles" class="cycle-number">0</dd></div><div><dt>Engine</dt><dd id="detail-engine"></dd></div><div><dt>Latest attempt</dt><dd id="detail-attempt"></dd></div></dl><details><summary>Objective and authorized scope</summary><dl class="policy-values"><dt>Objective</dt><dd id="detail-objective"></dd><dt>Scope</dt><dd id="detail-scope"></dd></dl></details><details><summary>Permissions and verification</summary><dl class="policy-values"><dt>Profile</dt><dd id="detail-profile"></dd><dt>Permissions</dt><dd id="detail-permissions"></dd><dt>Elevation</dt><dd id="detail-elevation"></dd><dt>Scope reviewer</dt><dd id="detail-reviewer"></dd><dt>Cycle policy</dt><dd id="detail-budget"></dd></dl><pre id="detail-checks"></pre><div id="detail-privilege" hidden><p class="field-note">This task needs a reviewed native privilege case. The browser does not approve or run elevation.</p><pre id="privilege-command"></pre></div></details></details><div class="task-controls"><button id="task-retry">Retry failed</button><button id="task-pause">Pause</button><button id="task-resume">Resume</button><button id="task-stop" class="stop-control">Stop task</button></div><p id="task-control-note" class="task-controls-note"></p><section class="task-conversation" aria-label="Task conversation"><div id="conversation-feed" role="log" aria-label="Task messages" aria-live="polite"></div><form id="message-form"><label for="task-message">Intervene in this task</label><textarea id="task-message" rows="3" maxlength="4096" required placeholder="Guide the next attempt within the authorized scope..."></textarea><div class="composer-actions"><select id="message-mode" aria-label="Message delivery"><option value="guidance">Guide next attempt</option><option value="note">Save note only</option></select><button class="primary" id="send-message">Send</button></div><p id="message-hint" class="field-note"></p><p id="message-error" role="alert"></p></form></section><details><summary>Raw attempt output</summary><div class="log-heading"><h3>Latest attempt output</h3><label><input id="follow-output" type="checkbox"> Follow output</label></div><p id="log-meta" class="log-meta">Waiting for attempt output…</p><pre id="task-log" class="log-output" aria-label="Latest task output">No output yet.</pre></details>';
+    $('#open-attempts').onclick=openAttempts;$('#open-task-settings').onclick=openTaskSettings;$('#open-task-changes').onclick=openTaskChanges;
     $('#back-tasks').onclick=()=>selectTask('');
-    $('#task-message').value=drafts.get(task.id)||'';$('#task-message').oninput=()=>drafts.set(task.id,$('#task-message').value);$('#message-form').onsubmit=sendMessage;
+    $('#task-message').value=drafts.get(task.id)||'';$('#task-message').oninput=()=>{drafts.set(task.id,$('#task-message').value);saveDrafts()};$('#task-message').onkeydown=event=>{if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)&&!event.isComposing){event.preventDefault();$('#message-form').requestSubmit()}if(event.key==='ArrowUp'&&!event.shiftKey&&!$('#task-message').value){const last=lastSentMessages.get(task.id);if(last){event.preventDefault();$('#task-message').value=last;drafts.set(task.id,last);saveDrafts()}}};$('#message-form').onsubmit=sendMessage;
     $('#follow-output').checked=autoScroll;$('#follow-output').onchange=()=>autoScroll=$('#follow-output').checked;
     $('#copy-task-id').onclick=async()=>{try{await navigator.clipboard.writeText(selectedId);$('#copy-task-id').textContent='Copied'}catch{notice('Clipboard unavailable. Select and copy the task ID.')}};
-    for(const action of ['pause','resume','stop'])$('#task-'+action).onclick=()=>controlTask(action);
+    for(const action of ['pause','resume','stop','retry'])$('#task-'+action).onclick=()=>controlTask(action);
   }
   const compatible=!state.worker.running||state.worker.service?.features?.includes('operator-interventions');
   const canGuide=compatible&&task.elevation==='none'&&!['completed','stopped'].includes(taskState(task));
@@ -72,6 +76,8 @@ function renderDetail(){
   $('#detail-engine').textContent=task.engine+(task.swarm?.workers>1?' · limit '+task.swarm.workers:'');
   $('#detail-attempt').textContent=task.last_attempt?task.last_attempt.status+(task.last_attempt.exit_code!==undefined?' · exit '+task.last_attempt.exit_code:''):'Not started';
   const finished=['stopped','completed'].includes(taskState(task));
+  $('#task-retry').textContent=task.retry_pending?'Retry queued':'Retry failed';
+  $('#task-retry').disabled=task.retry_pending||!task.swarm||task.elevation!=='none'||!attention(task)||taskState(task)==='interrupted attempt'||(state.worker.running&&!state.worker.service?.features?.includes('task-retry'));
   $('#task-pause').disabled=finished||taskState(task)==='paused';$('#task-resume').disabled=finished||taskState(task)!=='paused';$('#task-stop').disabled=finished;
   $('#task-control-note').textContent=task.cooldown_seconds?'Retry cooldown: '+task.cooldown_seconds+' seconds. Inspect the output before retrying.':task.elevation!=='none'?'Waiting for native approval. Each elevated case authorizes one verified cycle.':'Pause and stop allow active cycles and checks to finish first.';
   $('#detail-objective').textContent=task.objective;$('#detail-scope').textContent=task.scope||'No explicit scope recorded';
@@ -85,7 +91,7 @@ async function loadLogs(){
   const identity=selectedId;if(!identity||!selected())return;
   logController?.abort();logController=new AbortController();
   try{
-    const data=await api('/api/tasks/logs?task='+encodeURIComponent(identity),{signal:logController.signal});
+    const data=await api('/api/tasks/logs?task='+encodeURIComponent(identity)+(logAttempt?'&attempt='+encodeURIComponent(logAttempt):''),{signal:logController.signal});
     if(identity!==selectedId||!$('#task-log'))return;
     const log=$('#task-log');const previous=log.scrollTop;
     const text=data.text||'No output yet. Waiting for the next attempt.';
@@ -100,6 +106,7 @@ async function refresh(){
     // Preserve the requested task route, including a useful unavailable-task state.
     const count=state.tasks.length;const needs=state.tasks.filter(attention).length;
     $('#worker-summary').textContent=(state.worker.paused?'Worker paused':state.worker.running?'Worker online':'Worker stopped')+' · '+count+' task'+(count===1?'':'s')+(needs?' · '+needs+' need'+(needs===1?'s':'')+' attention':'');
+    $('#worker-action').disabled=!state.configured;$('#worker-action').textContent=!state.worker.running?'Start worker':state.worker.paused?'Resume worker':'Pause scheduling';
     $('#ops-version').textContent='Core '+state.version;
     $('#worker-compatibility').hidden=!engineCompatibility();
     $('#worker-compatibility').textContent='This running worker predates engine selection. Existing work is unchanged. Restart the worker when its current work can finish before queueing another engine.';
@@ -111,13 +118,14 @@ async function controlTask(action){
   const task=selected();if(!task)return;
   if(action==='stop'&&!confirm('Stop '+task.id+'? Active work may finish first. A stopped swarm needs a newly queued task to restart.'))return;
   for(const button of document.querySelectorAll('.task-controls button'))button.disabled=true;
-  try{await api('/api/tasks/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task:task.id,action})});await refresh()}
+  try{const receipt=await api('/api/tasks/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task:task.id,action})});await refresh();notice(receipt.message)}
   catch(error){notice(error.message);renderDetail()}
 }
 function setEngine(){
   const engine=state?.engines.find(row=>row.id===$('#task-engine').value);
+  if(engine?.native_account)$('#task-model').value='devin/account-default';else if($('#task-model').value.startsWith('devin/'))$('#task-model').value='free';
   $('#task-workers').max=engine?.worker_limit||1;$('#task-workers').value=engine?.native_swarm?4:1;$('#task-workers').readOnly=!engine?.native_swarm;
-  $('#engine-note').textContent=engine?.native_swarm?'Jcode provides the native worker pool. The limit is a ceiling, not a count of active agents.':'This engine runs one portable coordinator per cycle. It uses the same policy, independent checks, task controls and monitoring.';
+  $('#engine-note').textContent=engine?.native_account?'Uses your signed-in Devin/Windsurf account and its quota/pricing. Choose devin/account-default or devin/MODEL. Independent checks still determine success.':engine?.native_swarm?'Jcode provides the native worker pool. The limit is a ceiling, not a count of active agents.':'This engine runs one portable coordinator per cycle. It uses the same policy, independent checks, task controls and monitoring.';
 }
 $('#new-task').onclick=()=>{
   if(!state){notice('Wait for task state to load, then retry.');return}
@@ -150,23 +158,24 @@ $('#confirm-task').onclick=async()=>{
   catch(error){$('#task-form-error').textContent=error.message;$('#task-form-error').hidden=false}
   finally{$('#confirm-task').disabled=false;$('#edit-task').disabled=false}
 };
-$('#task-filter').oninput=renderList;$('#ops-refresh').onclick=refresh;$('#ops-retry').onclick=refresh;$('#live-refresh').onchange=()=>{if($('#live-refresh').checked)refresh()};
+$('#task-state-filter').onchange=renderList;$('#task-filter').oninput=renderList;$('#ops-refresh').onclick=refresh;$('#ops-retry').onclick=refresh;$('#live-refresh').onchange=()=>{if($('#live-refresh').checked)refresh()};
 (async()=>{try{const session=await api('/api/session');token=session.token;$('#ops-version').textContent='Core '+session.version;$('#task-elevation').replaceChildren(new Option('Current OS account','none'),new Option(session.platform==='Windows'?'Administrator case (native approval)':'Root case (native approval)',session.platform==='Windows'?'administrator':'root'));await refresh()}catch(error){notice(error.message)}})();
 setInterval(()=>{if($('#live-refresh').checked&&!document.hidden)refresh()},2000);
 
 async function loadConversation(){
-  const identity=selectedId;if(!identity)return;
+  const identity=selectedId;if(!identity)return;const version=++conversationVersion;
   try{
     const data=await api('/api/tasks/messages?task='+encodeURIComponent(identity));
-    if(identity!==selectedId||!$('#conversation-feed'))return;
+    if(identity!==selectedId||version!==conversationVersion||!$('#conversation-feed'))return;
+    if(data.messages.length)lastSentMessages.set(identity,data.messages[data.messages.length-1].text);
     const feed=$('#conversation-feed');const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<64;const previousScroll=feed.scrollTop;const first=!feed.dataset.signature;const output=$('#task-log')?.textContent||'';const signature=JSON.stringify(data)+output;
     if(feed.dataset.signature===signature)return;
     const task=selected();const rows=[{created:0,role:'You / objective',text:task.objective},
       ...data.events.map(row=>({...row,role:'Orchestrator / execution update'})),
       ...data.messages.map(row=>({...row,role:'You',delivery:row.delivery}))].sort((a,b)=>a.created-b.created);
     feed.replaceChildren();
-    for(const row of rows){const article=document.createElement('article');article.className='conversation-message';const label=document.createElement('strong');label.textContent=row.role;const text=document.createElement('p');text.textContent=row.text;article.append(label,text);if(row.delivery){const receipt=document.createElement('small');receipt.textContent=row.delivery;article.append(receipt)}feed.append(article)}
-    if(output&&!output.startsWith('No output yet.')){const article=document.createElement('article');article.className='conversation-message';const label=document.createElement('strong');label.textContent='Worker / latest captured output';const text=document.createElement('pre');text.className='conversation-output';text.textContent=output;article.append(label,text);feed.append(article)}
+    for(const row of rows){const article=document.createElement('article');article.className='conversation-message '+(row.role==='You'?'from-user':'from-worker');const label=document.createElement('strong');label.textContent=row.role;const stamp=document.createElement('time');if(row.created){stamp.dateTime=new Date(row.created*1000).toISOString();stamp.textContent=new Date(row.created*1000).toLocaleString();article.append(stamp)}const text=document.createElement('p');text.textContent=row.text;article.append(label,text);if(row.delivery){const receipt=document.createElement('small');receipt.textContent=row.delivery;article.append(receipt)}feed.append(article)}
+    if(output&&!output.startsWith('No output yet.')){const article=document.createElement('article');article.className='conversation-message';const label=document.createElement('strong');label.textContent=logAttempt?'Worker / attempt '+logAttempt:'Worker / latest captured output';const text=document.createElement('pre');text.className='conversation-output';text.textContent=output;article.append(label,text);feed.append(article)}
     feed.dataset.signature=signature;feed.scrollTop=autoScroll&&(nearBottom||first)?feed.scrollHeight:previousScroll;
   }catch(error){if(identity===selectedId&&$('#message-error'))$('#message-error').textContent='Conversation unavailable: '+error.message}
 }
@@ -174,7 +183,7 @@ async function sendMessage(event){
   event.preventDefault();const identity=selectedId;const text=$('#task-message').value;const button=$('#send-message');button.disabled=true;$('#message-error').textContent='';
   const mode=$('#message-mode').value;let message=pendingMessages.get(identity);
   if(!message||message.text!==text||message.mode!==mode){message={task:identity,message_id:crypto.randomUUID(),text,mode};pendingMessages.set(identity,message)}
-  try{await api('/api/tasks/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(message)});pendingMessages.delete(identity);drafts.delete(identity);if(identity===selectedId)$('#task-message').value='';await loadConversation()}
+  try{await api('/api/tasks/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(message)});lastSentMessages.set(identity,text);pendingMessages.delete(identity);drafts.delete(identity);saveDrafts();if(identity===selectedId)$('#task-message').value='';await loadConversation()}
   catch(error){if(identity===selectedId)$('#message-error').textContent=error.message}
   finally{if(identity===selectedId)button.disabled=false}
 }
@@ -210,3 +219,20 @@ async function openTaskChanges(){
   }catch(error){$('#changes-content').textContent=error.message}
 }
 $('#close-changes').onclick=()=>$('#task-changes-dialog').close();
+
+async function openAttempts(){
+ const identity=selectedId;$('#attempt-dialog').showModal();const list=$('#attempt-list');list.textContent='Loading attempts…';
+ try{const data=await api('/api/tasks/attempts?task='+encodeURIComponent(identity));list.replaceChildren();
+ const latest=document.createElement('button');latest.textContent='Follow latest attempt';latest.onclick=()=>{if(selectedId!==identity)return;logAttempt='';$('#attempt-dialog').close();loadLogs()};list.append(latest);
+ for(const row of data.attempts){const button=document.createElement('button');button.textContent=new Date((row.started||0)*1000).toLocaleString()+' · '+(row.engine||row.harness||'worker')+' · '+row.stage+' · '+row.status+(row.exit_code!==undefined?' · exit '+row.exit_code:'');button.title=row.id;button.onclick=()=>{if(selectedId!==identity)return;logAttempt=row.id;$('#attempt-dialog').close();loadLogs()};list.append(button)}
+ if(!data.attempts.length){const empty=document.createElement('p');empty.textContent='No attempts yet.';list.append(empty)}
+ }catch(error){list.textContent=error.message}
+}
+$('#close-attempts').onclick=()=>$('#attempt-dialog').close();
+
+$('#worker-action').onclick=async()=>{
+ if(!state)return;const action=!state.worker.running?'start':state.worker.paused?'resume':'pause';
+ if(action!=='pause'&&!confirm('Start or resume the background worker? All ready queued tasks may run under their existing permissions.'))return;
+ $('#worker-action').disabled=true;
+ try{const result=await api('/api/tasks/worker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});await refresh();notice(result.message)}catch(error){notice(error.message);$('#worker-action').disabled=false}
+};

@@ -93,6 +93,7 @@ class TaskApp(App):
                 yield Static('',id='hint',markup=False)
                 with Horizontal(id='actions'):
                     yield Button('Pause',id='pause')
+                    yield Button('Retry failed',id='retry')
                     yield Button('Resume',id='resume')
                     yield Button('Refresh',id='refresh')
                     yield Button('Settings',id='settings')
@@ -145,6 +146,7 @@ class TaskApp(App):
         self.query_one('#hint',Static).update('Notes only: older worker, finished task or immutable elevated case.' if notes_only else 'Guidance joins the next attempt. Active work and independent checks finish first.')
         for action in ('pause','resume'):
             self.query_one('#'+action,Button).disabled=task['state'] in ('stopped','completed') or ((task['state']=='paused')==(action=='pause'))
+        self.query_one('#retry',Button).disabled=not ('failed' in task['state'] or 'retry' in task['state']) or task.get('elevation','none')!='none'
         conversation=task_api.conversation(self.identity)
         output=task_api.logs(self.identity)
         signature=json.dumps([self.identity,conversation,output],sort_keys=True)
@@ -184,7 +186,7 @@ class TaskApp(App):
             try:self.push_screen(TaskSettingsScreen(self.identity) if action=='settings' else TaskChangesScreen(self.identity))
             except (OSError,ValueError) as error:self.query_one('#error',Static).update(str(error))
         elif action=='refresh':await self.action_refresh()
-        elif action in ('pause','resume') and self.identity in self.records:
+        elif action in ('pause','resume','retry') and self.identity in self.records:
             try:task_api.control(self.identity,action);await self.action_refresh()
             except (OSError,ValueError) as error:self.query_one('#error',Static).update(str(error))
 

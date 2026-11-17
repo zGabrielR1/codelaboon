@@ -8,6 +8,20 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
+### What changed in RC25
+
+Task conversations add state filters, timestamps, reload-persistent drafts and
+keyboard shortcuts. Inspect the latest 50 attempts and scoped, redacted logs; retry
+a finished failure at the next checkpoint; start, pause or resume worker scheduling
+from the browser, CLI or terminal. Connect HowToFix with your own API key, GitHub
+Copilot through device OAuth, and optional official Windsurf/Devin native accounts
+and task execution. Credit and subscription sources stay explicit, outside free Auto.
+
+Use `codelaboon tasks TASK_ID --attempts`, `codelaboon tasks TASK_ID --retry`,
+`codelaboon configure howtofix`, `codelaboon login copilot`, or
+`codelaboon accounts devin setup`. See
+[task operations and account setup](docs/task-operations-and-accounts.md).
+
 ### What changed in RC24
 
 Task conversations now include **Models & prompts** and **Changes**. Choose independent
@@ -792,3 +806,13 @@ assessments include bounded HTTP/TLS/exposure checks and scoped nmap evidence.
 Routing learns from observed latency and independent task checks; a VS Code
 Diagnostics view exposes operational state. See [RC20 usage, evaluation and
 platform coverage](docs/rc20-security-and-operations.md).
+
+
+### RC25: task operations and account connections
+
+RC25 adds task state filters, attempt history and scoped historical logs,
+checkpoint retries, worker scheduling controls, persistent task chat drafts and
+keyboard shortcuts. Browser key entry and live HowToFix discovery join GitHub
+Copilot device OAuth and the official Windsurf/Devin native account connector.
+Credit/subscription sources remain explicit choices outside free Auto.
+See [task operations and account setup](docs/task-operations-and-accounts.md).

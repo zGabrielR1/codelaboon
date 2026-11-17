@@ -17,7 +17,7 @@ def create_server(port=8765, cli=None):
     cli = cli or CodelaboonCLI()
     cli.load_providers()
     token = secrets.token_urlsafe(32)
-    auth_providers = ("chatgpt", "claude", "gemini", "freebuff", "qoder")
+    auth_providers = ("chatgpt", "claude", "gemini", "freebuff", "qoder", "copilot")
     auth_states = {name: {"status": "idle"} for name in auth_providers}
     auth_lock = threading.Lock()
     task_lock=threading.Lock()
@@ -28,7 +28,8 @@ def create_server(port=8765, cli=None):
 
         module = importlib.import_module(f"codelaboon.{provider}_auth")
         try:
-            module.login()
+            if provider=="copilot":module.login(notify=lambda row:auth_states[provider].update(row))
+            else:module.login()
         except Exception:
             auth_states[provider].update(status="failed")
             return
@@ -68,11 +69,12 @@ def create_server(port=8765, cli=None):
                 from codelaboon import __version__
                 import platform
                 return self.respond(200,{'token':token,'version':__version__,'workspace':str(Path.cwd().resolve()),'platform':platform.system()})
-            if url.path in ('/api/tasks','/api/tasks/logs','/api/tasks/messages','/api/tasks/settings','/api/tasks/changes','/api/tasks/models'):
+            if url.path in ('/api/tasks','/api/tasks/logs','/api/tasks/messages','/api/tasks/settings','/api/tasks/changes','/api/tasks/models','/api/tasks/attempts'):
                 if self.headers.get('X-Codelaboon-Token') != token:
                     return self.respond(403,{'error':'Reload this workspace and retry'})
                 from codelaboon import task_api
                 try:
+                    if url.path=='/api/tasks/attempts':return self.respond(200,task_api.attempts(parse_qs(url.query).get('task',[''])[0]))
                     if url.path=='/api/tasks/models':return self.respond(200,task_api.model_choices(cli))
                     if url.path=='/api/tasks/settings':return self.respond(200,task_api.settings(parse_qs(url.query).get('task',[''])[0]))
                     if url.path=='/api/tasks/changes':return self.respond(200,task_api.changes(parse_qs(url.query).get('task',[''])[0]))
@@ -80,7 +82,7 @@ def create_server(port=8765, cli=None):
                         return self.respond(200,task_api.conversation(parse_qs(url.query).get('task',[''])[0]))
                     if url.path == '/api/tasks/logs':
                         identity=parse_qs(url.query).get('task',[''])[0]
-                        return self.respond(200,task_api.logs(identity))
+                        return self.respond(200,task_api.logs(identity,parse_qs(url.query).get('attempt',[None])[0]))
                     return self.respond(200,task_api.snapshot())
                 except (OSError,ValueError,KeyError,TypeError):
                     return self.respond(400,{'error':'Task state could not be read. Check worker configuration and retry.'})
@@ -111,14 +113,28 @@ def create_server(port=8765, cli=None):
         def do_POST(self):
             if not self.trusted() or self.headers.get("X-Codelaboon-Token") != token:
                 return self.respond(403, {"error": "Reload this workspace and retry"})
-            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages','/api/tasks/settings'):
+            if self.path=='/api/providers/configure':
+                try:
+                    length=int(self.headers.get('Content-Length','0'))
+                    if not 0<length<=20000:raise ValueError('Invalid provider settings size')
+                    body=json.loads(self.rfile.read(length));name=body.get('provider');key=body.get('api_key')
+                    if name not in ('howtofix','wusrouter','groq','cerebras','openrouter','nvidia','luna'):raise ValueError('Use account login for this provider')
+                    if not isinstance(key,str) or not key.strip() or len(key)>16000 or any(ord(c)<32 for c in key):raise ValueError('Enter a nonempty API key')
+                    from config.providers import save_provider_config
+                    existing=cli._current_provider_config(name);existing['api_key']=key.strip()
+                    if not save_provider_config(name,existing):raise ValueError('Could not save provider settings')
+                    cli.load_providers();return self.respond(200,{'provider':name,'configured':True})
+                except (OSError,ValueError,TypeError,AttributeError):return self.respond(400,{'error':'Provider settings could not be saved. Check the provider and key.'})
+            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages','/api/tasks/settings','/api/tasks/worker'):
                 from codelaboon import task_api
                 try:
                     length=int(self.headers.get('Content-Length','0'))
                     if not 0<length<=131072:return self.respond(413,{'error':'Task request is too large'})
                     body=json.loads(self.rfile.read(length))
                     if not isinstance(body,dict):raise ValueError('Invalid task request')
-                    if self.path=='/api/tasks/settings':
+                    if self.path=='/api/tasks/worker':
+                        with task_lock:result=task_api.worker_control(body.get('action'))
+                    elif self.path=='/api/tasks/settings':
                         with task_lock:result=task_api.settings(body.get('task'),body)
                     elif self.path=='/api/tasks/messages':
                         with task_lock:result=task_api.message(body)

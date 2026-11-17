@@ -22,7 +22,7 @@ from codelaboon import free_auto
 from codelaboon.paths import config_dir
 
 COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter", "nvidia", "luna", "chatgpt",
-              "local", "openrouter_free", "groq", "cerebras", "wusrouter", "claude", "gemini", "freebuff", "zai_free"}
+              "local", "openrouter_free", "groq", "cerebras", "wusrouter", "howtofix", "copilot", "claude", "gemini", "freebuff", "zai_free"}
 FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free"}
 
 
@@ -302,6 +302,7 @@ class Gateway:
                     url = f"{provider.base_url.rstrip('/')}/api/v1/chat/completions"
                     headers["authorization"] = f"Bearer {credential}"
                     headers["x-freebuff-client-version"] = __version__
+            if name=='copilot':headers=provider.headers(payload.get('messages',[]))
             started=time.monotonic()
             try:
                 transport = self.local if name == "local" else requests

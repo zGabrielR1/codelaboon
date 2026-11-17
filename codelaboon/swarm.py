@@ -1,6 +1,7 @@
 """Bounded native Rust swarms, sharing one provider gateway and worker server."""
 import argparse
 import json
+import os
 from pathlib import Path
 import shlex
 import uuid
@@ -51,7 +52,7 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free', engine='jcod
         prompt=home/'prompt.md';prompt.write_text(instruction,encoding='utf-8')
         command=[sys.executable,str(Path(__file__).with_name('cloud_worker.py')),'--agent','--engine',engine,
                  '--model',model,'--runtime',str(home),str(prompt)]
-        code=checked_command(command,Path.cwd(),home/'output.log',max(0.01,deadline-time.monotonic()))
+        code=checked_command(command,Path.cwd(),home/'output.log',max(0.01,deadline-time.monotonic()),env=dict(os.environ))
         with (home/'output.log').open('rb') as stream:
             stream.seek(0,2);stream.seek(max(0,stream.tell()-65536))
             print(stream.read(65536).decode('utf-8',errors='replace'),flush=True)

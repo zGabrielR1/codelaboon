@@ -96,6 +96,8 @@ class CodelaboonCLI:
             "ourfree": "providers.ourfree.ourfree_provider.OurFreeModelProvider",
             "kilo": "providers.kilo.kilo_provider.KiloProvider",
             "pollinations": "providers.pollinations.pollinations_provider.PollinationsProvider",
+            "howtofix": "providers.compatible.HowToFixProvider",
+            "copilot": "providers.compatible.CopilotProvider",
             "wusrouter": "providers.wusrouter.wusrouter_provider.WusRouterProvider",
         }
 
@@ -155,7 +157,7 @@ class CodelaboonCLI:
         for provider_name in (
             "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
             "openrouter", "luna", "ourfree", "kilo", "pollinations",
-            "wusrouter",
+            "wusrouter", "howtofix", "copilot",
             "local", "openrouter_free", "groq", "cerebras",
         ):
             try:
@@ -509,7 +511,8 @@ class CodelaboonCLI:
                     self.load_providers()
                 return
         else:
-            api_key = input(f"Enter API key for {provider_name}: ").strip()
+            import getpass
+            api_key = getpass.getpass(f"Enter API key for {provider_name}: ").strip()
 
         if not api_key:
             print("No API key provided. Using existing configuration.")
@@ -561,6 +564,7 @@ class CodelaboonCLI:
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
         subparsers.add_parser('status', help='Show workspace, runtime health and last update without loading models')
         subparsers.add_parser('runtime', help='Inspect or repair cached source runtimes')
+        subparsers.add_parser("accounts", help="Official Windsurf/Devin account login, models and CLI")
         subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
         subparsers.add_parser("controller-eval", help="Evaluate the optional local supervisor against scope fixtures")
         subparsers.add_parser("routing", help="Measured task-aware routing status and policy")
@@ -650,7 +654,7 @@ class CodelaboonCLI:
             "login", help="Sign in with an account for plan or free-tier access"
         )
         login_parser.add_argument(
-            "provider", choices=["chatgpt", "claude", "gemini", "freebuff", "qoder"]
+            "provider", choices=["chatgpt", "claude", "gemini", "freebuff", "qoder", "copilot", "windsurf", "devin"]
         )
 
         # Configure command
@@ -827,7 +831,15 @@ class CodelaboonCLI:
                 sys.exit(1)
 
         elif args.command == "login":
-            if args.provider == "claude":
+            if args.provider in ("windsurf","devin"):
+                from codelaboon.account_engines import login
+                try:login("devin")
+                except (ValueError,OSError,subprocess.CalledProcessError) as error:
+                    print("Sign-in failed: "+str(error));raise SystemExit(1)
+                return
+            if args.provider == "copilot":
+                from codelaboon.copilot_auth import login
+            elif args.provider == "claude":
                 from codelaboon.claude_auth import login
             elif args.provider == "gemini":
                 from codelaboon.gemini_auth import login
@@ -925,6 +937,9 @@ def main() -> None:
     if sys.argv[1:2] and sys.argv[1] in ("opencode", "omp", "kilo", "claude", "crush", "jcode", "codex"):
         run_tui(sys.argv[1], sys.argv[2:])
         return
+    if sys.argv[1:2] == ['accounts']:
+        from codelaboon.account_engines import main as accounts
+        accounts(sys.argv[2:]);return
     if sys.argv[1:2] == ['tasks']:
         from codelaboon.task_console import main as tasks_main
         tasks_main(sys.argv[2:])

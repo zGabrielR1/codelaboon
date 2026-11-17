@@ -63,8 +63,14 @@ def main(argv=None):
     parser.add_argument('--system-prompt-file',help='UTF-8 additive worker system instructions (empty file clears)')
     parser.add_argument('--orchestrator-prompt-file',help='UTF-8 additive planning system instructions')
     parser.add_argument('--changes',action='store_true',help='Show current project diff and observed attempt changes')
+    parser.add_argument('--attempts',action='store_true',help='Inspect the last 50 attempts')
+    parser.add_argument('--retry',action='store_true',help='Retry a failed continuous task at its next checkpoint')
     args=parser.parse_args(argv)
     try:
+        if args.attempts or args.retry:
+            if not args.task:parser.error('Provide a task ID')
+            from codelaboon import task_api
+            print(json.dumps(task_api.control(args.task,'retry') if args.retry else task_api.attempts(args.task),indent=2));return
         edits=any(value is not None for value in (args.worker_model,args.orchestrator,args.orchestrator_model,args.system_prompt_file,args.orchestrator_prompt_file))
         if args.settings or args.changes or edits:
             if not args.task:parser.error('Provide a task ID for settings/changes')

@@ -54,3 +54,6 @@ releases/
 
 # Browser regression artifacts
 .playwright-mcp/
+
+# GitHub Copilot account OAuth
+copilot-session.json

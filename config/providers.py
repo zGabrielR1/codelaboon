@@ -78,6 +78,8 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
                 "jev-1.13-free",
             ],
         },
+        "howtofix": {"api_key": "", "models": []},
+        "copilot": {"api_key": "", "models": []},
         "wusrouter": {"api_key": "", "models": []},
         "zai_free": {"api_key": "", "models": []},
         "kilo": {
@@ -235,6 +237,8 @@ def get_default_models(provider_name: str) -> list:
             "deepseek-v4.1-flash-free",
             "deepseek-v4-flash-free",
         ],
+        "howtofix": [],
+        "copilot": [],
         "wusrouter": [],
         "kilo": ["kilo-auto/free", "openrouter/free"],
     }

@@ -806,3 +806,42 @@ RC24 local verification complete:360 tests pass,3 skipped; isolated built-wheel 
 - Five artifacts downloaded and SHA256-verified: wheel300344 bytes, source512634 bytes, VSIX10281 bytes and both unchanged engine source bundles.
 - First release attempt hit the pre-existing Jcode UI cleanup /proc race (process exited between exists/read); file-tool smoke had passed. Retried gates passed without runtime edits; tag/source remained unchanged.
 - Public notes and usage guide explain role separation, CLI examples, safe checkpoints, local server requirements, model-protocol limits and graceful restart for old workers. No real task was modified.
+
+
+## RC25 development — task operations and account sources (2026-11-16)
+
+- Reviewed publicRC24/9e85e7d and preserved initial line-ending-only changes.
+  Prepared1.0.0rc25.dev0 without publishing or replacing the real installed release.
+- Added task state filters, timestamped sender/delivery views, tab-persistent drafts,
+  Ctrl/Cmd+Enter and last-message recall; historical attempt inspection/logs, atomic
+  checkpoint retries and explicit worker scheduling controls across browser/CLI/TUI.
+  Retry never duplicates active work, revises elevated cases or clears other jobs'
+  cooldowns. Fixed nested portable runner dropping its granted task environment.
+- HowToFix key form/hidden terminal prompt and authenticated live model discovery
+  added. Public endpoint returned401withoutkey. Copilot GitHub device OAuth,
+  private token persistence and chat-capable account models integrated with the
+  shared native gateway. Both sources remain outside zero-cost free Auto.
+- Windsurf/Devin uses official native auth/models/task CLI, with lazy verified
+  installation from static.devin.ai SHA256 manifests. No shell installer or real
+  native binary was executed during QA; fixtures cover checksum/host rejection,
+  model namespace, permissions and Windows ARM64 selection. No invented SWE raw API.
+- 382unit tests pass. Real Chromium checks pass source and isolated-wheel flows:
+  draft reload, keyboard send/recall, history/log redaction, retry, worker pause/
+  resume, mobile390px layout and API-key privacy. Existing portable/browser CI
+  jobs extended; no duplicate browser workflow added. Structural checks and JS
+  parsing pass. Reviewed docs/review-1.0.0rc25.md.
+- Thin development wheel309548B and source537255B built under/tmp. New account,
+  attempt and web modules/assets present; installed wheel tested only in isolated
+  /tmp environment. Actual user worker/tasks/settings/accounts were not changed.
+  No provider inference or account OAuth authorization performed. Live HowToFix,
+  Copilot and Devin verification requires the user's own connection/credentials.
+- Usage: docs/task-operations-and-accounts.md. PublicRC24 remains unchanged.
+
+RC25 release preparation: finalized1.0.0rc25 and connector1.0.25, updated README,
+CHANGELOG, architecture, release notes and review. Rebuilt the final wheel
+(309750B) and source archive below1MiB; rebuilt the10276B VSIX and
+staged the unchanged pinned engine bundles. 382 tests pass; 27 provider/task/retry
+tests pass against the installed final wheel in
+isolation. Structural checks, JS parsing, core packaging and engine provenance
+pass; real Chromium task operations pass for source and installed wheel.
+Publication gates pending.

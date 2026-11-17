@@ -46,7 +46,7 @@ class EngineTasks(unittest.TestCase):
     def test_portable_coordination_and_native_swarm_are_distinct(self):
         base=dict(controller='worker',workers=1,timeout=30,interval=60,cycles=0,model='free')
         for engine in tasks.ENGINES:
-            options=validate_swarm({**base,'engine':engine})
+            options=validate_swarm({**base,'engine':engine,'model':'devin/account-default' if engine=='devin' else 'free'})
             harness=swarm_harness({'id':'fixture','swarm':options})
             self.assertEqual(harness['argv'][-2:],['--engine',engine])
         with self.assertRaises(ValueError):validate_swarm({**base,'engine':'claude','workers':4})

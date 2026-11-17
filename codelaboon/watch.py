@@ -189,6 +189,10 @@ def supervise(config, base, root, once):
         for task in queued:
             if task['id'] not in all_tasks:
                 all_tasks[task['id']] = task
+        from codelaboon.task_attempts import consume
+        changed,retry_requests=consume(root,all_tasks,state)
+        if changed:save(state_path,state)
+        for request in retry_requests:request.unlink(missing_ok=True)
         from codelaboon.task_settings import apply as apply_settings
         all_tasks={identity:apply_settings(root,task) for identity,task in all_tasks.items()}
         for identity,task in all_tasks.items():
@@ -329,6 +333,7 @@ def supervise(config, base, root, once):
         record = {'task': task['id'], 'harness': harness['id'], 'stage': stage,
                   'started': time.time(), 'status': 'running','permissions':task.get('permissions','default'),
                   'profile':task.get('profile','coding'),'scope':task.get('scope',''),
+                  'engine':task.get('swarm',{}).get('engine','configured harness'),
                   'supervision':task.get('supervision',{'enabled':False})}
         save(attempt / 'result.json', record)
         settings=task.get('execution_settings')

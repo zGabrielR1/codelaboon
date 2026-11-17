@@ -28,6 +28,7 @@ def validate_swarm(options):
     from codelaboon.engine_tasks import ENGINES
     engine=options.get('engine','jcode')
     if engine not in ENGINES:raise ValueError('Unsupported task engine')
+    if engine=='devin' and (not options['model'].startswith('devin/') or not options['model'].split('/',1)[1]):raise ValueError('Use devin/account-default or devin/MODEL for a native account task')
     if engine!='jcode' and options['workers']!=1:
         raise ValueError('Portable engine coordinators require --workers 1; Jcode supports the native worker pool')
     return options

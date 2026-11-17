@@ -85,7 +85,7 @@ class ConfigTests(unittest.TestCase):
                 "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
                 "openrouter", "luna", "ourfree", "kilo", "pollinations",
                 "local", "openrouter_free", "groq", "cerebras",
-                "wusrouter", "zai_free",
+                "wusrouter", "zai_free", "howtofix", "copilot",
             },
         )
         self.assertTrue((config_dir / "providers.toml").is_file())

@@ -1,6 +1,19 @@
-RC24 COMPLETE AND PUBLISHED: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.24
-Source8c2f9fd88458bc4187e8f23c0f4ffeb27dc4ee0f. Release43952089523, verify43951889132 and portable43951888967 succeeded.
-360 local tests pass,3 skipped;11 settings tests pass against the downloaded published wheel. Five artifacts verified against SHA256SUMS.
-Delivered worker/planner model controls, independent local/cloud planning, additive system prompts, atomic initial/checkpoint revisions and Git Changes across browser/terminal/CLI.
-Initial release attempt encountered an existing /proc process-exit race in smoke_jcode_ui.py cleanup after the file-tool smoke passed; retry passed all gates without runtime changes.
-All QA used isolated fixture tasks; real user task/settings/worker were not changed or restarted. QA fixture stopped. No outstanding release work.
+RC25 RELEASE PREPARATION COMPLETE, public RC24 unchanged until publish.
+User requested publication of task operations plus HowToFix, Copilot OAuth and
+Windsurf/Devin account sources. Finalized1.0.0rc25 and connector1.0.25.
+382tests pass; source and isolated installed-wheel Chromium QA pass; structural,
+JS parsing and thin packaging checks pass. Release wheel/source rebuilt under/tmp.
+Features: persistent task drafts, keyboardsend/recall, state filters, timestamped
+conversations, scoped50-attempt history/logs, checkpoint-only failed swarm retry,
+worker start/pause/resume with start/resume confirmation, preserved nested policy.
+HowToFix APIkey entry + live authenticatedcatalogue; Copilot GitHub deviceOAuth
+and sharedgateway accountmodels. Credit/subscription sources NOT freeAuto.
+Windsurf/Devin officialCLI auth/models/native taskengine + SHA256verifiedlazy
+installer, no invented rawmodel endpoint. Existing seven session adapters unchanged.
+Owners must authorize accounts and enter keys locally for live verification.
+Usage/review in docs/task-operations-and-accounts.md and
+docs/review-1.0.0rc25.md. Core engine assets remain pinned to publicRC24;
+unchanged provenance. Existing portable/browser CI extended (no duplicateworkflow).
+Next: commit/push, tag v1.0.0-rc.25, wait release/verify/portable gates, verify
+downloaded checksums/notes and record completion. No real user task, worker,
+settings or account changed. No delegation authorized; keep bulk outsideppp.

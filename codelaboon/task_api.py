@@ -46,6 +46,8 @@ def snapshot():
             'swarm':task.get('swarm'),'verification':task.get('verify_argv',[])})
         from codelaboon.task_settings import read
         result['tasks'][-1]['execution_settings']=read(root,task)
+        from codelaboon.work_queue import controls
+        result['tasks'][-1]['retry_pending']=(controls(root,identity)/'RETRY.json').is_file()
     return result
 
 
@@ -59,11 +61,18 @@ def selected(identity):
     return path,root,record
 
 
-def logs(identity):
+def logs(identity,attempt_id=None):
     path,root,_=selected(identity)
     from codelaboon.work_monitor import snapshot as monitored
     state=monitored(path,identity)
     attempt=state['latest_attempts'].get(identity)
+    if attempt_id is not None:
+        if not isinstance(attempt_id,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',attempt_id):raise ValueError('Invalid attempt ID')
+        source=root/attempt_id/'result.json'
+        if not source.resolve().is_relative_to(root.resolve()):raise ValueError('Attempt escapes runtime')
+        row=json.loads(source.read_text(encoding='utf-8'))
+        if row.get('task')!=identity:raise ValueError('Attempt belongs to another task')
+        attempt={'logs':str(root/attempt_id)}
     if not attempt:return {'task':identity,'text':'','attempt':None,'truncated':False}
     source=Path(attempt['logs'])/'output.log'
     if not source.resolve().is_relative_to(root.resolve()):raise ValueError('Log path is outside the worker runtime')
@@ -169,6 +178,12 @@ def model_choices(cli):
 
 
 def control(identity,action):
+    if action=='retry':
+        path,root,task=selected(identity)
+        from codelaboon.task_attempts import retry
+        from codelaboon.work import status
+        retry(root,task,status(path))
+        return {'task':identity,'action':action,'message':'Retry queued at the next checkpoint; active work and verification policy are unchanged'}
     if action not in ('pause','resume','stop'):raise ValueError('Unsupported task control')
     path,_,task=selected(identity)
     if task.get('swarm'):
@@ -214,3 +229,19 @@ def enqueue(body):
     except (OSError,RuntimeError,ValueError):
         return {'task':identity,'worker_started':False,'message':'Task was queued, but the worker could not start. Run codelaboon work start; do not queue a duplicate.'}
     return {'task':identity,'worker_started':True,'message':'Queued; elevated work awaits a reviewed native privilege case' if body.get('elevation','none')!='none' else 'Queued for the background worker'}
+
+
+def attempts(identity):
+    _,root,_=selected(identity)
+    from codelaboon.task_attempts import history
+    return {'task':identity,'attempts':history(root,identity)}
+
+
+def worker_control(action):
+    if action not in ('start','pause','resume'):raise ValueError('Unsupported worker action')
+    path,_,_=configuration()
+    if path is None:raise ValueError('Queue a task or initialize the worker first')
+    from codelaboon.work import start,control
+    if action=='start':start(path)
+    else:control(action,path)
+    return {'action':action,'message':'Worker scheduling '+action+' requested. Task scopes, grants and verification are unchanged.'}

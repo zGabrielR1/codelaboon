@@ -169,6 +169,7 @@ def add(project, instruction, checks, path=None, swarm=None, permissions='defaul
         info=root/'service-info.json';features=json.loads(info.read_text()).get('features',[]) if info.exists() else []
         required={'task-execution-policy'} | ({'active-supervision'} if supervise else set()) | ({'privilege-cases'} if elevation!='none' else set())
         if swarm and swarm.get('engine','jcode')!='jcode':required.add('task-engine-selection')
+        if swarm and swarm.get('engine')=='devin':required.add('native-account-engines')
         if execution_settings is not None:required.add('task-execution-settings')
         if not required.issubset(features):raise ValueError('Restart the background worker after upgrading before queuing supervised/policy tasks; nothing was queued')
     task_id = 'instruction-' + uuid.uuid4().hex

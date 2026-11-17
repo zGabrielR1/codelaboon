@@ -116,3 +116,12 @@ models = []
 [zai_free]
 api_key = ""
 models = []
+
+# Live account catalogue; not automatically treated as zero-cost.
+[howtofix]
+api_key = ""
+models = []
+
+[copilot]
+api_key = ""
+models = []

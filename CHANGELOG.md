@@ -1,3 +1,16 @@
+## 1.0.0rc25
+
+- Improve task conversations with reload-persistent drafts, timestamps, keyboard
+  sending/recall and state filters; inspect historical attempt output and results.
+- Add checkpoint retry for failed continuous tasks, worker scheduling controls,
+  authenticated APIs and shared CLI/terminal controls; preserve explicit worker
+  policy across nested portable engine execution.
+- Add HowToFix API-key entry/live discovery, Copilot device OAuth/account models,
+  and a lazy checksum-verified official Windsurf/Devin native account/task connector.
+  Credit/subscription sources are not silently treated as zero-cost Auto routes.
+- Add browser/provider/retry/installer regression coverage and browser CI gates.
+- See [RC25 task operations and account sources](docs/task-operations-and-accounts.md).
+
 ## 1.0.0rc24
 
 - Add revisioned per-task worker models, independent cloud/local planning models and additive system instructions across the shared worker gateway.
