@@ -2,10 +2,12 @@
 (()=>{
  let token='',engines=[];
  const dialog=document.createElement('dialog');dialog.id='task-action-dialog';dialog.innerHTML='<form id="task-action-form"><h2 id="task-action-title"></h2><p id="task-action-description"></p><label id="task-action-engine-label">Engine<select id="task-action-engine"></select></label><p id="task-action-error" role="alert"></p><div class="dialog-actions"><button type="button" id="task-action-cancel">Cancel</button><button type="submit" id="task-action-confirm">Continue</button></div></form>';document.body.append(dialog);
- const $=s=>dialog.querySelector(s);let task='',action='';
- $('#task-action-cancel').onclick=()=>dialog.close();
+ const $=s=>dialog.querySelector(s);let task='',action='',requestId='',submitting=false;
+ $('#task-action-cancel').onclick=()=>{if(!submitting)dialog.close()};
+ dialog.addEventListener('cancel',event=>{if(submitting)event.preventDefault()});
  async function show(identity,mode,preferred){
-  task=identity;action=mode;$('#task-action-error').textContent='';
+  if(submitting)return;
+  task=identity;action=mode;requestId=crypto.randomUUID();$('#task-action-error').textContent='';
   const remove=mode==='delete';$('#task-action-title').textContent=remove?'Delete this task?':'Open task in an engine';
   $('#task-action-description').textContent=remove?'Remove this task from your conversations and stop future cycles. Active work and checks finish safely. Project files and local attempt logs are kept.':'Continue this same conversation in a native terminal. Task history and connections are shared.';
   $('#task-action-engine-label').hidden=remove;$('#task-action-confirm').textContent=remove?'Delete task':'Open engine';
@@ -17,9 +19,9 @@
   dialog.showModal();$('#task-action-cancel').focus()
  }
  $('#task-action-form').onsubmit=async event=>{
-  event.preventDefault();const button=$('#task-action-confirm');button.disabled=true;
-  try{const response=await fetch(action==='delete'?'/api/tasks/control':'/api/tasks/open',{method:'POST',headers:{'Content-Type':'application/json','X-Codelaboon-Token':token},body:JSON.stringify(action==='delete'?{task,action:'delete'}:{task,engine:$('#task-action-engine').value})});const value=await response.json();if(!response.ok)throw Error(value.error||'Task action failed');dialog.close();document.dispatchEvent(new CustomEvent(action==='delete'?'task-deleted':'task-opened',{detail:value}))}
-  catch(e){$('#task-action-error').textContent=e.message}finally{button.disabled=false}
+  event.preventDefault();if(submitting)return;submitting=true;$('#task-action-cancel').disabled=true;$('#task-action-engine').disabled=true;const completedAction=action;const button=$('#task-action-confirm');button.disabled=true;
+  try{const response=await fetch(action==='delete'?'/api/tasks/control':'/api/tasks/open',{method:'POST',headers:{'Content-Type':'application/json','X-Codelaboon-Token':token},body:JSON.stringify(action==='delete'?{task,action:'delete'}:{task,engine:$('#task-action-engine').value,request_id:requestId})});const value=await response.json();if(!response.ok)throw Error(value.error||'Task action failed');dialog.close();document.dispatchEvent(new CustomEvent(completedAction==='delete'?'task-deleted':'task-opened',{detail:value}))}
+  catch(e){$('#task-action-error').textContent=e.message}finally{submitting=false;button.disabled=false;$('#task-action-cancel').disabled=false;$('#task-action-engine').disabled=false}
  };
  window.TaskActions={configure(value,rows){token=value;engines=rows||[]},open:(identity,preferred)=>show(identity,'open',preferred),remove:identity=>show(identity,'delete')};
 })();

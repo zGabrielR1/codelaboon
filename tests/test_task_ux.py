@@ -53,8 +53,14 @@ class LifecycleTests(TaskFixture):
   self.assertEqual(self.client.post(self.url+'/api/tasks/open',json={'task':self.identity,'engine':'opencode'}).status_code,403)
   self.assertEqual(self.client.get(self.url+'/api/tasks/open',headers=self.headers).status_code,404)
   with patch('codelaboon.task_launch.launch',return_value={'task':self.identity,'engine':'opencode'}) as launch:
-   response=self.client.post(self.url+'/api/tasks/open',headers=self.headers,json={'task':self.identity,'engine':'opencode'})
+   response=self.client.post(self.url+'/api/tasks/open',headers=self.headers,json={'task':self.identity,'engine':'opencode','request_id':'launch-once'})
    self.assertEqual(response.status_code,202);launch.assert_called_once_with(self.identity,'opencode')
+   replay=self.client.post(self.url+'/api/tasks/open',headers=self.headers,json={'task':self.identity,'engine':'opencode','request_id':'launch-once'})
+   self.assertEqual(replay.json(),response.json());self.assertEqual(launch.call_count,1)
+   conflict=self.client.post(self.url+'/api/tasks/open',headers=self.headers,json={'task':self.identity,'engine':'codex','request_id':'launch-once'})
+   self.assertEqual(conflict.status_code,400);self.assertEqual(launch.call_count,1)
+   missing=self.client.post(self.url+'/api/tasks/open',headers=self.headers,json={'task':self.identity,'engine':'opencode'})
+   self.assertEqual(missing.status_code,400)
   response=self.client.post(self.url+'/api/tasks/control',headers=self.headers,json={'task':self.identity,'action':'delete'})
   self.assertTrue(response.json()['deleted'])
  def test_native_launch_uses_argument_vector_shared_environment_and_real_terminal(self):

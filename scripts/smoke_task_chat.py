@@ -118,7 +118,11 @@ def run():
                         expect(page.locator('#provider')).to_be_visible()
                         page.locator('#sessions [data-task]').click(force=True)
                         expect(page.locator('#messages')).to_contain_text('Explain the result in this same conversation')
-                        with patch('codelaboon.task_launch.launch',return_value={'task':identity,'engine':'opencode','message':'Opening fixture engine.'}) as launch:
+                        launch_release=threading.Event()
+                        def fixture_launch(*args):
+                            launch_release.wait(5)
+                            return {'task':identity,'engine':'opencode','message':'Opening fixture engine.'}
+                        with patch('codelaboon.task_launch.launch',side_effect=fixture_launch) as launch:
                             page.locator('#open-native-task').click()
                             expect(page.locator('#task-action-dialog')).to_be_visible()
                             expect(page.locator('#task-action-engine')).to_have_value('opencode')
@@ -126,6 +130,9 @@ def run():
                                 page.set_viewport_size({'width':width,'height':900});expect(page.locator('#task-action-confirm')).to_be_in_viewport()
                                 page.screenshot(path=str(evidence/f'engine-dialog-{width}.png'))
                             page.locator('#task-action-confirm').click()
+                            expect(page.locator('#task-action-cancel')).to_be_disabled()
+                            page.keyboard.press('Escape');expect(page.locator('#task-action-dialog')).to_be_visible()
+                            launch_release.set()
                             expect(page.locator('#task-action-dialog')).not_to_be_visible()
                             launch.assert_called_once_with(identity,'opencode')
                         page.locator('#delete-chat-task').click();page.screenshot(path=str(evidence/'delete-dialog-390.png'));page.locator('#task-action-cancel').click()
@@ -169,6 +176,9 @@ def run():
                             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
                             expect(page.get_by_role('heading',name='Connections',exact=True)).to_be_visible()
                             page.screenshot(path=str(evidence/f'connections-{width}.png'),full_page=True)
+                        provider.validate_api_key.return_value=False
+                        page.evaluate("window.dispatchEvent(new Event('focus'))")
+                        expect(page.locator('[data-provider=freebuff] .connection-status')).to_have_text('Not connected')
                         page.goto(base+'/tasks?task=missing-task')
                         expect(page.get_by_role('heading',name='Task unavailable')).to_be_visible()
                         assert not errors,errors

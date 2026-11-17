@@ -153,7 +153,19 @@ def create_server(port=8765, cli=None):
                     if not isinstance(body,dict):raise ValueError('Invalid task request')
                     if self.path=='/api/tasks/open':
                         from codelaboon.task_launch import launch
-                        with task_lock:result=launch(body.get('task'),body.get('engine'))
+                        request_id=body.get('request_id')
+                        if not isinstance(request_id,str) or not 1<=len(request_id)<=64:raise ValueError('Provide an engine launch request ID')
+                        digest=hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
+                        cache_key=('engine',request_id)
+                        with task_lock:
+                            previous=task_requests.get(cache_key)
+                            if previous:
+                                if previous[0]!=digest:raise ValueError('Engine launch request ID was reused with different data')
+                                result=previous[1]
+                            else:
+                                result=launch(body.get('task'),body.get('engine'))
+                                if len(task_requests)>=128:task_requests.pop(next(iter(task_requests)))
+                                task_requests[cache_key]=(digest,result)
                     elif self.path=='/api/tasks/worker':
                         with task_lock:result=task_api.worker_control(body.get('action'))
                     elif self.path=='/api/tasks/settings':

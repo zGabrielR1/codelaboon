@@ -939,3 +939,20 @@ Structural verification and JS syntax checks pass. Frontend source lint reports
 0 failures/warnings. The design inspector still fails at CDP Page.enable;
 independent Chromium screenshots and interactions are verified instead.
 This work is not published or installed over the owner's running worker.
+
+
+### RC30 prepared (2026-11-17)
+
+Version1.0.0rc30 / connector1.0.30 includes task UX, deletion, native handoff,
+shared web connections and verification recovery. Additional safeguards deduplicate
+launch retries and prevent cancelling/switching an in-flight task action.
+Connections refresh on browser focus and avoid polling while hidden.
+
+Validation:434 offline tests ran,3 skips;11 task UX tests pass against the installed
+wheel. Chromium1440/768/390 includes protected Escape/cancel and connection focus
+refresh. Structural, syntax, thin-core and source-bundle checks pass. Local assets
+are under releases/rc30, with RELEASE-RC30.md used by the release workflow.
+Adversarial review: launch receipt IDs are namespaced and conflicting payloads
+are rejected; failed launches are retryable, and existing task policy/deletion
+receipts remain unchanged. Correctness9/10, evidence8/10; runtime fixture limits
+are stated in the release notes. Remote publication must be verified separately.

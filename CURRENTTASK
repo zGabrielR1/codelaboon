@@ -1,23 +1,13 @@
-UNRELEASED TASK UX IMPROVEMENTS after RC29.
+RC30 PREPARED: task UX/actions, shared Connections, verification recovery,
+deduplicated native launch retries, protected in-flight dialogs, focus refresh.
+Version1.0.0rc30; connector1.0.30; release notes RELEASE-RC30.md.
 
-Done: task deletion in normal chat/operations/CLI; native engine terminal handoff
-from the web; shared Connections sign-in/API-key UI; live gateway/proxy provider
-reload; compact operational activity outside assistant transcripts; phone task
-titles and conditional controls. Deletion excludes scheduling durably, keeps
-project/log files and allows active work to finish. Native launch is explicit,
-authenticated, shell-free, and validates installed engines/project paths.
+434 offline tests ran (3 skips);11 installed-wheel UX tests pass. Browser QA at
+1440/768/390, structural, JS syntax, pinned source bundles and thin core checks
+pass. Review recorded in docs/PROGRESS.md. Artifacts: releases/rc30.
+Live provider sign-ins/native terminal UIs remain unverified; tests use fixtures.
+No installed running worker has been interrupted or upgraded.
 
-Verification now reserves cycle time, records check argv/exit/output, pauses
-missing verifiers and three identical failures, and avoids model-quality penalties
-for broken verification infrastructure. Web resume clears the review counter.
-See docs/task-ux-and-connections.md and docs/PROGRESS.md.
-
-No new release/version/tag has been created for these changes. Do not modify the
-RC29 tag. Live sign-ins, actual terminal UIs, and upgrading the owner's running
-service were not performed. New gateway processes are needed once after upgrading
-before connection changes can hot-reload. Native picker caches may need reopening.
-Design inspector CDP fails; Playwright screenshots/actions independently pass.
-
-Validation: 434 offline tests passed (3 skips), including 11 task UX tests; browser
-QA at1440/768/390 covers launch/delete/sign-in/key states. Structural, source lint
-(0FAIL/0WARN) and JS syntax checks pass. See .runtime/ux-tests.log for the run.
+Push main and v1.0.0-rc.30 to trigger GitHub CI. Confirm remote release/assets
+before reporting published. HTTPS credential access has failed in this session
+on previous releases; never paste tokens or modify existing release tags.

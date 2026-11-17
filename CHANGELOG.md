@@ -1,4 +1,7 @@
-## Unreleased
+## 1.0.0rc30
+
+- Deduplicate engine launch retries, guard dialogs during in-flight actions, and
+  refresh connection state when returning to the browser tab.
 
 - Add task deletion with confirmation, durable scheduler exclusion and retained
   project files and local attempt logs; expose deletion in chat, operations and CLI.

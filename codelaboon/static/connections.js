@@ -32,4 +32,7 @@ $('#cancel-connection-key').onclick=()=>{$('#connection-key-dialog').close();$('
 $('#connection-key-dialog').addEventListener('close',()=>{$('#connection-key').value=''});
 $('#connection-key-form').onsubmit=async event=>{event.preventDefault();$('#save-connection-key').disabled=true;try{await request('/api/providers/configure',{provider:selectedKey,api_key:$('#connection-key').value});$('#connection-key').value='';$('#connection-key-dialog').close();await refresh()}catch(e){$('#connection-key-error').textContent=e.message}finally{$('#save-connection-key').disabled=false}};
 (async()=>{try{token=(await request('/api/session')).token;await refresh()}catch(e){error(e.message)}})();
-setInterval(()=>{if(connections.some(c=>c.login?.status==='pending'))refresh()},1500);
+setInterval(()=>{if(!document.hidden&&connections.some(c=>c.login?.status==='pending'))refresh()},1500);
+
+window.addEventListener('focus',refresh);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
