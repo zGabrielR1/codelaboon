@@ -1,4 +1,6 @@
 RC25 COMPLETE AND PUBLISHED: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.25
+Mirrored to private https://gitlab.com/zGabrielR1/codelaboon (main437fec5, alltags);
+GitLab release v1.0.0-rc.25 carries the same notes and seven verified assets.
 Source87821ffa035e0df88bd35f750ac9b46369a1e125. Release43985673599 and portable
 43985673057 succeeded. Initial verify43985673186 failed in the lightweight Rust
 worker step, which passed in the release run; empty retry16f3255 passed

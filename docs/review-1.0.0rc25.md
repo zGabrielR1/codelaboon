@@ -53,3 +53,8 @@ lightweight Rust worker step, which passed in the release run; empty retry commi
 16f3255 passed verify 43986553398 and portable 43986553181 without code changes.
 All five published artifacts verified against SHA256SUMS; 27 targeted tests and
 the Chromium task-operation smoke pass against the published wheel.
+
+Mirror: GitLab main437fec5 carries the same source and tags, and the private
+release v1.0.0-rc.25 repeats docs/release-rc25.md with the same seven verified
+assets. Release objects need API auth, so mirroring used a short-lived project
+access token supplied through /tmp/gitlab-token; it was never printed or committed.

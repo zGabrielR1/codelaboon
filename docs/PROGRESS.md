@@ -862,3 +862,17 @@ pass; real Chromium task operations pass for source and installed wheel.
   native-account features, and refreshed the VS Code connector to 1.0.25.
 - Detailed release notes are in docs/release-rc25.md; the GitHub release body is
   the workflow-generated changelog link.
+
+### RC25 mirrored to GitLab (2026-11-17)
+- GitLab project https://gitlab.com/zGabrielR1/codelaboon was created by the first
+  SSH push. `main` is 437fec5088f6b3b4f40f82fe9429bd3d629422f6 and all tags were
+  mirrored, with v1.0.0-rc.25 resolving to 87821ffa035e same as GitHub.
+- Release https://gitlab.com/zGabrielR1/codelaboon/-/releases/v1.0.0-rc.25 was
+  created from docs/release-rc25.md with the same title and seven links: wheel,
+  source, VSIX, both pinned engine bundles, SHA256SUMS and task-operations.png.
+  The uploaded bytes came from /tmp/rc25-published after `sha256sum -c` passed, so
+  they match the downloaded GitHub assets. The project is private, so release
+  assets stay member-only; the API confirmed the tag commit and the exact release
+  description. SSH alone cannot create releases, so this used a project access
+  token with the `api` scope; the token was read from /tmp/gitlab-token and never
+  echoed or committed.
