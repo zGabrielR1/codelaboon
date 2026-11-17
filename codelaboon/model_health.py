@@ -12,7 +12,7 @@ import time
 
 from codelaboon.paths import config_dir
 
-FREE_PROVIDERS = {'ourfree', 'kilo', 'pollinations', 'openrouter_free', 'freebuff', 'gemini', 'qoder', 'zai_free'}
+FREE_PROVIDERS = {'ourfree', 'kilo', 'pollinations', 'openrouter_free', 'freebuff', 'gemini', 'qoder', 'zai_free', 'vercel_free'}
 WIRE_PROVIDERS = FREE_PROVIDERS - {'gemini', 'qoder'}
 TTL = 4*3600
 _LOCK = threading.RLock()
@@ -26,7 +26,7 @@ def enabled():
 def scope(name, provider):
     values = [name, str(getattr(provider, 'base_url', '')), str(getattr(provider, 'api_key', ''))]
     environments = {'gemini': ['GEMINI_API_KEY', 'GOOGLE_API_KEY'], 'freebuff': ['FREEBUFF_API_KEY', 'CODEBUFF_API_KEY'],
-                    'qoder': ['QODER_PERSONAL_ACCESS_TOKEN', 'QODER_PAT'], 'openrouter_free': ['OPENROUTER_API_KEY'], 'zai_free': ['ZAI_API_KEY']}
+                    'qoder': ['QODER_PERSONAL_ACCESS_TOKEN', 'QODER_PAT'], 'openrouter_free': ['OPENROUTER_API_KEY'], 'zai_free': ['ZAI_API_KEY'], 'vercel_free':['AI_GATEWAY_API_KEY']}
     values.extend(os.environ.get(key, '') for key in environments.get(name, []))
     session = config_dir()/(name+'-session.json')
     try:
@@ -144,6 +144,10 @@ def verified(name,provider,model,coding=False):
 
 
 def catalog(name,provider):
+    if name=='vercel_free':
+        # Auto may be used before an explicit model-list command. A persisted
+        # health roster alone cannot establish the current upstream price.
+        provider.refresh_prices()
     live=getattr(provider,'live_models',None)
     if isinstance(live,list):
         allowed=getattr(provider,'priced_free',None)

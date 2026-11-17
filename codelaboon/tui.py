@@ -285,7 +285,7 @@ ACCOUNT_LABELS = {
 # Lanes already covered by free (Auto); their individual catalogues stay out
 # of the picker so the list is short and the default is obvious.
 FREE_PROVIDERS = {
-    "ourfree", "kilo", "pollinations", "gemini", "freebuff", "qoder"
+    "ourfree", "kilo", "pollinations", "gemini", "freebuff", "qoder", "vercel_free"
 }
 AUTO_PROVIDER = "free"
 AUTO_MODEL = "free (Auto)"
@@ -302,10 +302,12 @@ class ProviderKey(ModalScreen[bool]):
         self.provider = provider
 
     def compose(self):
-        url = {"wusrouter":"https://wusrouter.com/","howtofix":"https://howtofix.id/"}.get(self.provider,"https://qoder.com/account/integrations")
+        url = {"wusrouter":"https://wusrouter.com/","howtofix":"https://howtofix.id/","vercel":"https://vercel.com/ai-gateway","vercel_free":"https://vercel.com/ai-gateway"}.get(self.provider,"https://qoder.com/account/integrations")
         with Vertical(id="key-dialog"):
             yield Label(f"Connect {self.provider.title()}", markup=False)
             yield Static(f"Sign in or create an account in your browser:\n{url}\nPaste its API key here. Save a new key to switch accounts.", markup=False)
+            if self.provider == "vercel":
+                yield Static("Use an AI Gateway API key, not a Vercel account token. Gateway credits and model pricing apply. Free Auto uses only verified zero-priced models through the separate Vercel free lane.")
             if self.provider == "qoder":
                 yield Static("A PAT uses Cloud Agents without a local CLI. Cloud access, quota and an existing environment are required.")
             yield Input(placeholder="API key / Personal Access Token", password=True, id="provider-key")
@@ -319,7 +321,7 @@ class ProviderKey(ModalScreen[bool]):
             self.dismiss(False)
         elif event.button.id == "key-signup":
             import webbrowser
-            url = {"wusrouter":"https://wusrouter.com/","howtofix":"https://howtofix.id/"}.get(self.provider,"https://qoder.com/account/integrations")
+            url = {"wusrouter":"https://wusrouter.com/","howtofix":"https://howtofix.id/","vercel":"https://vercel.com/ai-gateway","vercel_free":"https://vercel.com/ai-gateway"}.get(self.provider,"https://qoder.com/account/integrations")
             webbrowser.open(url)
         elif event.button.id == "key-save":
             key = self.query_one("#provider-key", Input).value.strip()
@@ -703,7 +705,7 @@ class CodelaboonTuiApp(App[None]):
                 pass
         if name == AUTO_PROVIDER:
             self._on_models(name, self._auto_models(), "")
-        elif name in ("wusrouter","howtofix") and prompt_login and not self.cli.providers[name].validate_api_key():
+        elif name in ("wusrouter","howtofix","vercel","vercel_free") and prompt_login and not self.cli.providers[name].validate_api_key():
             self.push_screen(ProviderKey(name))
         elif (
             name in ACCOUNT_PROVIDERS
@@ -1303,10 +1305,10 @@ class CodelaboonTuiApp(App[None]):
             self.notify(f"{label} sign-in failed: {error or 'unknown error'}", severity="error")
 
     def action_provider_key(self):
-        if self._current_provider in ("wusrouter", "qoder", "howtofix"):
+        if self._current_provider in ("wusrouter", "qoder", "howtofix", "vercel", "vercel_free"):
             self.push_screen(ProviderKey(self._current_provider))
         else:
-            self.notify("Select HowToFix, WusRouter or Qoder to configure its account key.")
+            self.notify("Select Vercel, HowToFix, WusRouter or Qoder to configure its account key.")
 
     def action_refresh_models(self) -> None:
         name = self._selected_provider()

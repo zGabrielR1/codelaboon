@@ -1,3 +1,19 @@
+## 1.0.0rc27
+
+- Add a separate Vercel free Auto lane sourced from live zero pricing. Exclude
+  paid, unknown, non-text and variable-price routes; revalidate before requests
+  and reject configured fallback IDs when current pricing cannot be established.
+  Reuse the Vercel key only on the same endpoint and scope health to its account.
+
+- Add Vercel AI Gateway API-key setup in CLI, terminal and web workspace, using
+  `AI_GATEWAY_API_KEY`, live model discovery and an explicit credit lane outside
+  free Auto. Preserve configured endpoint/model fallbacks during key rotation.
+- Route Vercel Chat, native Messages and Responses through the proxy; retain
+  native Messages tool, thinking and cache-control fields.
+- Fix query-bearing model discovery and Anthropic pagination metadata; document
+  explicit Desktop model lists and seed proxy catalogues without blocking on all
+  upstream providers.
+
 ## 1.0.0rc26
 
 - Create tasks inside the terminal workspace using New task / Ctrl+N, with an

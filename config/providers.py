@@ -79,6 +79,8 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
             ],
         },
         "howtofix": {"api_key": "", "models": []},
+        "vercel": {"api_key": "", "models": []},
+        "vercel_free": {"api_key": "", "models": []},
         "copilot": {"api_key": "", "models": []},
         "wusrouter": {"api_key": "", "models": []},
         "zai_free": {"api_key": "", "models": []},

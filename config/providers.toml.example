@@ -125,3 +125,17 @@ models = []
 [copilot]
 api_key = ""
 models = []
+
+# Vercel AI Gateway: API key or AI_GATEWAY_API_KEY (not a Vercel account token).
+# This unrestricted lane is outside free Auto. Model IDs include vendor/ID.
+[vercel]
+api_key = ""
+base_url = "https://ai-gateway.vercel.sh/v1"
+models = []
+
+# Free Auto uses only live, uniformly zero-priced Vercel text models.
+# Reuses [vercel]'s key on the same endpoint, or AI_GATEWAY_API_KEY.
+# Configured model IDs never bypass live pricing validation.
+[vercel_free]
+api_key = ""
+models = []

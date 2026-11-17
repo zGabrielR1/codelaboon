@@ -8,7 +8,7 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
-### Coming in RC26
+### What changed in RC27
 
 Create background tasks directly in `codelaboon tasks`: choose **New task** or
 press **Ctrl+N**, enter the objective, project, scope and verification commands,
@@ -37,8 +37,19 @@ For Claude Desktop on Windows:
    After restart, open **Developer > Configure Third-Party Inference**.
 4. Choose **Gateway**, base URL `http://127.0.0.1:8766` (without `/v1`),
    **Static API key**, and **Bearer**, then enter the local key.
-5. Start a local conversation. Built-in Claude model names route to the model
+5. In **Models**, add the explicit model ID `free` (or the same `PROVIDER/MODEL`
+   selected above) to the model list and disable model discovery. Desktop's
+   auto-discovery shows only recognizable Claude IDs, so a working gateway can
+   otherwise leave the picker empty. `codelaboon proxy --desktop-models --model free`
+   prints the corresponding `modelDiscoveryEnabled` / `inferenceModels` fields
+   without creating credentials or starting a server. Use the exact ID in `name`;
+   do not assign Claude capabilities to a non-Claude route with `behavesAs`.
+6. Start a local conversation. Built-in Claude model names route to the model
    chosen with `--model`; explicit provider/model IDs retain their own route.
+
+Running `codelaboon proxy` starts the gateway only; it does not launch or configure
+Desktop. Keep it running before opening the app. A connection-refused error means
+the gateway is stopped or the app is using a different address or port.
 
 This follows Anthropic's [Desktop gateway configuration](https://code.claude.com/docs/en/llm-gateway-connect#desktop-app)
 and [third-party inference fields](https://claude.com/docs/third-party/claude-desktop/gateway).
@@ -50,6 +61,40 @@ Desktop feature or content type. Token counting is a local estimate and translat
 routes do not preserve Anthropic prompt caching. Desktop UI and live inference
 validation remain pending; offline protocol tests cover discovery, authentication,
 Messages streaming and tool translation.
+
+### Vercel AI Gateway
+
+Run `codelaboon configure vercel` and enter an **AI Gateway API key** from your
+Vercel dashboard. You can also use `AI_GATEWAY_API_KEY`, connect **Vercel** in the
+TUI key dialog, or choose **Vercel AI Gateway** in the web provider connection form.
+A Vercel account token (`VERCEL_TOKEN`) is not an AI Gateway API key.
+
+```powershell
+codelaboon models list vercel
+codelaboon models list vercel_free
+codelaboon chat vercel anthropic/claude-sonnet-4.6 "Explain this repository"
+codelaboon proxy --model vercel/anthropic/claude-sonnet-4.6
+```
+
+Use an exact model ID returned by the live catalogue; the example model may not
+be available for your account. CLI chat takes Vercel's `vendor/model` ID; task,
+engine and local proxy selections add the provider prefix: `vercel/vendor/model`.
+The default upstream is `https://ai-gateway.vercel.sh/v1`. Both the root URL and
+`/v1` are accepted in `providers.toml`; optional `models` are an offline fallback.
+Saved API keys take precedence over the environment variable, and key changes
+retain the configured endpoint and model fallback list.
+
+The proxy forwards native Messages and Responses requests directly to Vercel;
+Messages retain tools, thinking, system blocks and prompt-cache directives.
+Chat uses Vercel's OpenAI-compatible endpoint. Gateway credits/model pricing
+apply to the unrestricted `vercel` lane. Free Auto uses the separate `vercel_free`
+lane, restricted to uniformly zero-priced text models in Vercel's live catalogue.
+No configured ID, monthly credit, or expired/offline price record can admit a paid
+model; variable-price routes are excluded. The lane reuses your Vercel key only
+when both endpoints match, or uses `AI_GATEWAY_API_KEY`. For Claude Desktop, configure the
+local gateway and explicit model list as above using `vercel/vendor/model`.
+See Vercel's [API setup](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions)
+and [Messages support](https://vercel.com/docs/ai-gateway/sdks-and-apis/anthropic-messages-api).
 
 ### What changed in RC25
 

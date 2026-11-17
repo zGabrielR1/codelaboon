@@ -118,7 +118,7 @@ def create_server(port=8765, cli=None):
                     length=int(self.headers.get('Content-Length','0'))
                     if not 0<length<=20000:raise ValueError('Invalid provider settings size')
                     body=json.loads(self.rfile.read(length));name=body.get('provider');key=body.get('api_key')
-                    if name not in ('howtofix','wusrouter','groq','cerebras','openrouter','nvidia','luna'):raise ValueError('Use account login for this provider')
+                    if name not in ('howtofix','wusrouter','groq','cerebras','openrouter','nvidia','luna','vercel'):raise ValueError('Use account login for this provider')
                     if not isinstance(key,str) or not key.strip() or len(key)>16000 or any(ord(c)<32 for c in key):raise ValueError('Enter a nonempty API key')
                     from config.providers import save_provider_config
                     existing=cli._current_provider_config(name);existing['api_key']=key.strip()

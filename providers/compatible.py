@@ -160,6 +160,70 @@ class HowToFixProvider(CompatibleProvider):
         return super().credential() or os.environ.get('HTF_API_KEY','').strip()
 
 
+class VercelProvider(CompatibleProvider):
+    """Vercel AI Gateway API keys and provider/model IDs; an explicit credit lane."""
+    base_url = 'https://ai-gateway.vercel.sh/v1'
+    environment = 'AI_GATEWAY_API_KEY'
+    signup_url = 'https://vercel.com/ai-gateway'
+
+    def __init__(self,api_key='',models=None,base_url=None):
+        super().__init__(api_key,models,base_url)
+        parsed=urlsplit(self.base_url)
+        if (parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password
+                or parsed.query or parsed.fragment or parsed.path.rstrip('/') not in ('','/v1')):
+            raise ValueError('Vercel AI Gateway requires an HTTPS root URL or /v1 base URL')
+        self.base_url=self.base_url.rstrip('/')
+        if not self.base_url.endswith('/v1'):self.base_url+='/v1'
+
+
+class VercelFreeProvider(VercelProvider):
+    """Only live, uniformly zero-priced text models; never credit-funded models."""
+    def __init__(self,api_key='',models=None,base_url=None):
+        super().__init__(api_key,models,base_url)
+        self.priced_free=set()
+        self.prices_until=0
+        self.price_scope=None
+
+    @staticmethod
+    def zero_priced(row):
+        from decimal import Decimal,InvalidOperation
+        if not isinstance(row,dict) or row.get('type')!='language' or not isinstance(row.get('id'),str):return False
+        prices=row.get('pricing')
+        if not isinstance(prices,dict) or not {'input','output'}<=prices.keys():return False
+        if prices.get('varies_by_provider',False) is not False:return False
+        try:
+            return all(not isinstance(value,bool) and Decimal(str(value)).is_finite() and Decimal(str(value))==0
+                       for key,value in prices.items() if key!='varies_by_provider')
+        except (InvalidOperation,ValueError,TypeError):return False
+
+    def refresh_prices(self,force=False):
+        import hashlib,time
+        scope=hashlib.sha256((self.base_url+'\0'+self.credential()).encode()).hexdigest()
+        if not force and self.price_scope==scope and time.monotonic()<self.prices_until:return
+        self.priced_free=set();self.live_models=[];self.price_scope=scope
+        self.prices_until=time.monotonic()+15
+        if not self.validate_api_key():return
+        try:
+            with self.transport.get(self.base_url+'/models',headers=self.headers(),timeout=10,allow_redirects=False) as response:
+                response.raise_for_status();rows=response.json()['data']
+                if not isinstance(rows,list):raise ValueError('Invalid model catalog')
+                models=list(dict.fromkeys(row['id'] for row in rows if self.zero_priced(row)))
+            self.priced_free=set(models);self.live_models=models;self.discovery_error=None
+            self.prices_until=time.monotonic()+60
+        except (requests.RequestException,ValueError,KeyError,TypeError) as error:
+            self.discovery_error=type(error).__name__
+
+    def accepts(self,row):
+        self.refresh_prices()
+        return row.get('id') in self.priced_free
+
+    def list_models(self):
+        self.refresh_prices(force=True)
+        return list(self.live_models)
+
+    def free_models(self):return self.list_models()
+
+
 class CopilotProvider(CompatibleProvider):
     """GitHub Copilot account models using the pinned OpenCode OAuth protocol."""
     base_url = 'https://api.githubcopilot.com'

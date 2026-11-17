@@ -14,7 +14,7 @@ import secrets
 import tempfile
 import threading
 import time
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 import requests
 
@@ -22,8 +22,8 @@ from codelaboon import free_auto
 from codelaboon.paths import config_dir
 
 COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter", "nvidia", "luna", "chatgpt",
-              "local", "openrouter_free", "groq", "cerebras", "wusrouter", "howtofix", "copilot", "claude", "gemini", "freebuff", "zai_free"}
-FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free"}
+              "local", "openrouter_free", "groq", "cerebras", "wusrouter", "howtofix", "copilot", "claude", "gemini", "freebuff", "zai_free", "vercel", "vercel_free"}
+FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free", "vercel_free"}
 
 
 class Gateway:
@@ -212,11 +212,11 @@ class Gateway:
         if self.model_alias and api=='anthropic' and (model in ('default','sonnet','opus','haiku') or model.startswith('claude-')):
             body=dict(body,model=self.model_alias)
         if self.task_model:body=dict(body,model=self.task_model.removeprefix('codelaboon/'))
-        if api == "anthropic" and not body.get("model", "").startswith("claude/"):
+        if api == "anthropic" and not body.get("model", "").startswith(("claude/","vercel/","vercel_free/")):
             from codelaboon.anthropic_bridge import MessagesResponse, to_chat
             routed = dict(body, model=body["model"].removesuffix("[1m]"))
             return MessagesResponse(self.request(to_chat(routed), "chat"), body["model"], bool(body.get("stream")))
-        if api == "responses" and not body.get("model", "").startswith("chatgpt/"):
+        if api == "responses" and not body.get("model", "").startswith(("chatgpt/","vercel/","vercel_free/")):
             from codelaboon.responses_bridge import ResponsesResponse, to_chat
             return ResponsesResponse(self.request(to_chat(body), "chat", timeout=timeout), body)
         if self.task_system_prompt:
@@ -241,6 +241,11 @@ class Gateway:
                 continue
             provider = self.providers[name]
             payload = dict(body, model=model)
+            if name=='vercel_free':
+                options=payload.get('providerOptions',{})
+                routing=options.get('gateway',{}) if isinstance(options,dict) else {}
+                if isinstance(routing,dict) and (routing.get('models') or routing.get('byok')):
+                    raise ValueError('Vercel free models do not accept upstream model fallbacks or request-scoped BYOK')
             if name=='openrouter_free':
                 options=payload.get('provider',{})
                 payload['provider']={**(options if isinstance(options,dict) else {}),'max_price':{'prompt':0,'completion':0}}
@@ -253,10 +258,13 @@ class Gateway:
             if credential:
                 headers["authorization"] = f"Bearer {credential}"
             if api == "anthropic":
-                if name != "claude":
+                if name in ('vercel','vercel_free'):
+                    headers['anthropic-version']='2023-06-01'
+                elif name != "claude":
                     raise ValueError("Messages requires a Claude model")
-                credential, mode = provider._credential()
-                headers = provider._headers(credential, mode)
+                else:
+                    credential, mode = provider._credential()
+                    headers = provider._headers(credential, mode)
                 url = f"{provider.base_url.rstrip('/')}/messages"
             elif api == "google":
                 if name != "gemini":
@@ -275,7 +283,7 @@ class Gateway:
                 else:
                     url = f"{provider.base_url.rstrip('/')}/models/{model}:{operation}"
             elif api == "responses":
-                if name != "chatgpt":
+                if name not in ("chatgpt","vercel","vercel_free"):
                     raise ValueError("Responses is only configured for ChatGPT")
                 # _credential refuses custom URLs for account-session tokens.
                 url = f"{provider.base_url.rstrip('/')}/responses"
@@ -361,7 +369,8 @@ def handler(gateway):
         def do_GET(self):
             if not self.authorized():
                 return self.document(401, {"error": {"message": "Unauthorized"}})
-            if self.path == "/v1/work/status":
+            path=urlsplit(self.path)
+            if path.path == "/v1/work/status":
                 from codelaboon.work import status
                 try:
                     state = status()
@@ -369,13 +378,35 @@ def handler(gateway):
                         ("running", "paused", "completed", "pending", "cooldowns")})
                 except (OSError, ValueError, KeyError):
                     return self.document(200, {"running": False, "pending": [], "completed": 0})
-            if self.path != "/v1/models":
+            if path.path != "/v1/models":
                 return self.document(404, {"error": {"message": "Unknown endpoint"}})
-            self.document(200, {"object": "list", "data": [
+            rows=[
                 {"id": row["id"], "object": "model", "type": "model", "display_name": row["name"],
+                 "created_at": "1970-01-01T00:00:00Z",
                  "owned_by": "codelaboon"}
                 for row in gateway.models()
-            ]})
+            ]
+            query=parse_qs(path.query,keep_blank_values=True)
+            try:
+                if any(len(query[key])!=1 for key in ('limit','after_id','before_id') if key in query):
+                    raise ValueError('Pagination parameters must not be repeated')
+                if 'after_id' in query and 'before_id' in query:
+                    raise ValueError('Choose after_id or before_id, not both')
+                limit=int(query['limit'][0]) if 'limit' in query else (20 if self.headers.get('anthropic-version') else max(1,len(rows)))
+                if not 1<=limit<=1000 and 'limit' in query:raise ValueError('Model page limit must be between 1 and 1000')
+                start,end=0,len(rows)
+                identifiers=[row['id'] for row in rows]
+                if 'after_id' in query:start=identifiers.index(query['after_id'][0])+1
+                if 'before_id' in query:end=identifiers.index(query['before_id'][0])
+                if 'before_id' in query:
+                    start=max(0,end-limit);more=start>0
+                else:
+                    more=start+limit<end;end=min(end,start+limit)
+                rows=rows[start:end]
+            except ValueError:
+                return self.document(400,{'type':'error','error':{'type':'invalid_request_error','message':'Invalid model pagination parameters or unknown cursor'}})
+            self.document(200, {"object": "list", "data":rows,"has_more":more,
+                "first_id":rows[0]['id'] if rows else None,"last_id":rows[-1]['id'] if rows else None})
 
         def do_POST(self):
             if not self.authorized():

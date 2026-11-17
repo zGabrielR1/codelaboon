@@ -1,24 +1,28 @@
-RC26 PUBLICATION REQUESTED. RC25 remains published until RC26 release CI succeeds.
+RC27 READY FOR PUBLICATION; RC26 is already published remotely.
 
-Task creation now lives inside the TUI: New task / Ctrl+N, installed engine,
-objective/project/scope/model, JSON verification argv arrays and cycle limit.
-Coding/default permissions/no elevation; one verified cycle by default. Shared
-queue validation, worker startup, input-preserving errors, in-flight submission
-guard, queued conversation handoff and worker startup failure receipt.
+Vercel support: configure vercel via CLI/TUI/web or AI_GATEWAY_API_KEY. Live
+catalogue, endpoint normalization, native Messages/Responses proxy paths preserve
+tool/thinking/cache-control fields; unrestricted vercel remains explicit.
 
-New codelaboon proxy reuses the shared native gateway: stable loopback port8766,
-persistent local credential, explicit --show-token, port/token-file/model options.
-Built-in Claude aliases route only on Anthropic requests; explicit provider IDs
-keep their route. Existing ephemeral VS Code/native gateways are unchanged.
-Package1.0.0rc26/connector1.0.26. See RELEASE-RC26.md and README.
+Auto now uses vercel_free. It reuses the vercel key only for identical endpoints,
+uses account-scoped health, discovers pricing automatically, and accepts only live
+uniformly zero-priced language models. All listed charges must be finite zero;
+paid, variable-provider, missing/invalid prices and non-text IDs are excluded.
+Pricing refresh failure clears eligibility; configured IDs are not a fallback.
+No authenticated owner inference was performed. Public catalogue snapshot at
+releases/rc27/vercel-zero-priced-models.json contains five eligible IDs.
 
-Windows Computer Use failed twice: native pipe unavailable (OS error2). Desktop
-UI/live inference remain UNVERIFIED. Next: configure the local Claude Desktop
-Gateway form, test a message/tool round trip and proxy restart with the saved key.
-Do not claim Desktop acceptance or publish as Desktop-ready before that passes.
-389 offline tests pass (3 skips); installed-wheel task/proxy checks and thin
-artifact checks pass. Source provenance verified. Release workflow includes
-RELEASE-RC26.md so the Desktop limitation is visible in published notes.
-Publishing access currently unavailable: no gh/GH_TOKEN/GITHUB_TOKEN, credential
-manager returns no GitHub credential, and SSH has no known host entries.
-No remote release/push performed; no delegation used.
+Desktop discovery query/pagination fixes and explicit model-list instructions are
+included. Installed Claude Desktop UI/live acceptance remains UNVERIFIED due to
+unavailable Windows helper and unreadable app directories/logs in this session.
+
+Local package1.0.0rc27/connector1.0.27. Wheel/source/VSIX and source-engine modules
+are staged under releases/rc27. Source provenance and thin-core checks pass.
+Final full offline suite405tests pass (3 skips), plus16installed-wheel
+Vercel/free/discovery tests pass. Logs: releases/rc27/tests-release.log.
+The free lane rejects upstream model fallback and request-scoped BYOK overrides.
+
+Publishing is authorized. The user can publish through HTTPS if session auth is
+unavailable. This session's credential manager currently returns no GitHub key;
+no token is to be pasted in chat. Next: HTTPS push of main and v1.0.0-rc.27,
+then monitor release workflow. Do not claim publication until GitHub confirms it.

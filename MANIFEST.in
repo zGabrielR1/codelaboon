@@ -5,6 +5,7 @@ include CLOUD-WATCH.md
 include LICENSE
 include CHANGELOG.md
 include RELEASE-RC26.md
+include RELEASE-RC27.md
 include Makefile
 include CURRENTTASK
 recursive-include .github/workflows *.yml

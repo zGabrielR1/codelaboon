@@ -76,6 +76,9 @@ class CodelaboonCLI:
         free=self.providers.get('openrouter_free')
         if paid and free and not free.api_key.strip() and getattr(paid,'base_url','').rstrip('/')==getattr(free,'base_url','').rstrip('/')=='https://openrouter.ai/api/v1':
             free.api_key=paid.api_key
+        paid=self.providers.get('vercel');free=self.providers.get('vercel_free')
+        if paid and free and not free.api_key.strip() and paid.base_url==free.base_url:
+            free.api_key=paid.api_key
 
     def _get_provider_class(self, provider_name: str):
         """Get provider class based on provider name."""
@@ -97,6 +100,8 @@ class CodelaboonCLI:
             "kilo": "providers.kilo.kilo_provider.KiloProvider",
             "pollinations": "providers.pollinations.pollinations_provider.PollinationsProvider",
             "howtofix": "providers.compatible.HowToFixProvider",
+            "vercel": "providers.compatible.VercelProvider",
+            "vercel_free": "providers.compatible.VercelFreeProvider",
             "copilot": "providers.compatible.CopilotProvider",
             "wusrouter": "providers.wusrouter.wusrouter_provider.WusRouterProvider",
         }
@@ -157,7 +162,7 @@ class CodelaboonCLI:
         for provider_name in (
             "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
             "openrouter", "luna", "ourfree", "kilo", "pollinations",
-            "wusrouter", "howtofix", "copilot",
+            "wusrouter", "howtofix", "copilot", "vercel", "vercel_free",
             "local", "openrouter_free", "groq", "cerebras",
         ):
             try:
@@ -522,6 +527,10 @@ class CodelaboonCLI:
             "api_key": api_key,
             "models": [],  # Will be populated automatically
         }
+
+        if provider_name == 'vercel':
+            # Key rotation must retain an explicit endpoint and offline roster.
+            config={**self._current_provider_config(provider_name),'api_key':api_key}
 
         if provider_name == "ourfree":
             # The forward gateway can move off port 18899 when it is taken;
