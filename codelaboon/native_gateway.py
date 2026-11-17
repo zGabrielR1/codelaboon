@@ -26,6 +26,21 @@ COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter", "nvidia", "luna",
 FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free", "vercel_free"}
 
 
+class FreeRoutingUnavailable(ValueError):
+    def __init__(self,message,retry_after=60):
+        super().__init__(message);self.retry_after=max(1,min(int(retry_after),3600))
+
+
+def retry_delay(response,default=60):
+    value=response.headers.get('Retry-After','')
+    try:return max(1,min(int(value),3600))
+    except (ValueError,TypeError):
+        try:
+            from email.utils import parsedate_to_datetime
+            return max(1,min(int(parsedate_to_datetime(value).timestamp()-time.time()),3600))
+        except (ValueError,TypeError,OverflowError):return default
+
+
 class Gateway:
     def __init__(self, providers, health_checks=True, task_class=None):
         self.providers = providers
@@ -234,7 +249,7 @@ class Gateway:
         category=routing_metrics.task_class(body.get('messages',[]),self.task_class)
         routes = self.routes(body.get("model", ""),task=category)
         if not routes:
-            raise ValueError("No free coding model is ready. Configure ourfree, or retry kilo/pollinations shortly.")
+            raise FreeRoutingUnavailable("No free coding model is currently ready. Configured free providers may be cooling down or unavailable; no paid fallback was used.")
         failures = []
         for name, model in routes:
             if body.get("model")=="free" and self.cooldowns.get(name,0)>time.monotonic():
@@ -302,11 +317,13 @@ class Gateway:
                         instance = provider._ensure_slot(credential, model)
                     except (ValueError, requests.RequestException) as error:
                         if self.health_checks:
+                            from codelaboon import model_health
                             from codelaboon.model_health import observe,failure
                             observe(name,provider,model,failure(error))
                         if body.get("model") != "free":
                             raise
                         self.cooldowns[name] = time.monotonic() + 30
+                        if self.health_checks:model_health.defer(name,provider,60)
                         failures.append("freebuff: admission failed")
                         continue
                     metadata = provider._completion_body(model, payload.get("messages", []), instance, payload)
@@ -337,7 +354,9 @@ class Gateway:
                 if self.health_checks:
                     model_health.observe(name,provider,model,model_health.classify(response.status_code))
                 if response.status_code in (401,402,403,429) or response.status_code>=500:
-                    self.cooldowns[name] = time.monotonic() + 30
+                    delay=retry_delay(response)
+                    self.cooldowns[name] = time.monotonic() + delay
+                    if self.health_checks:model_health.defer(name,provider,delay)
                 if self.health_checks:routing_metrics.observe(name,provider,model,category,'failed',time.monotonic()-started)
                 response.close()
                 continue
@@ -345,7 +364,8 @@ class Gateway:
             if self.health_checks and api=='chat' and routing_metrics.enabled():
                 return routing_metrics.MeasuredResponse(response,name,provider,model,category,started)
             return response
-        raise ValueError("No free coding model answered. " + "; ".join(failures))
+        waits=[max(1,int(until-time.monotonic())) for until in self.cooldowns.values() if until>time.monotonic()]
+        raise FreeRoutingUnavailable("No free coding model answered. " + "; ".join(failures)+". The local gateway is running; upstream providers are unavailable. No paid fallback was used.",min(waits) if waits else 60)
 
 
 def handler(gateway):
@@ -439,6 +459,11 @@ def handler(gateway):
                 if not isinstance(body, dict) or not isinstance(body.get("model"), str):
                     raise ValueError("Expected an object with a model")
                 response = gateway.request(body, api)
+            except FreeRoutingUnavailable as error:
+                data=json.dumps({'type':'error','error':{'type':'overloaded_error','message':str(error),'retry_after':error.retry_after}}).encode()
+                self.send_response(503);self.send_header('Content-Type','application/json')
+                self.send_header('Retry-After',str(error.retry_after));self.send_header('Content-Length',str(len(data)))
+                self.end_headers();self.wfile.write(data);return
             except (ValueError, TypeError) as error:
                 return self.document(400, {"error": {"message": str(error)}})
             except requests.RequestException:

@@ -1,3 +1,18 @@
+## 1.0.0rc28
+
+- Fix OpenCode/Kilo task launch arguments: variadic `--file` no longer consumes
+  the task instruction as a second filename.
+- Make task threads durable conversations with real model replies, live partial
+  replies, planning/status turns, separate raw logs and follow-up execution after
+  completion. Shared engine task views use the same conversation API.
+- Include independent-check failures in the next orchestration attempt, rather
+  than passing only the previous worker's success claim.
+- Default new web tasks to one verified coding cycle and require an existing
+  project verification command instead of preselecting a nonexistent script.
+- Return retryable 503/Retry-After for exhausted free routes, respect upstream
+  retry delays, persist account-scoped provider cooldowns across gateway restarts,
+  and distinguish provider capacity from a broken local endpoint.
+
 ## 1.0.0rc27
 
 - Add a separate Vercel free Auto lane sourced from live zero pricing. Exclude

@@ -116,6 +116,7 @@ def _availability(model: FreeModel, providers: Dict[str, object]) -> float:
     if model.provider == "qoder" and getattr(provider, "_pat", lambda: "")():
         return 0.0  # Cloud Agents PAT usage can consume credits.
     from codelaboon import model_health
+    if model_health.cooldown(model.provider,provider)>0:return 0.0
     roster = model_health.catalog(model.provider, provider)
     if roster is None:
         roster = _roster(provider)

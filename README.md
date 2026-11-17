@@ -8,6 +8,34 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
+### What changed in RC28
+
+Open a task in `codelaboon tasks --open` to chat with its orchestrator. Actual
+model replies and partial replies appear in the thread alongside the plan and
+independent-check status; command diagnostics remain under **Raw attempt output**.
+New web tasks default to one verified coding cycle and require an actual project
+check rather than assuming a security script exists. Choose 0 cycles explicitly
+for continuous work. Send a follow-up after completion to continue the same task. While a cycle is
+active, your message joins the next checkpoint. Pauses and provider cooldowns
+remain in force. Explicitly stopped or elevated cases keep their existing policy.
+
+Engine task entry points, such as `codelaboon opencode --tasks TASK_ID` and
+`codelaboon jcode --tasks TASK_ID`, share this conversation and durable history.
+The next attempt receives recent replies and the independent-check failures so
+the orchestrator can direct workers to fix them. Restart the background worker
+at a safe checkpoint after updating to enable the new conversation feature.
+
+OpenCode/Kilo task launchers now place the instruction before their variadic
+attachment option. The previous ordering made the engine treat
+`Execute the attached task specification.` as another filename; the SQLite
+migration message preceding it was not the cause.
+
+Free-provider exhaustion now returns a retryable 503 with `Retry-After`, and
+account-scoped cooldowns survive engine gateway restarts. A Kilo 429 or Freebuff
+admission failure means an upstream availability/account issue when the local
+gateway has already answered. This changes failover, backoff and diagnostics;
+it does not create provider quota or allow paid fallback.
+
 ### What changed in RC27
 
 Create background tasks directly in `codelaboon tasks`: choose **New task** or

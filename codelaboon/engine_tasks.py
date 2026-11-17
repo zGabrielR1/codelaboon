@@ -45,7 +45,9 @@ def command(engine, model, prompt_file):
     native_model=model if model.startswith('codelaboon/') else 'codelaboon/'+model
     wire_model=model.removeprefix('codelaboon/')
     if engine in ('opencode','kilo'):
-        return ['run','--format','json','--model',native_model,'--file',str(prompt_file),'Execute the attached task specification.']
+        # --file is a variadic yargs option: trailing prose becomes another
+        # filename. Put the positional message before it, with files last.
+        return ['run','Execute the attached task specification.','--format','json','--model',native_model,'--file',str(prompt_file)]
     prompt=prompt_file.read_text(encoding='utf-8')
     if engine=='omp':return ['--print','--mode','json','--model',native_model,prompt]
     if engine=='claude':return ['-p',prompt,'--output-format','json','--model',wire_model]
@@ -98,6 +100,9 @@ def run(engine, model, prompt_file, runtime):
                     texts.extend(part.get('text','') for part in message.get('content',[]) if part.get('type')=='text')
                     if message.get('stopReason')=='stop':complete=True
                     if message.get('stopReason') in ('error','aborted'):failure=True
+            if texts:
+                from codelaboon.task_conversation import save_reply
+                save_reply('\n'.join(text for text in texts if isinstance(text,str)),partial=True)
             if kind not in ('text','item.completed','message_end'):
                 print(json.dumps(event),file=sys.stderr,flush=True)
         code=process.wait()

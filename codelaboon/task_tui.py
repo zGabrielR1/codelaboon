@@ -209,11 +209,12 @@ class TaskApp(App):
         task=self.records[self.identity]
         self.query_one('#task-title',Static).update(task['title']+'\n'+task['engine']+' / '+task['state']+' / '+str(task.get('cycles_completed',0))+' verified cycles')
         compatible=not state['worker']['running'] or 'operator-interventions' in state['worker'].get('service',{}).get('features',[])
-        notes_only=not compatible or task['elevation']!='none' or task['state'] in ('stopped','completed')
+        continuation=bool(task.get('swarm')) and (not state['worker']['running'] or 'task-conversations' in state['worker'].get('service',{}).get('features',[]))
+        notes_only=not compatible or task['elevation']!='none' or task['state']=='stopped' or (task['state']=='completed' and not continuation)
         note=self.query_one('#note',Checkbox)
         if notes_only:note.value=True
         note.disabled=notes_only
-        self.query_one('#hint',Static).update('Notes only: older worker, finished task or immutable elevated case.' if notes_only else 'Guidance joins the next attempt. Active work and independent checks finish first.')
+        self.query_one('#hint',Static).update('Notes only: stopped/elevated task or older worker.' if notes_only else 'Reply to the orchestrator. Active work and independent checks finish first; completed tasks continue on your next message.')
         for action in ('pause','resume'):
             self.query_one('#'+action,Button).disabled=task['state'] in ('stopped','completed') or ((task['state']=='paused')==(action=='pause'))
         self.query_one('#retry',Button).disabled=not ('failed' in task['state'] or 'retry' in task['state']) or task.get('elevation','none')!='none'
@@ -226,12 +227,12 @@ class TaskApp(App):
         scroll=feed.scroll_y
         feed.clear()
         feed.write(Text('You / objective',style='bold cyan'));feed.write(Text(task['objective']))
-        rows=[{**row,'role':'Orchestrator / execution update'} for row in conversation['events']]
+        rows=[{**row,'role':'Orchestrator' if row.get('kind') in ('reply','plan') else 'Orchestrator / status'} for row in conversation['events']]
         rows += [{**row,'role':'You'} for row in conversation['messages']]
         for row in sorted(rows,key=lambda row:row['created']):
             feed.write(Text('\n'+row['role'],style='bold cyan'));feed.write(Text(row['text']))
             if row.get('delivery'):feed.write(Text(row['delivery'],style='dim'))
-        if output['text']:
+        if output['text'] and not conversation['events']:
             feed.write(Text('\nWorker / latest captured output',style='bold cyan'));feed.write(Text(output['text']))
         self.signature=signature
         if follow:feed.scroll_end(animate=False)

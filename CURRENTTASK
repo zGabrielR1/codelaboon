@@ -1,28 +1,19 @@
-RC27 READY FOR PUBLICATION; RC26 is already published remotely.
+RC28 PREPARED FOR PUBLICATION. RC27 exists remotely; this session must push
+main and v1.0.0-rc.28 to trigger release CI. Do not claim publication without
+remote confirmation. Release notes and update/restart instructions: RELEASE-RC28.md.
 
-Vercel support: configure vercel via CLI/TUI/web or AI_GATEWAY_API_KEY. Live
-catalogue, endpoint normalization, native Messages/Responses proxy paths preserve
-tool/thinking/cache-control fields; unrestricted vercel remains explicit.
+Includes OpenCode/Kilo variadic --file argument fix; durable task conversations
+with actual model replies/partial replies and planner/status turns; follow-up
+execution after completion at scheduler checkpoints; independent-check feedback
+in next-attempt prompts. Shared web/engine task API; logs remain separate.
+New task-conversations service feature requires a safe worker restart on upgrade.
+New web tasks default to one coding cycle and require a real project verifier.
 
-Auto now uses vercel_free. It reuses the vercel key only for identical endpoints,
-uses account-scoped health, discovers pricing automatically, and accepts only live
-uniformly zero-priced language models. All listed charges must be finite zero;
-paid, variable-provider, missing/invalid prices and non-text IDs are excluded.
-Pricing refresh failure clears eligibility; configured IDs are not a fallback.
-No authenticated owner inference was performed. Public catalogue snapshot at
-releases/rc27/vercel-zero-priced-models.json contains five eligible IDs.
+Free-route failures now return503/Retry-After, persist account-scoped backoffs,
+and fail over only among eligible free models. Live synthetic Kilo text AND tool
+probes pass. Owner Freebuff admission and Claude Desktop UI remain unverified.
 
-Desktop discovery query/pagination fixes and explicit model-list instructions are
-included. Installed Claude Desktop UI/live acceptance remains UNVERIFIED due to
-unavailable Windows helper and unreadable app directories/logs in this session.
-
-Local package1.0.0rc27/connector1.0.27. Wheel/source/VSIX and source-engine modules
-are staged under releases/rc27. Source provenance and thin-core checks pass.
-Final full offline suite405tests pass (3 skips), plus16installed-wheel
-Vercel/free/discovery tests pass. Logs: releases/rc27/tests-release.log.
-The free lane rejects upstream model fallback and request-scoped BYOK overrides.
-
-Publishing is authorized. The user can publish through HTTPS if session auth is
-unavailable. This session's credential manager currently returns no GitHub key;
-no token is to be pasted in chat. Next: HTTPS push of main and v1.0.0-rc.27,
-then monitor release workflow. Do not claim publication until GitHub confirms it.
+Validation from implementation:415 tests ran (3skips); Chromium task-chat QA
+passes at1440/768/390 (live replies, reload, follow-ups, task-form defaults, settings,
+navigation, visible composer, no overflow). Final RC28 gates/artifacts go under
+releases/rc28. No delegation used. GitHub tokens are not to be pasted in chat.

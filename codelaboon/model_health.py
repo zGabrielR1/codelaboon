@@ -138,6 +138,21 @@ def blocked(name,provider,model,coding=False):
     return bool(row and row['retry_at']>time.time() and (row['status']!='working' or (coding and row.get('tools') is False)))
 
 
+def cooldown(name,provider):
+    if not enabled():return 0
+    with database() as value:
+        return max(0,value.get('backoffs',{}).get(scope(name,provider),0)-time.time())
+
+
+def defer(name,provider,seconds):
+    if not enabled():return
+    try:
+        with database(True) as value:
+            key=scope(name,provider)
+            value.setdefault('backoffs',{})[key]=max(value.get('backoffs',{}).get(key,0),time.time()+max(1,min(seconds,3600)))
+    except OSError:pass
+
+
 def verified(name,provider,model,coding=False):
     row=record(name,provider,model)
     return bool(row and row['retry_at']>time.time() and row['status']=='working' and (not coding or row.get('tools') is True))

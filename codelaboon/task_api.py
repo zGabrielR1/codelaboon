@@ -89,23 +89,8 @@ def logs(identity,attempt_id=None):
 
 def conversation(identity):
     _,root,task=selected(identity)
-    from codelaboon.task_conversation import history
-    events=[]
-    for path in root.glob('*/result.json'):
-        try:
-            row=json.loads(path.read_text(encoding='utf-8'))
-            if row.get('task')==identity:
-                events.append({'id':path.parent.name,'created':row.get('started',0),
-                    'text':'Attempt '+path.parent.name+' · '+row.get('stage','work')+' · '+row.get('status','unknown')+
-                    (' · exit '+str(row['exit_code']) if 'exit_code' in row else '')})
-                planner=path.parent/'orchestrator.log'
-                if planner.is_file():
-                    from codelaboon.task_changes import redact
-                    with planner.open('rb') as stream:text=stream.read(16000).decode('utf-8',errors='replace')
-                    config=row.get('execution_settings',{})
-                    events.append({'id':path.parent.name+'-planner','created':row.get('started',0)+0.01,
-                        'text':'Planning orchestrator / '+config.get('orchestrator_mode','')+' / '+config.get('orchestrator_model','')+'\n'+redact(text)})
-        except (OSError,ValueError):continue
+    from codelaboon.task_conversation import history,attempt_events
+    events=attempt_events(root,identity)
     return {'task':identity,'messages':history(root,identity),'events':sorted(events,key=lambda row:row['created'])[-40:]}
 
 
@@ -117,12 +102,22 @@ def message(body):
         from codelaboon.work import status
         worker=status(path)
         pending=next((row for row in worker.get('pending',[]) if row['id']==task['id']),None)
-        if task['id'] in _completed(root) or (pending and pending.get('stopped')):
-            raise ValueError('Finished tasks accept notes only; queue a new task for further work')
+        from codelaboon.work_queue import controls
+        if (pending and pending.get('stopped')) or (controls(root,task['id'])/'STOP').exists():raise ValueError('This task was explicitly stopped; resume work in a new task')
+        completed=task['id'] in _completed(root)
+        if completed and not task.get('swarm'):raise ValueError('Follow-up execution requires a continuous task')
+        if completed and worker.get('running') and 'task-conversations' not in worker.get('service',{}).get('features',[]):
+            raise ValueError('Restart the worker at a safe checkpoint to enable follow-up conversation turns')
         if worker.get('running') and 'operator-interventions' not in worker.get('service',{}).get('features',[]):
             raise ValueError('Restart the worker at a safe checkpoint to enable task guidance. Notes are available now.')
     from codelaboon.task_conversation import post
-    return post(root,task['id'],body.get('message_id'),body.get('text'),mode)
+    row=post(root,task['id'],body.get('message_id'),body.get('text'),mode)
+    if mode=='guidance' and not worker.get('running') and not worker.get('paused'):
+        from codelaboon.work import start
+        try:start(path)
+        except (OSError,ValueError,RuntimeError):
+            return {**row,'execution_error':'Your message is saved, but the worker could not start. Use Start worker; do not send it again.'}
+    return row
 
 
 def _completed(root):

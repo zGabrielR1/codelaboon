@@ -80,6 +80,8 @@ def main():
         else:
             text = completion(args.provider, args.model,
                               args.prompt_file.read_text(encoding='utf-8'))
+        from codelaboon.task_conversation import save_reply
+        save_reply(text)
         print(text, flush=True)
     except Exception as error:
         print(str(error), file=sys.stderr)

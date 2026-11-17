@@ -48,13 +48,15 @@ def terminate(process):
 
 
 def progress_tail(directory, limit=12000):
+    from codelaboon.task_conversation import tail
+    directory=Path(directory)
+    reply=tail(directory/'reply.txt',limit//2) or tail(directory/'output.log',limit//2)
     try:
-        with (Path(directory)/'output.log').open('rb') as stream:
-            stream.seek(0, os.SEEK_END)
-            stream.seek(max(0, stream.tell()-limit))
-            return stream.read(limit).decode('utf-8', errors='replace')
-    except OSError:
-        return '(Previous output unavailable; inspect the saved attempt directory.)'
+        result=json.loads((directory/'result.json').read_text(encoding='utf-8'))
+        status='Previous attempt: '+result.get('status','unknown')+'; verification: '+result.get('verification','unknown')+'; exit: '+str(result.get('exit_code','unknown'))
+    except (OSError,ValueError,TypeError):status='Previous attempt status unavailable'
+    checks='\n'.join(path.name+':\n'+tail(path,2000) for path in sorted(directory.glob('check-*.log'))[-3:])
+    return (status+'\nWorker reply:\n'+reply+('\nIndependent check feedback:\n'+checks if checks else ''))[-limit:]
 
 
 def execute(argv, cwd, output, timeout, env=None, monitor=None, review_interval=15):
@@ -191,6 +193,8 @@ def supervise(config, base, root, once):
                 all_tasks[task['id']] = task
         from codelaboon.task_attempts import consume
         changed,retry_requests=consume(root,all_tasks,state)
+        from codelaboon.task_conversation import pending_turns
+        changed=pending_turns(root,all_tasks,state) or changed
         if changed:save(state_path,state)
         for request in retry_requests:request.unlink(missing_ok=True)
         from codelaboon.task_settings import apply as apply_settings
@@ -334,7 +338,7 @@ def supervise(config, base, root, once):
                   'started': time.time(), 'status': 'running','permissions':task.get('permissions','default'),
                   'profile':task.get('profile','coding'),'scope':task.get('scope',''),
                   'engine':task.get('swarm',{}).get('engine','configured harness'),
-                  'supervision':task.get('supervision',{'enabled':False})}
+                  'supervision':task.get('supervision',{'enabled':False}),'phase':'working'}
         save(attempt / 'result.json', record)
         settings=task.get('execution_settings')
         if settings:
@@ -347,6 +351,7 @@ def supervise(config, base, root, once):
         try:
             from codelaboon.execution_policy import child_environment
             execution={'env':child_environment(task)}
+            execution['env']['CODELABOON_TASK_REPLY_FILE']=str(attempt/'reply.txt')
             if settings:
                 from codelaboon.task_settings import system_text
                 settings_file=attempt/'execution-settings.json';save(settings_file,settings)
@@ -364,6 +369,7 @@ def supervise(config, base, root, once):
             budget=max(1,float(task['swarm']['timeout'] if settings and task.get('swarm') else harness.get('timeout_seconds',1800)))
             code=0
             if settings and settings['orchestrator_mode']!='worker':
+                record['phase']='planning';save(attempt/'result.json',record)
                 plan_file=attempt/'orchestrator-plan.md'
                 planner=[sys.executable,str(Path(__file__).with_name('task_orchestrator.py')),str(settings_file),str(prompt),str(plan_file)]
                 code=execute(planner,project,attempt/'orchestrator.log',min(180,budget),**execution)
@@ -374,6 +380,7 @@ def supervise(config, base, root, once):
                     argv=[part.format_map(values) for part in harness['argv']]
             remaining=budget-(time.monotonic()-build_started) if settings and settings['orchestrator_mode']!='worker' else budget
             if code==0:
+                record['phase']='working';save(attempt/'result.json',record)
                 code=execute(argv,project,attempt/'output.log',remaining,**execution) if remaining>0 else 124
             elif not (attempt/'output.log').exists():
                 (attempt/'output.log').write_text('Planning failed; workers were not dispatched. Inspect orchestrator.log.',encoding='utf-8')
@@ -386,6 +393,7 @@ def supervise(config, base, root, once):
                 code = 125
         checks_run=False
         if code == 0 and stage != 'plan':
+            record['phase']='verifying';save(attempt/'result.json',record)
             for number, check in enumerate(task.get('verify_argv', [])):
                 checks_run=True
                 try:
@@ -421,6 +429,10 @@ def supervise(config, base, root, once):
             continue
         record.update(status='succeeded' if code == 0 else 'failed',
                       exit_code=code, finished=time.time())
+        record['verification']='passed' if checks_run and code==0 else 'failed' if checks_run else 'not_run'
+        if code:
+            from codelaboon.task_conversation import failure_kind,tail
+            record['failure_kind']=failure_kind(tail(attempt/'output.log')+'\n'+tail(attempt/'orchestrator.log'))
         after_changes=fingerprints(project)
         save(attempt/'project-changes.json',{'observed_files':sorted(name for name in before_changes.keys()|after_changes.keys() if before_changes.get(name)!=after_changes.get(name)),
              'notice':'Observed between attempt checkpoints; concurrent editors may also have changed these files.'})
@@ -443,7 +455,7 @@ def supervise(config, base, root, once):
                     state['done'].append(task['id'])
         else:
             state['cooldowns'][harness['id']] = time.time() + max(
-                1, float(harness.get('cooldown_seconds', 3600)))
+                60 if record.get('failure_kind')=='provider_unavailable' else 1, float(harness.get('cooldown_seconds', 3600)))
         if task.get('swarm') and stage != 'plan':
             state['next_run'][task['id']] = time.time() + task['swarm']['interval']
         state['last_attempts'][task['id']] = str(attempt)

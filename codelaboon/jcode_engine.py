@@ -109,6 +109,9 @@ def run(binary, arguments, rows, url, token, workers=4, timeout=1800, home=None,
         raise ValueError('Workers must be 1–1000 and headless timeout must be positive')
     home = Path(home or data_dir() / 'jcode/runs' / uuid.uuid4().hex)
     home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    capture=bool(os.environ.get('CODELABOON_TASK_REPLY_FILE')) and not interactive and 'run' in arguments
+    arguments=list(arguments)
+    if capture and '--json' not in arguments:arguments.insert(arguments.index('run')+1,'--json')
     prepare(rows, url, home)
     from codelaboon.execution_policy import profile as selected_profile
     prepare_profile(home,selected_profile(profile or "coding"))
@@ -151,9 +154,20 @@ def run(binary, arguments, rows, url, token, workers=4, timeout=1800, home=None,
                     if server.poll() is not None or time.monotonic() > deadline:
                         raise RuntimeError('Jcode server did not become ready; see ' + str(home/'server.log'))
                     time.sleep(0.05)
-            process = subprocess.Popen([*command, *arguments], env=env, start_new_session=os.name != 'nt')
+            output_options={'stdout':subprocess.PIPE,'text':True,'encoding':'utf-8','errors':'replace'} if capture else {}
+            process = subprocess.Popen([*command, *arguments], env=env, start_new_session=os.name != 'nt',**output_options)
             processes.append(process)
             try:
+                if capture:
+                    output,_=process.communicate(timeout=timeout)
+                    print(output,end='',flush=True)
+                    if process.returncode==0:
+                        try:reply=json.loads(output).get('text','')
+                        except (ValueError,AttributeError) as error:raise RuntimeError('Jcode returned no complete conversation reply') from error
+                        if not isinstance(reply,str) or not reply.strip():raise RuntimeError('Jcode returned an empty conversation reply')
+                        from codelaboon.task_conversation import save_reply
+                        save_reply(reply)
+                    return process.returncode
                 return process.wait(timeout=timeout)
             except subprocess.TimeoutExpired as error:
                 raise RuntimeError('Lightweight agent exceeded its configured time budget') from error
