@@ -1,6 +1,7 @@
 #!/bin/bash
 # codelaboon structural verification script.
 set -euo pipefail
+PYTHON="${PYTHON:-python3}"
 cd "$(dirname "$0")/.."
 
 echo "=== codelaboon Verification Script ==="
@@ -111,14 +112,14 @@ done
 
 echo ""
 echo "Checking Python syntax..."
-if ! find codelaboon providers config -name '*.py' -print0 | xargs -0 python3 -m py_compile; then
+if ! find codelaboon providers config -name '*.py' -print0 | xargs -0 "$PYTHON" -m py_compile; then
 	fail "Python syntax check failed"
 fi
 echo "✅ All Python files compile"
 
 echo ""
 echo "Checking imports..."
-python3 - <<'PY' || fail "Import check failed"
+"$PYTHON" - <<'PY' || fail "Import check failed"
 from codelaboon.cli import CodelaboonCLI
 from config.providers import get_providers_config, save_provider_config
 from providers.base import BaseProvider
@@ -127,7 +128,7 @@ PY
 
 echo ""
 echo "Checking required Python packages..."
-if python3 -c "import requests" 2>/dev/null; then
+if "$PYTHON" -c "import requests" 2>/dev/null; then
 	echo "✅ Python package 'requests' available"
 else
 	fail "Python package 'requests' not available (install python3-requests or 'requests')"

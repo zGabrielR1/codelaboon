@@ -39,6 +39,7 @@ class Gateway:
         self.local.trust_env = False
         self.closed = threading.Event()
         self.discovery_errors = {}
+        self.model_alias = None
         prompt_path=os.environ.get('CODELABOON_TASK_SYSTEM_PROMPT_FILE')
         self.task_system_prompt=Path(prompt_path).read_text(encoding='utf-8')[:20000] if prompt_path else ''
         self.task_model=os.environ.get('CODELABOON_TASK_MODEL') if os.environ.get('CODELABOON_HEADLESS_TASK')=='1' else None
@@ -207,6 +208,9 @@ class Gateway:
         return [(name, identifier)]
 
     def request(self, body, api, timeout=(15,180)):
+        model=body.get('model','')
+        if self.model_alias and api=='anthropic' and (model in ('default','sonnet','opus','haiku') or model.startswith('claude-')):
+            body=dict(body,model=self.model_alias)
         if self.task_model:body=dict(body,model=self.task_model.removeprefix('codelaboon/'))
         if api == "anthropic" and not body.get("model", "").startswith("claude/"):
             from codelaboon.anthropic_bridge import MessagesResponse, to_chat
@@ -434,9 +438,14 @@ def handler(gateway):
 
 
 @contextmanager
-def serve(providers,task_class=None):
+def serve(providers,task_class=None,*,port=0,token=None,model_alias=None):
     gateway = Gateway(providers,task_class=task_class)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler(gateway))
+    if token is not None:
+        if not isinstance(token,str) or len(token)<32 or not token.isascii() or any(c.isspace() for c in token):
+            raise ValueError('Gateway token must contain at least 32 non-whitespace ASCII characters')
+        gateway.token=token
+    gateway.model_alias=model_alias
+    server = ThreadingHTTPServer(("127.0.0.1", port), handler(gateway))
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:

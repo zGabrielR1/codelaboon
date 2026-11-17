@@ -1,3 +1,16 @@
+## 1.0.0rc26
+
+- Create tasks inside the terminal workspace using New task / Ctrl+N, with an
+  installed-engine picker, scope, project, model, independent checks and cycle limit.
+  Preserve form input on errors and open the queued conversation after submission.
+- Add `codelaboon proxy` for desktop apps and editors, with stable loopback port,
+  persistent local credential and explicit Claude built-in model routing.
+- Document Claude Desktop for Windows third-party inference setup using the
+  official Gateway form; retain existing VS Code launchers and shared wire adapters.
+- Add offline terminal and HTTP regression coverage. Claude Desktop UI/live
+  inference verification remains pending because the Windows automation helper
+  is unavailable in this session.
+
 ## 1.0.0rc25
 
 - Improve task conversations with reload-persistent drafts, timestamps, keyboard

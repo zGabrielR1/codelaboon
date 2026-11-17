@@ -68,6 +68,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          body_path: RELEASE-RC26.md
           generate_release_notes: true
           prerelease: true
           fail_on_unmatched_files: true

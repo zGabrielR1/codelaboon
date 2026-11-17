@@ -8,6 +8,49 @@ a `codelaboon` command on your `PATH`.
 
 ## Overview
 
+### Coming in RC26
+
+Create background tasks directly in `codelaboon tasks`: choose **New task** or
+press **Ctrl+N**, enter the objective, project, scope and verification commands,
+then queue. The form lists installed engines and defaults to one verified cycle,
+the coding profile, default permissions and no elevation. Errors keep your input;
+a successful queue opens the task conversation. The worker starts automatically.
+If worker startup fails, the task stays queued and the conversation tells you to
+run `codelaboon work start` rather than create a duplicate.
+
+Verification uses JSON argument arrays, for example
+`[["python", "-m", "unittest", "discover", "-s", "tests"]]`.
+Commands run in the selected project without shell expansion. Use **Settings**
+after creation to change models and additive instructions at the next checkpoint.
+
+The new `codelaboon proxy` command runs a stable gateway for desktop apps and
+editors on `http://127.0.0.1:8766`. It shares the existing Messages, Responses,
+Chat Completions and model-discovery backend. Keep its terminal open while clients
+are connected. Its local credential persists across restarts; provider credentials
+remain in Codelaboon. Use `--port` or `--token-file` for a separate instance.
+
+For Claude Desktop on Windows:
+
+1. Start `codelaboon proxy --model free` (or choose `PROVIDER/MODEL`).
+2. In another terminal, run `codelaboon proxy --show-token` to read the local key.
+3. In Claude Desktop, open **Help > Troubleshooting > Enable Developer Mode**.
+   After restart, open **Developer > Configure Third-Party Inference**.
+4. Choose **Gateway**, base URL `http://127.0.0.1:8766` (without `/v1`),
+   **Static API key**, and **Bearer**, then enter the local key.
+5. Start a local conversation. Built-in Claude model names route to the model
+   chosen with `--model`; explicit provider/model IDs retain their own route.
+
+This follows Anthropic's [Desktop gateway configuration](https://code.claude.com/docs/en/llm-gateway-connect#desktop-app)
+and [third-party inference fields](https://claude.com/docs/third-party/claude-desktop/gateway).
+Desktop ignores `ANTHROPIC_BASE_URL` in shell or Claude Code settings. Organization
+configuration may make the form read-only. Cloud environments and Remote Control
+are unavailable in gateway mode; a loopback URL cannot serve remote SSH hosts.
+Non-Claude routes use Codelaboon's compatibility adapter and may not support every
+Desktop feature or content type. Token counting is a local estimate and translated
+routes do not preserve Anthropic prompt caching. Desktop UI and live inference
+validation remain pending; offline protocol tests cover discovery, authentication,
+Messages streaming and tool translation.
+
 ### What changed in RC25
 
 Task conversations add state filters, timestamps, reload-persistent drafts and

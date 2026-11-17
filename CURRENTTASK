@@ -1,23 +1,24 @@
-RC25 COMPLETE AND PUBLISHED: https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.25
-Mirrored to private https://gitlab.com/zGabrielR1/codelaboon (main437fec5, alltags);
-GitLab release v1.0.0-rc.25 carries the same notes and seven verified assets.
-Source87821ffa035e0df88bd35f750ac9b46369a1e125. Release43985673599 and portable
-43985673057 succeeded. Initial verify43985673186 failed in the lightweight Rust
-worker step, which passed in the release run; empty retry16f3255 passed
-verify43986553398 and portable43986553181 without code changes.
-382tests pass; source, final-wheel and published-wheel Chromium QA pass; structural,
-JS parsing and thin packaging checks pass. Published wheel310438B/source535785B.
-Five assets downloaded and SHA256-verified;27 provider/task/retry tests pass
-against the published wheel. Deployed1.0.0rc25 locally, restarted the idle worker
-with no pending/active tasks, and refreshed VS Code connector1.0.25.
-Features: persistent task drafts, keyboardsend/recall, state filters, timestamped
-conversations, scoped50-attempt history/logs, checkpoint-only failed swarm retry,
-worker start/pause/resume with start/resume confirmation, preserved nested policy.
-HowToFix APIkey entry + live authenticatedcatalogue; Copilot GitHub deviceOAuth
-and sharedgateway accountmodels. Credit/subscription sources NOT freeAuto.
-Windsurf/Devin officialCLI auth/models/native taskengine + SHA256verifiedlazy
-installer, no invented rawmodel endpoint. Existing seven session adapters unchanged.
-Owners must authorize accounts and enter keys locally for live verification; no
-account inference was performed. Usage/review in docs/task-operations-and-accounts.md
-and docs/review-1.0.0rc25.md. Detailed notes in docs/release-rc25.md. No delegation
-authorized; keep bulk outsideppp. No outstanding release work.
+RC26 PUBLICATION REQUESTED. RC25 remains published until RC26 release CI succeeds.
+
+Task creation now lives inside the TUI: New task / Ctrl+N, installed engine,
+objective/project/scope/model, JSON verification argv arrays and cycle limit.
+Coding/default permissions/no elevation; one verified cycle by default. Shared
+queue validation, worker startup, input-preserving errors, in-flight submission
+guard, queued conversation handoff and worker startup failure receipt.
+
+New codelaboon proxy reuses the shared native gateway: stable loopback port8766,
+persistent local credential, explicit --show-token, port/token-file/model options.
+Built-in Claude aliases route only on Anthropic requests; explicit provider IDs
+keep their route. Existing ephemeral VS Code/native gateways are unchanged.
+Package1.0.0rc26/connector1.0.26. See RELEASE-RC26.md and README.
+
+Windows Computer Use failed twice: native pipe unavailable (OS error2). Desktop
+UI/live inference remain UNVERIFIED. Next: configure the local Claude Desktop
+Gateway form, test a message/tool round trip and proxy restart with the saved key.
+Do not claim Desktop acceptance or publish as Desktop-ready before that passes.
+389 offline tests pass (3 skips); installed-wheel task/proxy checks and thin
+artifact checks pass. Source provenance verified. Release workflow includes
+RELEASE-RC26.md so the Desktop limitation is visible in published notes.
+Publishing access currently unavailable: no gh/GH_TOKEN/GITHUB_TOKEN, credential
+manager returns no GitHub credential, and SSH has no known host entries.
+No remote release/push performed; no delegation used.

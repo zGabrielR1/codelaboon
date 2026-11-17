@@ -577,6 +577,7 @@ class CodelaboonCLI:
         subparsers.add_parser("kilo", help="Open the optional official Kilo native CLI")
         subparsers.add_parser("claude", help="Open Claude Code on Codelaboon free models")
         subparsers.add_parser("ide", help="Connect official engine editor integrations to Codelaboon")
+        subparsers.add_parser("proxy", help="Run a stable loopback gateway for desktop apps and editors")
         subparsers.add_parser("storage", help="Audit or relocate development/cache bulk outside the project")
         subparsers.add_parser("swarm", help="Run a bounded lightweight Rust swarm on the free backend")
         subparsers.add_parser("codex", help="Open native Codex on the Codelaboon backend")
@@ -973,6 +974,10 @@ def main() -> None:
     if sys.argv[1:2] == ['sessions']:
         from codelaboon.session_transfer import main as session_main
         session_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ['proxy']:
+        from codelaboon.proxy import main as proxy_main
+        proxy_main(sys.argv[2:])
         return
     if sys.argv[1:2] == ['ide']:
         from codelaboon.ide import main as ide_main

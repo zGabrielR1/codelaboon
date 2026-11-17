@@ -1,6 +1,7 @@
 """Engine-independent terminal task conversations (optional Textual extra)."""
 import json
 import uuid
+from pathlib import Path
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -8,6 +9,72 @@ from textual.widgets import Button, Checkbox, Footer, Input, Label, ListItem, Li
 from textual.screen import ModalScreen
 from textual.containers import VerticalScroll
 from codelaboon import task_api
+
+
+class TaskCreateScreen(ModalScreen):
+    """Queue through the same policy and verification boundary as the browser."""
+    CSS='''TaskCreateScreen {align: center middle;} #create-box {width: 90%;height: 95%;border: solid #73daca;padding: 1 2;background: #171719;} #create-fields {height: 1fr;} #create-box TextArea {height: 5;} #create-box Label {height: auto;margin-top: 1;} #create-buttons {height: 3;} #create-error {height: auto;max-height: 4;color: #ff9aaa;}'''
+    BINDINGS=[('escape','cancel','Cancel'),('ctrl+enter','submit','Queue task')]
+
+    def __init__(self):
+        super().__init__()
+        from codelaboon.engine_tasks import catalog
+        self.engines=catalog()
+        self.submitting=False
+
+    def compose(self):
+        installed=[(row['id'],row['id']) for row in self.engines if row['installed']]
+        with Vertical(id='create-box'):
+            yield Label('Create a task / queues and starts the background worker',markup=False)
+            with VerticalScroll(id='create-fields'):
+                yield Label('Objective');yield TextArea(id='create-objective')
+                yield Label('Project directory');yield Input(str(Path.cwd()),id='create-project')
+                yield Label('Scope / files and actions allowed');yield Input(placeholder='Describe the boundaries for this task',id='create-scope')
+                yield Label('Installed engine')
+                yield Select(installed,allow_blank=not installed,id='create-engine',**({'value':installed[0][1]} if installed else {}))
+                if not installed:
+                    yield Label('No task engine installed. Run one of:\n'+'\n'.join(row['prepare_command'] for row in self.engines),markup=False)
+                yield Label('Worker model');yield Input('free',id='create-model')
+                yield Label('Verification commands / JSON argument arrays, no shell expansion')
+                yield TextArea(placeholder='[["python", "-m", "unittest", "discover", "-s", "tests"]]',id='create-checks')
+                yield Label('Verified cycles (0 = continuous until paused)');yield Input('1',id='create-cycles',type='integer')
+                yield Label('Coding profile; default tool permissions; no elevation. Models and prompts can be edited in Settings.',markup=False)
+            yield Label('',id='create-error',markup=False)
+            with Horizontal(id='create-buttons'):
+                yield Button('Queue task',id='create-submit',variant='primary',disabled=not installed)
+                yield Button('Cancel',id='create-cancel')
+
+    def on_mount(self):self.query_one('#create-objective',TextArea).focus()
+
+    async def action_submit(self):
+        button=self.query_one('#create-submit',Button)
+        if button.disabled:return
+        try:
+            body={key:self.query_one('#create-'+key,Input).value for key in ('project','scope','model')}
+            body.update(objective=self.query_one('#create-objective',TextArea).text,
+                engine=self.query_one('#create-engine',Select).value,
+                checks=json.loads(self.query_one('#create-checks',TextArea).text),
+                cycles=int(self.query_one('#create-cycles',Input).value),profile='coding')
+            button.disabled=True
+            self.submitting=True
+            self.query_one('#create-cancel',Button).disabled=True
+            self.query_one('#create-error',Label).update('Queueing task and starting worker...')
+            result=await self.app.run_queue_task(body)
+        except (OSError,ValueError,RuntimeError) as error:
+            button.disabled=False
+            self.submitting=False
+            self.query_one('#create-cancel',Button).disabled=False
+            self.query_one('#create-error',Label).update(Text(str(error)))
+            return
+        self.dismiss(result)
+
+    def action_cancel(self):
+        if not self.submitting:self.dismiss()
+
+    async def on_button_pressed(self,event):
+        event.stop()
+        if event.button.id=='create-cancel':self.action_cancel()
+        elif event.button.id=='create-submit':await self.action_submit()
 
 
 class TaskSettingsScreen(ModalScreen):
@@ -59,10 +126,11 @@ class TaskChangesScreen(ModalScreen):
 
 class TaskApp(App):
     TITLE='codelaboon / Task conversations'
-    BINDINGS=[('ctrl+q','quit','Back to engine'),('ctrl+r','refresh','Refresh')]
+    BINDINGS=[('ctrl+q','quit','Back to engine'),('ctrl+r','refresh','Refresh'),('ctrl+n','new_task','New task')]
     CSS='''
     Screen {background: #171719; color: #f2f2f3;}
-    #heading {height: 3; padding: 1 2; color: #73daca;}
+    #heading {height: 5; padding: 1 2; color: #73daca;}
+    #heading Button {margin-right: 2;} #heading Static {width: 1fr;}
     #body {height: 1fr;} #tasks {width: 30%; min-width: 20; border-right: solid #45454b;}
     #chat {width: 1fr; padding: 0 1;} #task-title {height: auto; max-height: 4; padding: 1 0;}
     #feed {height: 1fr; border-top: solid #45454b;}
@@ -84,7 +152,9 @@ class TaskApp(App):
         self.message_body=None
 
     def compose(self) -> ComposeResult:
-        yield Static('codelaboon / Task conversations - live worker output',id='heading')
+        with Horizontal(id='heading'):
+            yield Button('New task',id='new-task',variant='primary')
+            yield Static('codelaboon / Task conversations - live worker output')
         with Horizontal(id='body'):
             yield ListView(id='tasks')
             with Vertical(id='chat'):
@@ -131,7 +201,7 @@ class TaskApp(App):
             elif self.identity:
                 self.query_one('#task-title',Static).update('Task not found in this worker configuration: '+self.identity)
             elif not self.records:
-                self.query_one('#task-title',Static).update('No tasks queued. Use codelaboon swarm --help to queue a fixed objective.')
+                self.query_one('#task-title',Static).update('No tasks queued. Choose New task or press Ctrl+N to create one here.')
             self.query_one('#send',Button).disabled=self.identity not in self.records
         except (OSError,ValueError,KeyError,TypeError) as error:self.query_one('#error',Static).update('Refresh failed: '+str(error))
 
@@ -181,7 +251,8 @@ class TaskApp(App):
 
     async def on_button_pressed(self,event:Button.Pressed):
         action=event.button.id
-        if action=='send':await self.send_message()
+        if action=='new-task':self.action_new_task()
+        elif action=='send':await self.send_message()
         elif action in ('settings','changes') and self.identity in self.records:
             try:self.push_screen(TaskSettingsScreen(self.identity) if action=='settings' else TaskChangesScreen(self.identity))
             except (OSError,ValueError) as error:self.query_one('#error',Static).update(str(error))
@@ -189,6 +260,22 @@ class TaskApp(App):
         elif action in ('pause','resume','retry') and self.identity in self.records:
             try:task_api.control(self.identity,action);await self.action_refresh()
             except (OSError,ValueError) as error:self.query_one('#error',Static).update(str(error))
+
+    def action_new_task(self):
+        if isinstance(self.screen,ModalScreen):return
+        self.push_screen(TaskCreateScreen(),self.task_created)
+
+    async def run_queue_task(self,body):
+        import asyncio
+        return await asyncio.to_thread(task_api.enqueue,body)
+
+    async def task_created(self,result):
+        if not result:return
+        if self.identity:self.drafts[self.identity]=self.query_one('#message',Input).value
+        self.identity=result['task'];self.signature=''
+        self.query_one('#message',Input).value=''
+        await self.action_refresh()
+        self.query_one('#error',Static).update(Text(result['message']))
 
     async def send_message(self):
         if self.identity not in self.records:return
