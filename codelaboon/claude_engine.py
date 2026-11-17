@@ -32,7 +32,7 @@ def prepare_profile(directory):
 
 def launch(binary, arguments, profile, local_only, rows, url, token):
     directory=prepare_profile(config_dir()/'claude-code')
-    default = rows[0]['id'] if local_only else 'free'
+    default = os.environ.get('CODELABOON_TASK_CHAT_MODEL') or (rows[0]['id'] if local_only else 'free')
     env = dict(os.environ)
     for key in ('ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_CUSTOM_HEADERS',
                 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY',

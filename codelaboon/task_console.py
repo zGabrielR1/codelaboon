@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 def browser(identity=None, port=0):
     from codelaboon.web import serve
-    path='/tasks'+('?' + urlencode({'task':identity}) if identity else '')
+    path=('/?' + urlencode({'task':identity})) if identity else '/tasks'
     serve(port, start_path=path)
 
 
@@ -43,7 +43,9 @@ def launcher(engine, arguments):
             answer=input('Open [Enter/t/w/q]: ').strip().lower()
             if not answer:return True
             if answer in ('q','quit'):return False
-            if answer in ('t','tasks'):open_tasks()
+            if answer in ('t','tasks'):
+                select_native(engine)
+                return False
             elif answer in ('w','web'):browser()
         except (EOFError,KeyboardInterrupt):return False
         except (OSError,ValueError) as error:print('Task view unavailable: '+str(error));return True
@@ -97,3 +99,15 @@ def main(argv=None):
                 for task in rows:print(task['id']+' / '+task['state']+' / '+task['engine']+'\n  '+task['title']+'\n  Open: codelaboon tasks '+task['id'])
         else:open_tasks(args.task)
     except (ValueError,OSError) as error:parser.exit(2,str(error)+'\n')
+
+
+def select_native(engine):
+    from codelaboon.task_api import snapshot
+    from codelaboon.task_chat import open_native
+    rows=snapshot()['tasks']
+    if not rows:print('No tasks yet. Queue a task in the web workspace.');return
+    for index,row in enumerate(rows,1):print(str(index)+'. '+row['title']+' / '+row['state'])
+    answer=input('Open task number (Enter to cancel): ').strip()
+    if not answer:return
+    if not answer.isdecimal() or not 1<=int(answer)<=len(rows):raise ValueError('Choose a listed task number')
+    return open_native(engine,rows[int(answer)-1]['id'])

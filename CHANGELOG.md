@@ -1,3 +1,16 @@
+## 1.0.0rc29
+
+- Open task conversations in the normal web chat sidebar and composer, with
+  shared durable history and automatic updates between worker cycles.
+- Import task history into native OpenCode, OMP, Kilo, Jcode, Codex, Claude Code
+  and Crush sessions with `codelaboon ENGINE --tasks TASK_ID`. Route human turns
+  through the shared orchestrator rather than starting an unrelated chat.
+- Stream planning and worker replies in the same native task turn. Preserve
+  task pauses, explicit stops, execution scope and independent verification.
+- Detect upstream errors inside successful HTTP/SSE responses before forwarding
+  a free-provider reply, and cool down Vercel accounts requiring billing setup
+  before trying another eligible free provider.
+
 ## 1.0.0rc28
 
 - Fix OpenCode/Kilo task launch arguments: variadic `--file` no longer consumes

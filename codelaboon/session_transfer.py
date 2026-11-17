@@ -425,10 +425,10 @@ def bind(identity,engine,path,native):
             db.execute('DELETE FROM sessions WHERE id=?',(existing[0],))
 
 
-def resume(identity,engine,prompt=None,directory=None):
+def resume(identity,engine,prompt=None,directory=None,model="free"):
     document=load(identity);cwd=Path(directory or document.get('cwd') or Path.cwd()).expanduser().resolve()
     if not cwd.is_dir():raise ValueError('Original project is absent. Export with --cwd to select another project.')
-    native,value=encode(document,engine,str(cwd),'codelaboon/free')
+    native,value=encode(document,engine,str(cwd),'codelaboon/'+model)
     previous=Path.cwd()
     from codelaboon.native_tui import launch
     try:
@@ -444,7 +444,7 @@ def resume(identity,engine,prompt=None,directory=None):
             target=next((p for p in databases if list(from_database(engine,p,native))),None)
             if target is None:raise ValueError('Native import did not create a readable session')
             bind(identity,engine,target,native)
-            args=['--session',native,'--model','codelaboon/free']
+            args=['--session',native,'--model','codelaboon/'+model]
             return launch(engine,['run',*args,prompt] if prompt is not None else args)
         target=install_export(engine,value,native,native_home(engine,True),str(cwd));bind(identity,engine,target,native)
         args={'codex':['resume',native],'claude':['--resume',native],'omp':['--session',str(target)],'jcode':['--resume',native],'crush':['--session',native]}[engine]

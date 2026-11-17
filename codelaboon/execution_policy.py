@@ -17,6 +17,8 @@ def profile(selected='coding'):
 def child_environment(task):
     permissions=task.get('permissions','default');selected=task.get('profile','coding')
     if permissions not in ('default','full') or selected not in ('coding','security'):raise ValueError('Invalid task execution policy')
-    return dict(os.environ,CODELABOON_WORK_PERMISSIONS=permissions,CODELABOON_WORK_PROFILE=selected,
+    environment=dict(os.environ)
+    environment.pop('CODELABOON_TASK_CHAT_MODEL',None)
+    return dict(environment,CODELABOON_WORK_PERMISSIONS=permissions,CODELABOON_WORK_PROFILE=selected,
                 CODELABOON_ROUTING_TASK='security' if selected=='security' else 'coding',
                 CODELABOON_WORK_TRACE='1' if task.get('supervision',{}).get('enabled') else '0')

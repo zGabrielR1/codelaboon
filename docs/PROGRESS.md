@@ -876,3 +876,36 @@ pass; real Chromium task operations pass for source and installed wheel.
   description. SSH alone cannot create releases, so this used a project access
   token with the `api` scope; the token was read from /tmp/gitlab-token and never
   echoed or committed.
+
+
+### Unified task chat correction (2026-11-17)
+
+Tasks now join the normal web chat sidebar and composer through an authenticated
+shared transcript API. The separate operations view links to the actual chat.
+Native ENGINE --tasks ID imports task history into the engine's own session and
+selects a task/ID model; the gateway dispatches human turns to the durable
+orchestrator queue and streams plans then worker replies. Worker environments
+exclude this interactive route, and headless/local-only gateways reject it.
+OpenCode auxiliary title requests use the regular model and task auto-compaction
+is disabled. Vercel HTTP-success error streams and account billing gates trigger
+free-provider failover with account cooldowns.
+
+Validation: full offline suite 422 tests (3 skips) passed; subsequent planning
+continuation test passes with all 8 focused task/transport tests. Chromium normal
+chat QA passes at 1440/768/390, with screenshots inspected at 1440 and 390; reload,
+normal/task switching, durable sends, controls, and no overflow/page errors.
+Structural verification and JS syntax checks passed. Native Chat/Responses/
+Anthropic HTTP transports are exercised, but installed native engine UIs and
+real account admissions have not been verified in this restricted environment.
+This is source work after RC28, not a newly published release.
+
+
+### RC29 release preparation (2026-11-17)
+
+Version 1.0.0rc29 and connector 1.0.29 package the unified task conversation
+correction. Full suite: 423 tests, 3 skips; 8 task/transport tests pass against
+the installed wheel. Browser QA at 1440/768/390 and source-bundle, thin-core,
+structural and JS syntax checks pass. Wheel, source distribution, connector,
+engine modules and SHA256SUMS are staged under releases/rc29. Release workflow
+uses RELEASE-RC29.md. Installed native UIs and account admission remain unverified.
+Publication must be confirmed remotely; a local tag alone is not a release.

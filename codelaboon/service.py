@@ -130,6 +130,7 @@ def background(config_path):
             (runtime / 'service.stderr.log').open('ab') as errors:
         process = subprocess.Popen([
             sys.executable, '-m', 'codelaboon.service', str(config_path)],
+            env={key:value for key,value in os.environ.items() if key!='CODELABOON_TASK_CHAT_MODEL'},
             cwd=Path(__file__).resolve().parent.parent,
             stdin=subprocess.DEVNULL, stdout=output, stderr=errors,
             creationflags=(subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP)

@@ -41,6 +41,43 @@ def retry_delay(response,default=60):
         except (ValueError,TypeError,OverflowError):return default
 
 
+def early_stream_error(response):
+    """Inspect an SSE prelude before committing a free route to the client."""
+    content_type=response.headers.get('Content-Type','')
+    if not isinstance(content_type,str):return ''
+    if 'application/json' in content_type:
+        try:value=response.json()
+        except (ValueError,requests.RequestException):return ''
+        return str(value.get('error','')) if isinstance(value,dict) else ''
+    if 'text/event-stream' not in content_type:return ''
+    original=response.iter_content
+    source=iter(original(chunk_size=4096));buffer=[];pending=b'';size=0
+    error=''
+    try:
+        for chunk in source:
+            buffer.append(chunk);pending+=chunk;size+=len(chunk)
+            committed=False
+            while b'\n' in pending:
+                line,pending=pending.split(b'\n',1)
+                if not line.startswith(b'data:'):continue
+                data=line[5:].strip()
+                if data==b'[DONE]':committed=True;break
+                try:value=json.loads(data)
+                except (ValueError,UnicodeError):continue
+                if not isinstance(value,dict):continue
+                if value.get('error'):error=str(value['error']);break
+                for choice in value.get('choices',[]):
+                    delta=choice.get('delta',{})
+                    if delta.get('content') or delta.get('tool_calls') or choice.get('finish_reason'):committed=True
+            if error or committed or size>=65536:break
+    finally:
+        def replay(*args,**kwargs):
+            yield from buffer
+            yield from source
+        response.iter_content=replay
+    return error
+
+
 class Gateway:
     def __init__(self, providers, health_checks=True, task_class=None):
         self.providers = providers
@@ -78,6 +115,9 @@ class Gateway:
                 if not model_health.verified(name,provider,model,coding=name in model_health.WIRE_PROVIDERS):
                     continue
             result.append(row)
+        if os.environ.get('CODELABOON_HEADLESS_TASK')!='1' and set(self.providers)!={'local'}:
+            from codelaboon.task_chat import model_rows
+            result.extend(model_rows())
         return result
 
     def schedule_checks(self,name,provider,models=None):
@@ -234,6 +274,11 @@ class Gateway:
         if api == "responses" and not body.get("model", "").startswith(("chatgpt/","vercel/","vercel_free/")):
             from codelaboon.responses_bridge import ResponsesResponse, to_chat
             return ResponsesResponse(self.request(to_chat(body), "chat", timeout=timeout), body)
+        if api=='chat' and body.get('model','').startswith('task/'):
+            if os.environ.get('CODELABOON_HEADLESS_TASK')=='1':raise ValueError('Workers cannot recursively route to task conversations')
+            if set(self.providers)=={'local'}:raise ValueError('Open task conversations in a regular engine session; this gateway permits local inference only')
+            from codelaboon.task_chat import TaskResponse
+            return TaskResponse(body['model'][5:],body)
         if self.task_system_prompt:
             body=dict(body)
             if api=='chat':body['messages']=[{'role':'system','content':self.task_system_prompt},*body.get('messages',[])]
@@ -345,16 +390,38 @@ class Gateway:
                 if self.health_checks:routing_metrics.observe(name,provider,model,category,'failed',time.monotonic()-started)
                 failures.append(f"{name}: connection failed")
                 continue
+            if body.get('model')=='free' and 200<=response.status_code<300:
+                try:upstream_error=early_stream_error(response)
+                except requests.RequestException:upstream_error='upstream stream failed before a reply'
+                if upstream_error:
+                    # Account gates can arrive as successful HTTP responses with SSE errors.
+                    # Never forward a billing gate as a model reply or repeat that account.
+                    failures.append(f'{name}: upstream rejected the request')
+                    delay=300 if any(word in upstream_error.lower() for word in ('credit card','billing','payment','credit balance')) else 60
+                    self.cooldowns[name]=time.monotonic()+delay
+                    if self.health_checks:
+                        from codelaboon import model_health
+                        model_health.defer(name,provider,delay)
+                    response.close()
+                    continue
             if not 200 <= response.status_code < 300 and self.health_checks and self.health_applies(name,provider):
                 from codelaboon import model_health
                 model_health.observe(name,provider,model,model_health.classify(response.status_code))
             if not 200 <= response.status_code < 300 and body.get("model") == "free":
+                if name=='vercel_free':
+                    try:detail=str(response.json()).lower()
+                    except (ValueError,requests.RequestException):detail=''
+                    if any(word in detail for word in ('credit card','billing','payment','credit balance')):
+                        self.cooldowns[name]=time.monotonic()+300
+                        if self.health_checks:
+                            from codelaboon import model_health
+                            model_health.defer(name,provider,300)
                 failures.append(f"{name}: HTTP {response.status_code}")
                 from codelaboon import model_health
                 if self.health_checks:
                     model_health.observe(name,provider,model,model_health.classify(response.status_code))
                 if response.status_code in (401,402,403,429) or response.status_code>=500:
-                    delay=retry_delay(response)
+                    delay=max(retry_delay(response),int(self.cooldowns.get(name,0)-time.monotonic()))
                     self.cooldowns[name] = time.monotonic() + delay
                     if self.health_checks:model_health.defer(name,provider,delay)
                 if self.health_checks:routing_metrics.observe(name,provider,model,category,'failed',time.monotonic()-started)

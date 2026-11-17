@@ -1,19 +1,13 @@
-RC28 PREPARED FOR PUBLICATION. RC27 exists remotely; this session must push
-main and v1.0.0-rc.28 to trigger release CI. Do not claim publication without
-remote confirmation. Release notes and update/restart instructions: RELEASE-RC28.md.
+RC29 PREPARED FOR PUBLICATION: actual web chat task threads, native engine task
+session imports, shared task/ID gateway routing, planning-to-worker response
+streaming, and successful-HTTP billing-error free failover. Version 1.0.0rc29;
+connector 1.0.29. Release notes: RELEASE-RC29.md.
 
-Includes OpenCode/Kilo variadic --file argument fix; durable task conversations
-with actual model replies/partial replies and planner/status turns; follow-up
-execution after completion at scheduler checkpoints; independent-check feedback
-in next-attempt prompts. Shared web/engine task API; logs remain separate.
-New task-conversations service feature requires a safe worker restart on upgrade.
-New web tasks default to one coding cycle and require a real project verifier.
+423 offline tests passed (3 skips); 8 focused task/protocol tests pass against the
+installed wheel. Chromium at1440/768/390, structural, syntax, pinned bundle and
+thin-core checks pass. Assets/checksums are under releases/rc29. Installed native
+engine UIs and real account admissions have not been verified here.
 
-Free-route failures now return503/Retry-After, persist account-scoped backoffs,
-and fail over only among eligible free models. Live synthetic Kilo text AND tool
-probes pass. Owner Freebuff admission and Claude Desktop UI remain unverified.
-
-Validation from implementation:415 tests ran (3skips); Chromium task-chat QA
-passes at1440/768/390 (live replies, reload, follow-ups, task-form defaults, settings,
-navigation, visible composer, no overflow). Final RC28 gates/artifacts go under
-releases/rc28. No delegation used. GitHub tokens are not to be pasted in chat.
+Push main and v1.0.0-rc.29 to trigger release CI. Confirm the remote release and
+assets before reporting published. GitHub HTTPS publication failed previously
+because this session could not use Windows credential storage. Never paste tokens.

@@ -295,7 +295,7 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
             rows = gateway.models(startup=True)
         if local_only and not rows:
             raise RuntimeError("No local model is listed. Start Ollama/llama.cpp and configure the local provider.")
-        default = rows[0]["id"] if local_only else "free"
+        default = os.environ.get("CODELABOON_TASK_CHAT_MODEL") or (rows[0]["id"] if local_only else "free")
         env = os.environ.copy()
         env["CODELABOON_GATEWAY_TOKEN"] = gateway.token
         env["CODELABOON_GATEWAY_URL"] = url
@@ -306,6 +306,9 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
         if engine == "opencode":
             config = opencode_config(rows, url, gateway.token)
             config["model"] = config["small_model"] = "codelaboon/" + default
+            if os.environ.get("CODELABOON_TASK_CHAT_MODEL"):
+                config["small_model"]="codelaboon/free"
+                config["compaction"]["auto"]=False
             if local_only:
                 config["enabled_providers"] = ["codelaboon"]
                 config["compaction"]["reserved"] = 1024

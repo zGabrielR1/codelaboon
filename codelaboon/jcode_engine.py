@@ -177,6 +177,8 @@ def run(binary, arguments, rows, url, token, workers=4, timeout=1800, home=None,
 
 
 def launch(binary, arguments, profile, local_only, rows, url, token):
+    if os.environ.get('CODELABOON_TASK_CHAT_MODEL'):
+        arguments=['--model',os.environ['CODELABOON_TASK_CHAT_MODEL'],*arguments]
     if local_only:
         # Preserve the local-only gateway route while using the same native harness.
         default = rows[0]['id']

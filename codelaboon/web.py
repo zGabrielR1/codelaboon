@@ -69,11 +69,14 @@ def create_server(port=8765, cli=None):
                 from codelaboon import __version__
                 import platform
                 return self.respond(200,{'token':token,'version':__version__,'workspace':str(Path.cwd().resolve()),'platform':platform.system()})
-            if url.path in ('/api/tasks','/api/tasks/logs','/api/tasks/messages','/api/tasks/settings','/api/tasks/changes','/api/tasks/models','/api/tasks/attempts'):
+            if url.path in ('/api/task-chat','/api/tasks','/api/tasks/logs','/api/tasks/messages','/api/tasks/settings','/api/tasks/changes','/api/tasks/models','/api/tasks/attempts'):
                 if self.headers.get('X-Codelaboon-Token') != token:
                     return self.respond(403,{'error':'Reload this workspace and retry'})
                 from codelaboon import task_api
                 try:
+                    if url.path=='/api/task-chat':
+                        from codelaboon.task_chat import document
+                        return self.respond(200,document(parse_qs(url.query).get('task',[''])[0]))
                     if url.path=='/api/tasks/attempts':return self.respond(200,task_api.attempts(parse_qs(url.query).get('task',[''])[0]))
                     if url.path=='/api/tasks/models':return self.respond(200,task_api.model_choices(cli))
                     if url.path=='/api/tasks/settings':return self.respond(200,task_api.settings(parse_qs(url.query).get('task',[''])[0]))

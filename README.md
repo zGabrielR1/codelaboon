@@ -932,3 +932,34 @@ keyboard shortcuts. Browser key entry and live HowToFix discovery join GitHub
 Copilot device OAuth and the official Windsurf/Devin native account connector.
 Credit/subscription sources remain explicit choices outside free Auto.
 See [task operations and account setup](docs/task-operations-and-accounts.md).
+
+
+### Task conversations in chat
+
+Tasks appear alongside ordinary conversations in the web chat sidebar. Open a
+thread, send guidance in the usual composer, and receive the orchestrator's
+plans and worker replies automatically. These threads are stored by the worker,
+so reloads and another connected client see the same conversation. Use **Task
+controls** for attempts, models, checks and raw output; **Open in chat** returns
+to the normal conversation interface. Paused tasks keep messages until resumed.
+
+Open a task inside a native engine with `codelaboon ENGINE --tasks TASK_ID`, or
+choose task conversations in the engine launcher. This imports its existing
+transcript into that engine's normal session and selects the shared
+`task/TASK_ID` gateway route. OpenCode, OMP, Kilo, Jcode, Codex, Claude Code and
+Crush use the same durable task conversation. Messages go to the orchestrator;
+the background worker retains control of execution and independent checks.
+Native task commands are `/task status`, `/task start`, `/task pause`,
+`/task resume` and `/task stop`. Merely opening a session starts no work.
+
+Engine layouts remain native: the custom OpenCode background-agent sidebar is
+specific to that fork. Other engines receive task replies through their chat
+transport. Reopening imports the current shared transcript; unrelated clients
+cannot receive new native UI messages after their active response has ended.
+The web thread polls automatically even between worker cycles.
+
+Free Auto also checks successful HTTP response bodies for upstream errors before
+forwarding a reply. A provider requiring account billing setup is cooled down
+and another eligible free provider is tried. If none answer, the request reports
+unavailability with a retry delay; a free model listing alone does not establish
+that the account can access it.

@@ -13,17 +13,17 @@ from codelaboon import cli,task_console
 class TaskEntrypoints(unittest.TestCase):
     def test_all_engine_aliases_open_the_same_task_without_inference(self):
         for engine in ('opencode','omp','jcode','codex','claude','kilo','crush'):
-            with self.subTest(engine=engine),patch('sys.argv',['codelaboon',engine,'--tasks','instruction-fixture']),patch.object(task_console,'main') as tasks,patch('codelaboon.native_tui.launch') as native:
+            with self.subTest(engine=engine),patch('sys.argv',['codelaboon',engine,'--tasks','instruction-fixture']),patch('codelaboon.task_chat.open_native') as tasks,patch('codelaboon.native_tui.launch') as native:
                 cli.main()
-                tasks.assert_called_once_with(['instruction-fixture']);native.assert_not_called()
+                tasks.assert_called_once_with(engine,'instruction-fixture');native.assert_not_called()
 
     def test_tasks_list_does_not_load_providers(self):
         with patch('sys.argv',['codelaboon','tasks','--json']),patch('codelaboon.task_api.snapshot',return_value={'worker':{'running':False},'tasks':[]}),patch.object(cli.CodelaboonCLI,'load_providers') as load,patch('sys.stdout',new_callable=io.StringIO) as output:
             cli.main();self.assertEqual(json.loads(output.getvalue())['tasks'],[]);load.assert_not_called()
 
     def test_interactive_launcher_exposes_tasks_and_returns_to_engine(self):
-        with patch('sys.stdout',new_callable=io.StringIO) as output,patch('sys.stdin.isatty',return_value=True),patch('sys.stdout.isatty',return_value=True),patch('builtins.input',side_effect=['t','']),patch('codelaboon.task_api.snapshot',return_value={'tasks':[]}),patch.object(task_console,'open_tasks') as tasks,patch.dict(os.environ,{'CODELABOON_HEADLESS_TASK':'0','CODELABOON_DIRECT':'0'}):
-            self.assertTrue(task_console.launcher('opencode',[]));tasks.assert_called_once()
+        with patch('sys.stdout',new_callable=io.StringIO) as output,patch('sys.stdin.isatty',return_value=True),patch('sys.stdout.isatty',return_value=True),patch('builtins.input',side_effect=['t','']),patch('codelaboon.task_api.snapshot',return_value={'tasks':[]}),patch.object(task_console,'select_native') as tasks,patch.dict(os.environ,{'CODELABOON_HEADLESS_TASK':'0','CODELABOON_DIRECT':'0'}):
+            self.assertFalse(task_console.launcher('opencode',[]));tasks.assert_called_once_with('opencode')
             self.assertIn('Task conversations',output.getvalue())
 
     def test_automation_and_native_flags_skip_launcher(self):
@@ -35,7 +35,7 @@ class TaskEntrypoints(unittest.TestCase):
     def test_browser_opens_the_requested_conversation_on_available_port(self):
         with patch('codelaboon.web.serve') as serve:
             task_console.browser('instruction-fixture')
-            serve.assert_called_once_with(0,start_path='/tasks?task=instruction-fixture')
+            serve.assert_called_once_with(0,start_path='/?task=instruction-fixture')
 
 
 @unittest.skipUnless(importlib.util.find_spec('textual'),'Optional terminal UI extra not installed')

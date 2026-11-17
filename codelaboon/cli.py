@@ -913,14 +913,21 @@ def run_tui(engine="opencode", arguments=(), profile="coding", local_only=False,
         from codelaboon.task_console import launcher, main as tasks_main
         arguments=list(arguments)
         if arguments[:1]==['--tasks']:
-            tasks_main(arguments[1:])
+            if len(arguments)>1 and arguments[1] and not arguments[1].startswith('--'):
+                from codelaboon.task_chat import open_native
+                result=open_native(engine,arguments[1])
+                if isinstance(result,int) and result:sys.exit(result)
+            elif not arguments[1:] and sys.stdin.isatty():
+                from codelaboon.task_console import select_native
+                select_native(engine)
+            else:tasks_main(arguments[1:])
             return
         direct=arguments[:1]==['--direct']
         if direct:arguments=arguments[1:]
         if not direct and not launcher(engine,arguments):return
         from codelaboon.native_tui import launch
         code = launch(engine, arguments, profile, local_only, theme)
-    except (RuntimeError, OSError, subprocess.CalledProcessError, requests.RequestException) as error:
+    except (ValueError, RuntimeError, OSError, subprocess.CalledProcessError, requests.RequestException) as error:
         print(str(error), file=sys.stderr)
         if engine in ('opencode', 'omp'):
             print(f'Inspect: codelaboon runtime status --engine {engine}\nRepair:  codelaboon runtime repair --engine {engine} --force', file=sys.stderr)
