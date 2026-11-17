@@ -149,7 +149,7 @@ def run():
                         page.locator('#delete-ops-task').click();page.locator('#task-action-confirm').click()
                         expect(page.locator('.task-row')).to_have_count(0)
                         # Connections use real web endpoints with fixture authentication only.
-                        page.goto(base+'/connections');expect(page.locator('.connection-row')).to_have_count(14)
+                        page.goto(base+'/connections');expect(page.locator('.connection-row')).to_have_count(15)
                         login_finished=threading.Event()
                         def fixture_login(report):
                             report('https://example.com/fixture-authorization')
@@ -179,6 +179,13 @@ def run():
                         provider.validate_api_key.return_value=False
                         page.evaluate("window.dispatchEvent(new Event('focus'))")
                         expect(page.locator('[data-provider=freebuff] .connection-status')).to_have_text('Not connected')
+                        page.goto(base+'/')
+                        expect(page.locator('#welcome h1')).to_contain_text('building today?')
+                        for width in (1440,768,390):
+                            page.set_viewport_size({'width':width,'height':900})
+                            expect(page.locator('#send')).to_be_in_viewport()
+                            assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
+                            page.screenshot(path=str(evidence/f'workspace-{width}.png'))
                         page.goto(base+'/tasks?task=missing-task')
                         expect(page.get_by_role('heading',name='Task unavailable')).to_be_visible()
                         assert not errors,errors

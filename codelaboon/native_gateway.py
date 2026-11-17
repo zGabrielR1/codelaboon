@@ -22,8 +22,8 @@ from codelaboon import free_auto
 from codelaboon.paths import config_dir
 
 COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter", "nvidia", "luna", "chatgpt",
-              "local", "openrouter_free", "groq", "cerebras", "wusrouter", "howtofix", "copilot", "claude", "gemini", "freebuff", "zai_free", "vercel", "vercel_free"}
-FREE_COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free", "vercel_free"}
+              "local", "openrouter_free", "mistral_labs", "groq", "cerebras", "wusrouter", "howtofix", "copilot", "claude", "gemini", "freebuff", "zai_free", "vercel", "vercel_free"}
+FREE_COMPATIBLE = {"mistral_labs", "ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free", "vercel_free"}
 
 
 class FreeRoutingUnavailable(ValueError):
@@ -321,6 +321,10 @@ class Gateway:
             if body.get("model")=="free" and self.cooldowns.get(name,0)>time.monotonic():
                 continue
             provider = self.providers[name]
+            if body.get('model') == 'free' and name in ('openrouter_free', 'mistral_labs'):
+                accepts = getattr(provider, 'accepts', None)
+                if not accepts or not accepts({'id': model}):
+                    continue
             payload = dict(body, model=model)
             if name=='vercel_free':
                 options=payload.get('providerOptions',{})

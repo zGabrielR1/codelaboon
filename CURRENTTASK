@@ -1,13 +1,1 @@
-RC30 PREPARED: task UX/actions, shared Connections, verification recovery,
-deduplicated native launch retries, protected in-flight dialogs, focus refresh.
-Version1.0.0rc30; connector1.0.30; release notes RELEASE-RC30.md.
-
-434 offline tests ran (3 skips);11 installed-wheel UX tests pass. Browser QA at
-1440/768/390, structural, JS syntax, pinned source bundles and thin core checks
-pass. Review recorded in docs/PROGRESS.md. Artifacts: releases/rc30.
-Live provider sign-ins/native terminal UIs remain unverified; tests use fixtures.
-No installed running worker has been interrupted or upgraded.
-
-Push main and v1.0.0-rc.30 to trigger GitHub CI. Confirm remote release/assets
-before reporting published. HTTPS credential access has failed in this session
-on previous releases; never paste tokens or modify existing release tags.
+RC31 release preparation. Web redesign, Mistral Labs, and improved free-model discovery. See RELEASE-RC31.md.

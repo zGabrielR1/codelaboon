@@ -25,6 +25,7 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
     return {
         "local": {"api_key": "", "base_url": "http://127.0.0.1:11434/v1", "models": []},
         "openrouter_free": {"api_key": "", "models": ["openrouter/free"]},
+        "mistral_labs": {"api_key": "", "models": []},
         "groq": {"api_key": "", "models": []},
         "cerebras": {"api_key": "", "models": []},
         "chatgpt": {

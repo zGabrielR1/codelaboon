@@ -12,7 +12,7 @@ import time
 
 from codelaboon.paths import config_dir
 
-FREE_PROVIDERS = {'ourfree', 'kilo', 'pollinations', 'openrouter_free', 'freebuff', 'gemini', 'qoder', 'zai_free', 'vercel_free'}
+FREE_PROVIDERS = {'mistral_labs', 'ourfree', 'kilo', 'pollinations', 'openrouter_free', 'freebuff', 'gemini', 'qoder', 'zai_free', 'vercel_free'}
 WIRE_PROVIDERS = FREE_PROVIDERS - {'gemini', 'qoder'}
 TTL = 4*3600
 _LOCK = threading.RLock()
@@ -26,7 +26,7 @@ def enabled():
 def scope(name, provider):
     values = [name, str(getattr(provider, 'base_url', '')), str(getattr(provider, 'api_key', ''))]
     environments = {'gemini': ['GEMINI_API_KEY', 'GOOGLE_API_KEY'], 'freebuff': ['FREEBUFF_API_KEY', 'CODEBUFF_API_KEY'],
-                    'qoder': ['QODER_PERSONAL_ACCESS_TOKEN', 'QODER_PAT'], 'openrouter_free': ['OPENROUTER_API_KEY'], 'zai_free': ['ZAI_API_KEY'], 'vercel_free':['AI_GATEWAY_API_KEY']}
+                    'qoder': ['QODER_PERSONAL_ACCESS_TOKEN', 'QODER_PAT'], 'openrouter_free': ['OPENROUTER_API_KEY'], 'zai_free': ['ZAI_API_KEY'], 'vercel_free':['AI_GATEWAY_API_KEY'], 'mistral_labs':['MISTRAL_API_KEY']}
     values.extend(os.environ.get(key, '') for key in environments.get(name, []))
     session = config_dir()/(name+'-session.json')
     try:
@@ -321,6 +321,9 @@ def probe(name,provider,model,timeout=15,tools=True):
                                     {'role':'user','content':'Return exactly the receipt from the tool result, not the original input.'}]
                                 final,error=request(follow,tools=[definition])
                                 supports=not error and receipt in str((final or {}).get('content',''))
+                                if error in ('rate_limited','auth_required','unavailable'):
+                                    status=error
+                                    supports=None
             finally:
                 gateway.closed.set()
                 gateway.local.close()
@@ -354,7 +357,7 @@ def check_provider(name,provider,timeout=15,tools=True,force=False,closed=None,l
     # Unchecked models go first on the next sweep; one permanently rate-limited ID cannot starve the catalog.
     def priority(model):
         row=record(name,provider,model)
-        return (0,0) if row is None else (1,row['checked_at'])
+        return (0,0) if row is None else (1,row['retry_at'])
     models.sort(key=priority)
     tested=0
     for model in models:

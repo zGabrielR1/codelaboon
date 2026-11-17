@@ -84,7 +84,7 @@ class ConfigTests(unittest.TestCase):
             {
                 "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
                 "openrouter", "luna", "ourfree", "kilo", "pollinations",
-                "local", "openrouter_free", "groq", "cerebras",
+                "local", "openrouter_free", "mistral_labs", "groq", "cerebras",
                 "wusrouter", "zai_free", "howtofix", "copilot", "vercel", "vercel_free",
             },
         )

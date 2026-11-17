@@ -124,6 +124,7 @@ def create_server(port=8765, cli=None):
             assets = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css"), "/logo.svg": ("logo.svg", "image/svg+xml"),
                       '/tasks':('tasks.html','text/html; charset=utf-8'),'/tasks.js':('tasks.js','text/javascript; charset=utf-8'),'/tasks.css':('tasks.css','text/css')}
             assets.update({'/connections':('connections.html','text/html; charset=utf-8'),'/connections.js':('connections.js','text/javascript; charset=utf-8'),'/connections.css':('connections.css','text/css'),'/task-actions.js':('task-actions.js','text/javascript; charset=utf-8')})
+            assets.update({'/workspace.css':('workspace.css','text/css'),'/dot-field.js':('dot-field.js','text/javascript')})
             if url.path not in assets:
                 return self.respond(404, {"error": "Not found"})
             file, mime = assets[url.path]
@@ -137,7 +138,8 @@ def create_server(port=8765, cli=None):
                     length=int(self.headers.get('Content-Length','0'))
                     if not 0<length<=20000:raise ValueError('Invalid provider settings size')
                     body=json.loads(self.rfile.read(length));name=body.get('provider');key=body.get('api_key')
-                    if name not in ('howtofix','wusrouter','groq','cerebras','openrouter','nvidia','luna','vercel'):raise ValueError('Use account login for this provider')
+                    from codelaboon.connections import KEY_PROVIDERS
+                    if name not in KEY_PROVIDERS:raise ValueError('Use account login for this provider')
                     if not isinstance(key,str) or not key.strip() or len(key)>16000 or any(ord(c)<32 for c in key):raise ValueError('Enter a nonempty API key')
                     from config.providers import save_provider_config
                     existing=cli._current_provider_config(name);existing['api_key']=key.strip()

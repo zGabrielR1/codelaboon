@@ -86,6 +86,7 @@ class CodelaboonCLI:
             "local": "providers.compatible.LocalProvider",
             "openrouter_free": "providers.compatible.OpenRouterFreeProvider",
             "zai_free": "providers.compatible.ZaiFreeProvider",
+            "mistral_labs": "providers.compatible.MistralLabsProvider",
             "groq": "providers.compatible.GroqProvider",
             "cerebras": "providers.compatible.CerebrasProvider",
             "chatgpt": "providers.chatgpt.chatgpt_provider.ChatGPTProvider",
@@ -163,7 +164,7 @@ class CodelaboonCLI:
             "chatgpt", "claude", "gemini", "freebuff", "qoder", "nvidia",
             "openrouter", "luna", "ourfree", "kilo", "pollinations",
             "wusrouter", "howtofix", "copilot", "vercel", "vercel_free",
-            "local", "openrouter_free", "groq", "cerebras",
+            "local", "openrouter_free", "mistral_labs", "groq", "cerebras",
         ):
             try:
                 self._get_provider_class(provider_name)

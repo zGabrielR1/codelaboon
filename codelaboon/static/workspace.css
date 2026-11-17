@@ -1,0 +1,13 @@
+:root{--bg:#141512;--side:#10110f;--panel:#191b16;--raised:#22251d;--line:#30332a;--control:#454a38;--ink:#f4f2e8;--muted:#a8aa9c;--accent:#d8f884;--font:"Segoe UI",system-ui,sans-serif;--radius:8px}
+body.light{--bg:#f7f6ef;--side:#eceee3;--panel:#fffdf6;--raised:#e5e8d9;--line:#d5d8c8;--control:#a3aa91;--ink:#20251a;--muted:#565e4c;--accent:#456712}
+.app-rail{gap:12px}.app-rail #rail-library{border-bottom-color:var(--line)}.brand{letter-spacing:-.06em}.brand-sub,.rail-label,.workspace-label,.role,.state-pill{font-variant-numeric:tabular-nums}
+#new,#send,#save-connection-key,#task-action-confirm{background:var(--accent);color:var(--side);font-weight:650}.light #new,.light #send,.light #save-connection-key,.light #task-action-confirm{color:white}#new kbd{color:inherit}
+main>header,.connections-header{background:var(--side)}.toolbar select{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding-inline:10px}.toolbar{min-height:60px}
+#welcome{width:min(820px,100%);position:relative;isolation:isolate;margin-top:clamp(16px,5vh,60px)}#dot-field{position:absolute;right:0;top:0;width:58%;height:250px;z-index:-1;opacity:.75}
+.welcome-heading{margin-bottom:20px}.workspace-label{color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+#welcome h1{font-size:clamp(40px,6vw,88px);font-weight:650;line-height:.93;letter-spacing:-.078em;max-width:none;margin:0 0 24px}
+#welcome>p{font-size:15px;color:var(--muted);max-width:34ch}.suggestions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;border:0;margin-top:30px}
+.suggestions button{display:grid;grid-template-columns:1fr auto;gap:6px 8px;text-align:left;align-content:start;border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel)}.suggestions small{grid-row:2;grid-column:1/-1;text-align:left}.suggestions b{grid-column:2;grid-row:1;color:var(--accent)}.suggestions button:hover{border-color:var(--accent)}
+#composer{background:var(--panel);border-color:var(--control)}#composer:focus-within{border-color:var(--accent)}.message.assistant .role{color:var(--accent)}
+.ops-head,.connections-title{border-bottom:1px solid var(--line);padding-bottom:18px}.connections-title h1{font-size:clamp(30px,5vw,54px);letter-spacing:-.065em}.connection-row button:hover,.task-row:hover{border-color:var(--accent)}.task-chat-title{letter-spacing:-.025em}
+@media(max-width:660px){.suggestions{grid-template-columns:1fr;gap:6px;margin-top:18px}.suggestions button{padding:8px 12px}.suggestions small{display:none}#dot-field{height:170px;width:66%;opacity:.55}#welcome h1{margin-bottom:12px}.toolbar{padding-inline:12px}}

@@ -6,7 +6,7 @@ import uuid
 from codelaboon.paths import config_dir
 
 ACCOUNT_PROVIDERS=('chatgpt','claude','gemini','freebuff','qoder','copilot')
-KEY_PROVIDERS=('vercel','howtofix','wusrouter','groq','cerebras','openrouter','nvidia','luna')
+KEY_PROVIDERS=('mistral_labs','vercel','howtofix','wusrouter','groq','cerebras','openrouter','nvidia','luna')
 
 
 def revision():

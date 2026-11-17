@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s);
 let token='',connections=[],selectedKey='',loading=false;
-const names={chatgpt:'ChatGPT',claude:'Claude',gemini:'Google Gemini',freebuff:'Freebuff',qoder:'Qoder',copilot:'GitHub Copilot',vercel:'Vercel AI Gateway',howtofix:'HowToFix',wusrouter:'WusRouter',groq:'Groq',cerebras:'Cerebras',openrouter:'OpenRouter',nvidia:'NVIDIA',luna:'Luna'};
+const names={mistral_labs:"Mistral Labs",chatgpt:'ChatGPT',claude:'Claude',gemini:'Google Gemini',freebuff:'Freebuff',qoder:'Qoder',copilot:'GitHub Copilot',vercel:'Vercel AI Gateway',howtofix:'HowToFix',wusrouter:'WusRouter',groq:'Groq',cerebras:'Cerebras',openrouter:'OpenRouter',nvidia:'NVIDIA',luna:'Luna'};
 try{if(localStorage.getItem('codelaboon.theme')==='light')document.body.classList.add('light')}catch{}
 async function request(path,body){const response=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-Codelaboon-Token':token},...(body?{body:JSON.stringify(body)}:{})});const value=await response.json();if(!response.ok)throw Error(value.error||'Connection request failed');return value}
 function error(text){$('#connection-error').textContent=text;$('#connection-error').hidden=!text}

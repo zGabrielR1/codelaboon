@@ -77,21 +77,44 @@ class OpenRouterFreeProvider(CompatibleProvider):
     environment = "OPENROUTER_API_KEY"
 
     def accepts(self, row):
-        # Restrict requests as well as the picker: never spill Auto into paid IDs.
-        from decimal import Decimal,InvalidOperation
-        if not (row['id'].endswith(':free') or row['id']=='openrouter/free'):
+        from decimal import Decimal, InvalidOperation
+        model = row['id']
+        named_free = model.endswith(':free') or model == 'openrouter/free'
+        pricing = row.get('pricing')
+        if pricing is None:
+            return named_free or model in (getattr(self, 'live_models', None) or [])
+        if not isinstance(pricing, dict):
             return False
-        pricing=row.get('pricing')
-        if pricing is not None:
-            try:
-                if not isinstance(pricing,dict) or any(Decimal(str(pricing.get(key,'NaN')))!=0 for key in ('prompt','completion')):
-                    return False
-                for key in ('request','image','audio','input_audio','output_audio','internal_reasoning','web_search'):
-                    if pricing.get(key) is not None and Decimal(str(pricing[key]))!=0:
-                        return False
-            except (InvalidOperation,ValueError,TypeError):
-                return False
-        return True
+        architecture = row.get('architecture') or {}
+        outputs = architecture.get('output_modalities', []) if isinstance(architecture, dict) else []
+        if outputs and 'text' not in outputs:
+            return False
+        if not named_free and 'text' not in outputs:
+            return False
+        try:
+            return (
+                all(Decimal(str(pricing.get(key, 'NaN'))) == 0 for key in ('prompt', 'completion'))
+                and all(Decimal(str(price)) == 0 for price in pricing.values() if price is not None)
+            )
+        except (InvalidOperation, ValueError, TypeError):
+            return False
+
+    def free_models(self):
+        return self.list_models()
+
+
+class MistralLabsProvider(CompatibleProvider):
+    """Mistral's documented zero-price Labs namespace."""
+    base_url = "https://api.mistral.ai/v1"
+    environment = "MISTRAL_API_KEY"
+
+    def __init__(self, api_key="", models=None, base_url=None):
+        if base_url and base_url.rstrip("/") != self.base_url:
+            raise ValueError("Mistral Labs requires the official Mistral endpoint")
+        super().__init__(api_key, models, self.base_url)
+
+    def accepts(self, row):
+        return row['id'].startswith("labs-")
 
     def free_models(self):
         return self.list_models()
