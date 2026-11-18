@@ -63,6 +63,9 @@ def launch(binary, arguments, profile, local_only, rows, url, token):
         json.dump(settings, stream)
     from codelaboon.execution_policy import full_access
     command = [binary, '--settings', settings_path, *arguments]
+    from codelaboon.desktop_mcp import NAME, enabled, stdio
+    if enabled(profile):
+        command.extend(["--mcp-config", json.dumps({"mcpServers": {NAME: stdio()}})])
     if full_access():command.append('--dangerously-skip-permissions')
     if profile == 'security':
         command.extend(['--append-system-prompt', (Path(__file__).parent / 'prompts/security.md').read_text()])

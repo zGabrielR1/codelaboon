@@ -235,6 +235,8 @@ def launch(engine, arguments=(), profile="coding", local_only=False):
             from codelaboon.claude_engine import launch as launch_claude
             return launch_claude(binary, arguments, profile, local_only, rows, url, gateway.token)
         config = opencode_config(rows, url, gateway.token)
+        from codelaboon.desktop_mcp import configure_opencode
+        configure_opencode(config, profile)
         default = rows[0]["id"] if local_only else "free"
         config["model"] = config["small_model"] = "codelaboon/" + default
         config["enabled_providers"] = list(config["provider"])

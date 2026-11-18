@@ -1,0 +1,26 @@
+name: desktop
+
+on:
+  workflow_call:
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install '.[desktop]'
+      - if: runner.os == 'Linux'
+        run: |
+          python -m playwright install --with-deps chromium
+          xvfb-run -a python scripts/smoke_desktop.py
+      - if: runner.os == 'Windows'
+        run: |
+          python -m playwright install chromium
+          python scripts/smoke_desktop.py

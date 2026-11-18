@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Desktop · codelaboon</title>
+  <link rel="icon" href="/logo.svg">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/connections.css">
+  <link rel="stylesheet" href="/workspace.css">
+  <link rel="stylesheet" href="/desktop.css">
+  <script src="/desktop.js" defer></script>
+</head>
+<body class="connections-page">
+  <header class="connections-header">
+    <a class="connection-brand" href="/"><img src="/logo.svg" width="28" height="28" alt="">codelaboon</a>
+    <nav aria-label="Workspace"><a href="/">Chat</a><a href="/tasks">Tasks</a><a href="/connections">Connections</a><a href="/desktop" aria-current="page">Desktop</a></nav>
+  </header>
+  <main class="connections-main desktop-main">
+    <h1>Desktop</h1>
+    <p id="desktop-workspace">Connecting to this workspace…</p>
+    <div class="desktop-grid">
+      <section aria-labelledby="terminal-heading">
+        <h2 id="terminal-heading">Terminal</h2>
+        <button id="open-terminal" type="button" disabled>Open workspace terminal</button>
+        <form id="command-form">
+          <label for="command">Executable and arguments (JSON array)</label>
+          <input id="command" placeholder='["git", "status", "--short"]' required maxlength="16000">
+          <button id="run-command" disabled>Run command</button>
+        </form>
+        <p id="terminal-status" role="status"></p>
+        <pre id="command-output" aria-label="Command output" hidden></pre>
+      </section>
+      <section aria-labelledby="browser-heading">
+        <h2 id="browser-heading">Browser</h2>
+        <p>Control a separate Chromium window on this computer.</p>
+        <form id="navigate-form">
+          <label for="browser-url">Page URL</label>
+          <input id="browser-url" type="url" placeholder="https://example.com" required maxlength="4096">
+          <button data-browser="navigate" disabled>Open page</button>
+        </form>
+        <form id="browser-controls">
+          <label for="browser-selector">Element selector</label>
+          <input id="browser-selector" placeholder='button or text=Continue' maxlength="1000">
+          <label for="browser-text">Input text</label>
+          <input id="browser-text" autocomplete="off" maxlength="16000">
+          <div class="desktop-actions">
+            <button type="button" data-browser="click" disabled>Click</button>
+            <button type="button" data-browser="fill" disabled>Fill</button>
+            <button type="button" data-browser="snapshot" disabled>Refresh page outline</button>
+            <button type="button" data-browser="close" disabled>Close browser</button>
+          </div>
+        </form>
+        <p id="browser-status" role="status"></p>
+        <pre id="browser-output" aria-label="Browser page outline" hidden></pre>
+      </section>
+    </div>
+    <section aria-labelledby="desktop-tasks-heading">
+      <h2 id="desktop-tasks-heading">Tasks</h2>
+      <a href="/tasks">Open task queue and engine controls</a>
+    </section>
+  </main>
+</body>
+</html>

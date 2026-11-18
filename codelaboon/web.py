@@ -14,6 +14,8 @@ STATIC = Path(__file__).with_name("static")
 
 
 def create_server(port=8765, cli=None):
+    from codelaboon import desktop
+
     cli = cli or CodelaboonCLI()
     cli.load_providers()
     token = secrets.token_urlsafe(32)
@@ -23,6 +25,14 @@ def create_server(port=8765, cli=None):
     auth_lock = threading.Lock()
     task_lock=threading.Lock()
     task_requests={}
+    desktop_browser = desktop.Browser()
+
+    class WorkspaceServer(ThreadingHTTPServer):
+        def server_close(self):
+            try:
+                desktop_browser.close()
+            finally:
+                super().server_close()
 
     def login_job(provider):
         import importlib
@@ -127,6 +137,11 @@ def create_server(port=8765, cli=None):
                       '/tasks':('tasks.html','text/html; charset=utf-8'),'/tasks.js':('tasks.js','text/javascript; charset=utf-8'),'/tasks.css':('tasks.css','text/css')}
             assets.update({'/connections':('connections.html','text/html; charset=utf-8'),'/connections.js':('connections.js','text/javascript; charset=utf-8'),'/connections.css':('connections.css','text/css'),'/task-actions.js':('task-actions.js','text/javascript; charset=utf-8')})
             assets.update({'/workspace.css':('workspace.css','text/css'),'/dot-field.js':('dot-field.js','text/javascript')})
+            assets.update({
+                "/desktop": ("desktop.html", "text/html; charset=utf-8"),
+                "/desktop.js": ("desktop.js", "text/javascript; charset=utf-8"),
+                "/desktop.css": ("desktop.css", "text/css; charset=utf-8"),
+            })
             if url.path not in assets:
                 return self.respond(404, {"error": "Not found"})
             file, mime = assets[url.path]
@@ -135,6 +150,27 @@ def create_server(port=8765, cli=None):
         def do_POST(self):
             if not self.trusted() or self.headers.get("X-Codelaboon-Token") != token:
                 return self.respond(403, {"error": "Reload this workspace and retry"})
+            if self.path == "/api/desktop":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 65536:
+                        return self.respond(413, {"error": "Desktop request is too large."})
+                    body = json.loads(self.rfile.read(length))
+                    if not isinstance(body, dict):
+                        raise ValueError("Invalid desktop request.")
+                    action = body.get("action")
+                    if action == "terminal":
+                        result = desktop.open_workspace_terminal()
+                    elif action == "command":
+                        result = desktop.run_command(body.get("argv"))
+                    elif action in ("navigate", "snapshot", "click", "fill", "close"):
+                        result = desktop_browser.call(action, url=body.get("url"),
+                                                      selector=body.get("selector"), text=body.get("text"))
+                    else:
+                        raise ValueError("Unknown desktop action.")
+                    return self.respond(200, result)
+                except (ValueError, OSError) as error:
+                    return self.respond(400, {"error": str(error)[:500]})
             if self.path in ("/api/claude-browser/setup", "/api/claude-browser/test"):
                 from providers.claude.browser_provider import enable, test_connection
 
@@ -254,7 +290,7 @@ def create_server(port=8765, cli=None):
             except Exception:
                 return self.respond(502, {"error": "Provider request failed. Check credentials, model availability, and connection, then retry."})
 
-    return ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    return WorkspaceServer(("127.0.0.1", port), Handler)
 
 
 def serve(port=8765, open_browser=True, start_path='/'):

@@ -1,3 +1,9 @@
+## 1.0.0rc35
+
+- Add shared Windows and Linux desktop actions through the web workspace and local stdio MCP.
+- Open terminals, run commands, access the task queue and control a visible Chromium session.
+- Add opt-in MCP launch configuration for supported native engines and configuration snippets for other clients.
+
 ## 1.0.0rc34
 
 - Set up and test Claude.ai browser chat from Connections, with a direct link from the chat provider picker.

@@ -306,6 +306,8 @@ def launch(engine="opencode", arguments=(), profile="coding", local_only=False, 
             env["CODELABOON_THEME"] = theme
         if engine == "opencode":
             config = opencode_config(rows, url, gateway.token)
+            from codelaboon.desktop_mcp import configure_opencode
+            configure_opencode(config, profile)
             config["model"] = config["small_model"] = "codelaboon/" + default
             if os.environ.get("CODELABOON_TASK_CHAT_MODEL"):
                 config["small_model"]="codelaboon/free"

@@ -30,6 +30,9 @@ def configuration(rows, default, profile='coding'):
         lines.append('model ' + slot + ' ' + shlex.quote('codelaboon/' + default) + ' --max-tokens 4096')
     if profile == 'security':
         lines.append('option global-context-path ' + shlex.quote(str(Path(__file__).parent / 'prompts/security.md')))
+    from codelaboon.desktop_mcp import crush_config, enabled
+    if enabled(profile):
+        lines.append(crush_config())
     return '\n'.join(lines) + '\n'
 
 

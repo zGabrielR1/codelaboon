@@ -575,6 +575,8 @@ class CodelaboonCLI:
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
         subparsers.add_parser('status', help='Show workspace, runtime health and last update without loading models')
         subparsers.add_parser('runtime', help='Inspect or repair cached source runtimes')
+        desktop = subparsers.add_parser("desktop", help="Expose desktop tools to an MCP client")
+        desktop.add_argument("action", choices=("mcp", "config"))
         subparsers.add_parser("accounts", help="Official Windsurf/Devin account login, models and CLI")
         subparsers.add_parser("work", help="Control background cloud workers (start/status/stop/add)")
         subparsers.add_parser("controller-eval", help="Evaluate the optional local supervisor against scope fixtures")
@@ -979,6 +981,11 @@ def main() -> None:
     if sys.argv[1:2] == ['tasks']:
         from codelaboon.task_console import main as tasks_main
         tasks_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ["desktop"]:
+        from codelaboon.desktop_mcp import main as desktop_main
+
+        desktop_main(sys.argv[2:])
         return
     if sys.argv[1:2] in (['runtime'], ['status']):
         from codelaboon.runtime_management import main as runtime_main

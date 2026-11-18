@@ -1,0 +1,14 @@
+.desktop-main h1{font-size:26px;margin:0 0 8px}
+.desktop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+.desktop-main section{border-top:1px solid var(--line);padding-top:18px}
+.desktop-main form{display:grid;justify-items:start;gap:8px;margin-top:16px}
+.desktop-main label{display:block;color:var(--muted);font-size:13px}
+.desktop-main input{width:100%;min-width:0;padding:9px 12px;border:1px solid var(--control);border-radius:5px;background:var(--panel);color:var(--ink)}
+.desktop-main button{border:1px solid var(--line);border-radius:5px;padding:9px 12px}
+.desktop-main button:enabled:hover{border-color:var(--accent)}
+.desktop-main button:disabled{opacity:.5}
+.desktop-main a{color:var(--accent)}
+.desktop-actions{display:flex;flex-wrap:wrap;gap:8px}
+.desktop-main pre{max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);border:1px solid var(--line);padding:12px}
+#desktop-workspace,#browser-status{overflow-wrap:anywhere}
+@media(max-width:680px){.desktop-grid{grid-template-columns:minmax(0,1fr);gap:0}}
