@@ -1,3 +1,9 @@
+## 1.0.0rc33
+
+- Add a Claude.ai browser provider that uses the default model of a signed-in Firefox session through a temporary add-on and an authenticated loopback bridge.
+- Expose it as `claude_browser` in the CLI, the web workspace and native engine model pickers; the gateway route is `claude_browser/web-default` and remains text-only.
+- Include the add-on assets in the wheel and show provider display names in the web provider list.
+
 ## 1.0.0rc32
 
 - Opening a web task in Oh My Pi on Windows now uses OMP-compatible session paths. Drive colons and path separators are encoded before writing the imported conversation.

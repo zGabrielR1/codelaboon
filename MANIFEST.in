@@ -31,5 +31,8 @@ prune codelaboon/_vendor/opencode
 prune codelaboon/_vendor/oh-my-pi
 
 recursive-include codelaboon/integrations/vscode *.json *.js *.md
+include codelaboon/integrations/claude-browser/manifest.json
+include codelaboon/integrations/claude-browser/background.js
+include codelaboon/integrations/claude-browser/content.js
 
 recursive-include scripts *.js
