@@ -982,6 +982,10 @@ def main() -> None:
         from codelaboon.task_console import main as tasks_main
         tasks_main(sys.argv[2:])
         return
+    if sys.argv[1:2] == ["regression"]:
+        from codelaboon.regression import main as regression_main
+        regression_main(sys.argv[2:])
+        return
     if sys.argv[1:2] == ["desktop"]:
         from codelaboon.desktop_mcp import main as desktop_main
 

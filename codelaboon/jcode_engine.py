@@ -17,6 +17,7 @@ from codelaboon.paths import data_dir
 
 
 def prepare(rows, url, home):
+    from codelaboon.desktop_mcp import vision_model
     quote = lambda value: json.dumps(value, ensure_ascii=False)
     lines = ['[features]', 'check_updates = false', 'memory = false', 'swarm = true',
              '[providers.codelaboon]', 'type = "openai-compatible"', 'auth = "bearer"',
@@ -27,7 +28,7 @@ def prepare(rows, url, home):
         if row['api'] == 'chat':
             lines.extend(['[[providers.codelaboon.models]]', 'id = ' + quote(row['id']),
                           'context_window = ' + ('8192' if row['id'].startswith('local/') else '32768'),
-                          'reasoning = false', 'input = ["text"]'])
+                          'reasoning = false', 'input = ["text", "image"]' if vision_model(row['id']) else 'input = ["text"]'])
     config = home / 'config.toml'
     retained = ''
     if config.exists():

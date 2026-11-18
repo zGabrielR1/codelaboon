@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codelaboon"
-version = "1.0.0rc35"
+version = "1.0.0rc36"
 description = "CLI harness for accessing AI models from multiple providers"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,6 +25,7 @@ dependencies = ["requests>=2.28", "PyJWT[crypto]>=2.10,<3"]
 [project.optional-dependencies]
 tui = ["textual>=1.0"]
 desktop = ["mcp>=1.12,<2", "playwright>=1.51,<2"]
+native-desktop = ["mcp>=1.12,<2", "playwright>=1.51,<2", "pyautogui>=0.9.54,<1; sys_platform != 'linux'", "python-xlib>=0.33; sys_platform == 'linux'", "pillow>=10"]
 
 [project.scripts]
 codelaboon = "codelaboon.cli:main"

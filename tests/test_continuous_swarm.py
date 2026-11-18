@@ -93,6 +93,18 @@ class ContinuousSwarmTests(unittest.TestCase):
                 swarm.control('pause', 'unknown-id', config)
             self.assertFalse(pending_work(value, runtime))
 
+    def test_desktop_permission_only_reaches_the_swarm_build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = work.initialize(root / 'work.json')
+            swarm.enqueue('Verify desktop work', checks=[['check']], config=config,
+                          controller='worker', foreground_desktop=True, start_worker=False)
+            with patch('codelaboon.watch.execute', side_effect=self.execute) as execute:
+                run(config, once=True)
+            build, check = execute.call_args_list
+            self.assertEqual(build.kwargs['env']['CODELABOON_FOREGROUND_TASK'], '1')
+            self.assertNotIn('env', check.kwargs)
+
     def test_worker_controller_never_loads_local_model(self):
         with tempfile.TemporaryDirectory() as directory:
             config, _, runtime = self.configure(Path(directory))

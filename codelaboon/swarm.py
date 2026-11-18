@@ -37,6 +37,9 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free', engine='jcod
         from codelaboon.external_engines import executable
         from codelaboon.jcode_engine import run
         from codelaboon.native_gateway import serve, COMPATIBLE
+        if os.environ.get('CODELABOON_FOREGROUND_TASK') == '1':
+            from codelaboon.desktop_mcp import NAME, stdio
+            (home / 'mcp.json').write_text(json.dumps({'mcpServers': {NAME: stdio()}}), encoding='utf-8')
         binary=executable('jcode');cli=CodelaboonCLI();cli.load_providers()
         providers={name:value for name,value in cli.providers.items() if name in COMPATIBLE}
         with serve(providers) as (gateway,url):
@@ -78,11 +81,13 @@ def execute(task, workers=4, timeout=1800, checks=(), model='free', engine='jcod
 
 
 def enqueue(task, workers=4, timeout=1800, checks=(), model='free', controller='local',
-            interval=60, cycles=0, config=None, project=None, permissions='default', profile='coding', supervise=None, scope='', review_interval=15, allowed_paths=None, elevation='none',engine='jcode',start_worker=True,execution_settings=None):
+            interval=60, cycles=0, config=None, project=None, permissions='default', profile='coding', supervise=None, scope='', review_interval=15, allowed_paths=None, elevation='none',engine='jcode',start_worker=True,execution_settings=None,foreground_desktop=False):
     from codelaboon import work
     from codelaboon.work_queue import validate_swarm
     options = validate_swarm(dict(workers=workers, timeout=timeout, model=model,
                                   controller=controller, interval=interval, cycles=cycles,engine=engine))
+    if foreground_desktop:
+        options = validate_swarm({**options, 'foreground_desktop': True})
     if not checks:
         raise ValueError('Continuous swarms require at least one independent --check command')
     from codelaboon.paths import config_dir
@@ -134,6 +139,7 @@ def _main(arguments=None):
     parser.add_argument('--execution-settings-file',type=Path,help='JSON worker/planner model and prompt settings, captured before queue publication (--continuous)')
     parser.add_argument('--check', action='append', default=[], help='Independent acceptance command; repeat for multiple checks')
     parser.add_argument('--continuous', action='store_true', help='Queue recurring verified cycles in the background supervisor')
+    parser.add_argument('--foreground-desktop', action='store_true', help='Allow this continuous coding task to control the local desktop')
     parser.add_argument('--controller', choices=['local', 'worker'], default='local')
     parser.add_argument('--interval', type=int, default=60, help='Seconds between continuous cycles')
     parser.add_argument('--cycles', type=int, default=0, help='Successful cycle limit; 0 continues until stopped')
@@ -158,7 +164,7 @@ def _main(arguments=None):
     if args.workers is None:args.workers=4 if args.engine=='jcode' else 1
     if (args.watch or args.task_id) and not args.status:parser.error('--watch/--task belong to --status')
     if args.status or args.pause or args.resume or args.stop:
-        if args.task or args.task_file or args.continuous:
+        if args.task or args.task_file or args.continuous or args.foreground_desktop:
             parser.error('Status/control actions do not accept a task')
         if args.status:
             from codelaboon.work_monitor import watch
@@ -173,9 +179,9 @@ def _main(arguments=None):
     checks = [shlex.split(item) for item in args.check]
     if args.continuous:
         enqueue(task, args.workers, args.timeout, checks, args.model, args.controller,
-                args.interval, args.cycles, args.config, args.project,args.permissions,args.profile,args.supervise,args.scope,args.review_interval,args.allow_path,args.elevation,args.engine,execution_settings=json.loads(args.execution_settings_file.read_text(encoding='utf-8')) if args.execution_settings_file else None)
+                args.interval, args.cycles, args.config, args.project,args.permissions,args.profile,args.supervise,args.scope,args.review_interval,args.allow_path,args.elevation,args.engine,execution_settings=json.loads(args.execution_settings_file.read_text(encoding='utf-8')) if args.execution_settings_file else None, foreground_desktop=args.foreground_desktop)
         return
-    if args.elevation!='none' or args.permissions!='default' or args.profile!='coding' or args.scope or args.supervise is not None or args.allow_path:
+    if args.foreground_desktop or args.elevation!='none' or args.permissions!='default' or args.profile!='coding' or args.scope or args.supervise is not None or args.allow_path:
         parser.error('Execution policy options belong to --continuous tasks')
     if args.project or args.config or args.execution_settings_file:
         parser.error('--project/--config belong to continuous mode or status/controls')

@@ -27,6 +27,11 @@ def validate_swarm(options):
         raise ValueError('A swarm model is required')
     from codelaboon.engine_tasks import ENGINES
     engine=options.get('engine','jcode')
+    foreground = options.get('foreground_desktop', False)
+    if not isinstance(foreground, bool):
+        raise ValueError('Foreground desktop must be a boolean')
+    if foreground and engine not in ('jcode', 'opencode', 'kilo', 'codex', 'claude', 'crush'):
+        raise ValueError('Foreground desktop requires Jcode, OpenCode, Kilo, Codex, Claude or Crush')
     if engine not in ENGINES:raise ValueError('Unsupported task engine')
     if engine=='devin' and (not options['model'].startswith('devin/') or not options['model'].split('/',1)[1]):raise ValueError('Use devin/account-default or devin/MODEL for a native account task')
     if engine!='jcode' and options['workers']!=1:
@@ -36,7 +41,7 @@ def validate_swarm(options):
 
 def swarm_harness(task):
     options = validate_swarm(task['swarm'])
-    return {'id': 'swarm-' + task['id'], 'location': 'cloud', 'stages': ['build'],
+    return {'id': 'swarm-' + task['id'], 'location': 'local' if options.get('foreground_desktop') else 'cloud', 'stages': ['build'],
             'model': options['model'], 'capabilities': ['native-swarm'] if options.get('engine','jcode')=='jcode' else ['portable-coordinator'],
             'timeout_seconds': options['timeout'] + 15, 'cooldown_seconds': max(30, options['interval']),
             'argv': ['{python}', '{source}/codelaboon/swarm.py', '--task-file', '{prompt_file}',

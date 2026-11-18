@@ -910,6 +910,104 @@ active cycle finish, including checks. OpenCode remains the default interface;
 See [continuous swarm operations](docs/lean-runtime.md#continuous-swarms-rc16).
 
 
+### Foreground desktop swarms
+
+Install the desktop dependencies with `python -m pip install '.[native-desktop]'`
+from this checkout. Start the worker from the graphical login session. On
+Wayland, use a Python installation that can import the system PyGObject
+bindings, with GDK 4, GStreamer, and its PipeWire plugin available. The desktop
+portal asks you to share one monitor and grant pointer and keyboard access.
+Set `CODELABOON_WAYLAND_REMEMBER=1` before starting the worker to request
+remembered access on portal implementations that support it. The compositor
+can require another approval. On Linux X11, Pillow needs XCB support for screen capture. On macOS, grant your launcher Accessibility and Screen
+Recording access. On Windows, start from the interactive user session.
+
+Queue a scoped objective with an independent check and a model that supports
+vision and tool calls.
+
+```bash
+codelaboon swarm --continuous --foreground-desktop --controller worker \
+  --engine jcode --workers 4 --project /path/to/project \
+  --model PROVIDER/MODEL --check 'python -m unittest discover -s tests' \
+  'Use the desktop to verify the project opens and save the results in the project.'
+```
+
+Jcode delegates parallel work. One MCP session at a time can observe and act on
+the foreground screen. Agents can release it with `desktop_release`.
+Foreground input supports clicks, scrolling, key combinations, and printable
+ASCII typing. Playwright runs a separate headless Chromium session for these
+tasks. Use an unlocked graphical session for unattended work. Task checks and
+ordinary swarm cycles use the existing scheduler. A pre-existing supervisor
+must be restarted from the updated install to accept desktop jobs.
+
+For an interactive engine with automatic desktop MCP configuration, set
+`CODELABOON_DESKTOP_MCP=1 CODELABOON_NATIVE_DESKTOP=1`. To use another MCP
+client, launch `codelaboon desktop mcp --native`. For interactive OpenCode,
+Kilo, and Codex, `CODELABOON_DESKTOP_VISION_MODEL=PROVIDER/MODEL` advertises
+image input for the selected vision model.
+
+The existing `free` model route can fail over among supported free providers
+using configured accounts or keyless endpoints. Select a specific vision model
+for desktop jobs if the free route does not advertise image input.
+
+
+### Overnight regression repairs
+
+Queue a functional regression from a committed Git baseline:
+
+```bash
+codelaboon regression 'Fix the invoice rounding regression' \
+  --reproduce 'python -m unittest tests.test_invoice.InvoiceTests.test_rounding' \
+  --check 'python -m unittest discover -s tests' \
+  --fallback-model local/YOUR_MODEL
+codelaboon regression --report TASK_ID
+```
+
+The repair starts in a detached worktree. Jcode receives separate diagnosis and
+review worktrees when the worker count allows. The supervisor records the first
+failing reproduction, retains the repair across attempts, and tries the next
+specified route after provider throttling. It pauses after the attempt limit or
+if baseline reproduction cannot establish a failure. The handoff includes the
+base revision, the reproduction rerun, independent checks, worker log, and a
+patch for review.
+
+For GUI regressions, use `--desktop foreground` with a vision model to use the
+logged-in desktop, or `--desktop isolated` on Linux with
+`xvfb-run`, `xauth`, and `dbus-run-session` installed. The isolated worker
+gets a virtual display and a private session bus. GUI commands should launch
+their own application on that display. Linux accessibility tools use AT-SPI
+when the application exposes native controls.
+
+
+#### Build, launch, and verify a Linux app
+
+Save the app's build and launch commands and a short accessibility flow in a
+JSON file. Launch the app process directly so verification can identify its
+AT-SPI controls. The final step must assert visible accessible state.
+
+```json
+{
+  "build": ["make", "demo"],
+  "launch": ["./build/demo"],
+  "steps": [
+    {"action": "click", "name": "Calculate"},
+    {"action": "expect", "name": "Total: 42"}
+  ]
+}
+```
+
+```bash
+codelaboon regression 'Fix the calculation shown by the app' --gui-spec flow.json
+```
+
+The worker builds and opens the pinned baseline on a private X11 display.
+Only a failed GUI assertion establishes the baseline. It runs the same
+saved build, launch, and flow against the repair before accepting it. Open
+**App verification** in the task view to observe the current step, take over
+and click in the preview, or return control. Returning control restarts
+verification on a fresh app instance. The handoff links the patch and
+both screenshots.
+
 ### Verified free models and editor integrations (RC17)
 
 ```bash

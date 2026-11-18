@@ -1,3 +1,10 @@
+## 1.0.0rc36
+
+- Add Linux Build → Launch → Verify jobs with a saved accessibility flow, private display, and independent checks against both builds.
+- Show app verification live in the task view with pointer takeover and clean relaunch on return.
+- Keep regression repairs in detached worktrees across attempts and include patches, check logs, and screenshots in the handoff.
+- Add opt-in native desktop control to continuous Jcode swarms and supported engines, plus configured fallback model routes for regression jobs.
+
 ## 1.0.0rc35
 
 - Add shared Windows and Linux desktop actions through the web workspace and local stdio MCP.

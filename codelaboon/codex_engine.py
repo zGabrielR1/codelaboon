@@ -19,7 +19,7 @@ def launch(binary,arguments,profile,local_only,rows,url,token):
               'model_providers.codelaboon.supports_websockets':False,
               'model_context_window':32768,'model_auto_compact_token_limit':24576,'analytics.enabled':False}
     if profile=='security': settings['developer_instructions']=(Path(__file__).parent/'prompts/security.md').read_text()
-    from codelaboon.desktop_mcp import NAME, enabled, stdio
+    from codelaboon.desktop_mcp import NAME, enabled, stdio, vision_model
     if enabled(profile):
         settings.update({f"mcp_servers.{NAME}.{key}": value for key, value in stdio().items()})
     models=[{'slug':row['id'],'display_name':row['name'],'description':row.get('description','Codelaboon verified route'),
@@ -27,7 +27,7 @@ def launch(binary,arguments,profile,local_only,rows,url,token):
              'supported_reasoning_levels':[],'shell_type':'unified_exec','visibility':'list','supported_in_api':True,
              'priority':index,'support_verbosity':False,'default_verbosity':None,'apply_patch_tool_type':'freeform',
              'truncation_policy':{'mode':'tokens','limit':8192},'experimental_supported_tools':[],
-             'context_window':32768,'supports_reasoning_summary_parameter':False,'input_modalities':['text'],
+             'context_window':32768,'supports_reasoning_summary_parameter':False,'input_modalities':['text', 'image'] if vision_model(row['id']) else ['text'],
              'tool_mode':'direct'} for index,row in enumerate(rows) if row['api']=='chat']
     descriptor,catalog=tempfile.mkstemp(prefix='.models-',suffix='.json',dir=home)
     with os.fdopen(descriptor,'w') as stream:json.dump({'models':models},stream)

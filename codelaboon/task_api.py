@@ -44,7 +44,7 @@ def snapshot():
             'permissions':task.get('permissions','default'),'profile':task.get('profile','coding'),
             'elevation':task.get('elevation','none'),'supervision':task.get('supervision',{'enabled':False}),
             'engine':task.get('swarm',{}).get('engine','jcode') if task.get('swarm') else 'configured harness',
-            'swarm':task.get('swarm'),'verification':task.get('verify_argv',[])})
+            'swarm':task.get('swarm'),'gui_regression':bool(task.get('regression',{}).get('gui')),'verification':task.get('verify_argv',[])})
         from codelaboon.task_settings import read
         result['tasks'][-1]['execution_settings']=read(root,task)
         from codelaboon.work_queue import controls
@@ -248,3 +248,54 @@ def worker_control(action):
     if action=='start':start(path)
     else:control(action,path)
     return {'action':action,'message':'Worker scheduling '+action+' requested. Task scopes, grants and verification are unchanged.'}
+
+
+def gui_desktop(identity, action=None):
+    import base64
+    from codelaboon.watch import save
+
+    _, root, record = selected(identity)
+    if not record.get('regression', {}).get('gui'):
+        raise ValueError('This task has no GUI flow')
+    candidates = []
+    for path in root.glob('*/result.json'):
+        if not path.resolve().is_relative_to(root.resolve()):
+            continue
+        try:
+            result = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+        if result.get('task') == identity:
+            candidates.append((result['started'], path.parent, result['status']))
+    if not candidates:
+        return {'phase': 'queued'}
+    _, attempt, status = max(candidates)
+    session = next((attempt / name for name in ('gui-after', 'gui-before')
+                    if (attempt / name / 'live.json').is_file()), None)
+    if session is None:
+        return {'phase': 'waiting for desktop'}
+    state = json.loads((session / 'live.json').read_text(encoding='utf-8'))
+    if action is not None:
+        operation = action.get('action')
+        if status != 'running' or state['phase'] not in ('verifying', 'paused'):
+            raise ValueError('The verification desktop is not active')
+        if operation == 'takeover':
+            (session / 'hold').touch()
+        elif operation == 'resume':
+            (session / 'hold').unlink(missing_ok=True)
+        elif operation == 'click' and state['phase'] == 'paused' and (session / 'hold').exists():
+            x, y = action.get('x'), action.get('y')
+            if type(x) is not int or type(y) is not int or action.get('frame') != state.get('frame'):
+                raise ValueError('Use the latest desktop frame')
+            if (session / 'input.json').exists():
+                raise ValueError('Wait for the previous click to be applied')
+            save(session / 'input.json', {'x': x, 'y': y, 'frame': state['frame']})
+        else:
+            raise ValueError('Take over the desktop before sending input')
+        return {'action': operation}
+    state['active'] = status == 'running' and state['phase'] in ('verifying', 'paused')
+    for label, frame in (('image', session / 'frame.png'),
+                         ('before', attempt / 'before.png'), ('after', attempt / 'after.png')):
+        if frame.is_file() and frame.stat().st_size < 3_000_000:
+            state[label] = base64.b64encode(frame.read_bytes()).decode('ascii')
+    return state

@@ -78,3 +78,5 @@ a.task-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .task-activity{font-size:13px;line-height:1.6;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;padding:12px 0;border-bottom:1px solid var(--line)}.task-activity.needs-attention{color:var(--danger,#ff9da5)}.chat-tools{flex-wrap:wrap}#delete-ops-task{color:var(--muted)}
 
 #ops-error.success{color:var(--accent)}
+
+.gui-verification img { max-width: 100%; height: auto; margin-block: .75rem; }

@@ -60,6 +60,7 @@ function renderDetail(){
   if(detail.dataset.task!==task.id){
     detail.dataset.task=task.id;
     detail.innerHTML='<div class="chat-navigation"><button id="back-tasks">Back to tasks</button><div class="chat-tools"><button id="open-native-task">Open in engine</button><button id="delete-ops-task">Delete task</button><a id="open-task-chat">Open in chat</a><button id="open-attempts">Attempts</button><button id="open-task-settings">Models &amp; prompts</button><button id="open-task-changes">Changes</button><span id="chat-live">Live task conversation</span></div></div><div class="detail-top"><h1 id="detail-title" tabindex="-1"></h1><span id="detail-state" class="state-pill"></span></div><div class="task-id-row"><code id="detail-id"></code><button id="copy-task-id">Copy ID</button></div><details class="task-information"><summary>Task details, scope and checks</summary><p id="detail-project" class="detail-project"></p><dl class="cycle-strip"><div><dt>Verified cycles</dt><dd id="detail-cycles" class="cycle-number">0</dd></div><div><dt>Engine</dt><dd id="detail-engine"></dd></div><div><dt>Latest attempt</dt><dd id="detail-attempt"></dd></div></dl><details><summary>Objective and authorized scope</summary><dl class="policy-values"><dt>Objective</dt><dd id="detail-objective"></dd><dt>Scope</dt><dd id="detail-scope"></dd></dl></details><details><summary>Permissions and verification</summary><dl class="policy-values"><dt>Profile</dt><dd id="detail-profile"></dd><dt>Permissions</dt><dd id="detail-permissions"></dd><dt>Elevation</dt><dd id="detail-elevation"></dd><dt>Scope reviewer</dt><dd id="detail-reviewer"></dd><dt>Cycle policy</dt><dd id="detail-budget"></dd></dl><pre id="detail-checks"></pre><div id="detail-privilege" hidden><p class="field-note">This task needs a reviewed native privilege case. The browser does not approve or run elevation.</p><pre id="privilege-command"></pre></div></details></details><div class="task-controls"><button id="task-retry">Retry failed</button><button id="task-pause">Pause</button><button id="task-resume">Resume</button><button id="task-stop" class="stop-control">Stop task</button></div><p id="task-control-note" class="task-controls-note"></p><div id="task-activity" class="task-activity" role="status"></div><section class="task-conversation" aria-label="Task conversation"><div id="conversation-feed" role="log" aria-label="Task messages" aria-live="polite"></div><form id="message-form"><label for="task-message">Message the orchestrator</label><textarea id="task-message" rows="3" maxlength="4096" required placeholder="Reply or ask the orchestrator to continue..."></textarea><div class="composer-actions"><select id="message-mode" aria-label="Message delivery"><option value="guidance">Send to orchestrator</option><option value="note">Save note only</option></select><button class="primary" id="send-message">Send</button></div><p id="message-hint" class="field-note"></p><p id="message-error" role="alert"></p></form></section><details><summary>Raw attempt output</summary><div class="log-heading"><h3>Latest attempt output</h3><label><input id="follow-output" type="checkbox"> Follow output</label></div><p id="log-meta" class="log-meta">Waiting for attempt output…</p><pre id="task-log" class="log-output" aria-label="Latest task output">No output yet.</pre></details>';
+    if(task.gui_regression) mountGuiDesktop();
     $('#open-attempts').onclick=openAttempts;$('#open-task-settings').onclick=openTaskSettings;$('#open-task-changes').onclick=openTaskChanges;
     $('#open-native-task').onclick=()=>TaskActions.open(task.id,task.engine);
     $('#delete-ops-task').onclick=()=>TaskActions.remove(task.id);
@@ -92,6 +93,52 @@ function renderDetail(){
   $('#detail-budget').textContent=task.swarm?task.swarm.timeout+'s timeout · '+task.swarm.interval+'s interval · '+(task.swarm.cycles||'unlimited')+' verified cycles':'One queued task';
   $('#detail-checks').textContent=JSON.stringify(task.verification,null,2);
   $('#detail-privilege').hidden=task.elevation==='none';$('#privilege-command').textContent='codelaboon privilege worker-case '+task.id+'\n# Review the printed case, then approve it in your terminal.';
+}
+function mountGuiDesktop(){
+  const panel=document.createElement('details');
+  panel.className='gui-verification';
+  panel.innerHTML='<summary>App verification</summary><p role="status"></p><button type="button" hidden>Take over</button><img hidden alt="Private verification display"><div class="gui-evidence"></div>';
+  $('#task-activity').after(panel);
+  const [status,control,preview,evidence]=['p','button','img','.gui-evidence'].map(x=>panel.querySelector(x));
+  const task=selectedId;
+  let frame=null;
+  let timer;
+  const send=async(action,fields={})=>{
+    try{await api('/api/tasks/gui',{method:'POST',body:JSON.stringify({task,action,...fields})});await refreshGui()}
+    catch(error){status.textContent=error.message}
+  };
+  async function refreshGui(){
+    clearTimeout(timer);
+    if(!panel.open||!panel.isConnected)return;
+    try{
+      const row=await api('/api/tasks/gui?task='+encodeURIComponent(task));
+      frame=row;
+      status.textContent=[row.target,row.phase,row.step&&`${row.step}/${row.steps}`,row.message].filter(Boolean).join(' · ');
+      control.hidden=!row.active;
+      control.textContent=row.phase==='paused'?'Return control':'Take over';
+      preview.hidden=!row.image;
+      if(row.image)preview.src='data:image/png;base64,'+row.image;
+      evidence.replaceChildren();
+      for(const label of ['before','after']){
+        if(!row[label])continue;
+        const link=document.createElement('a');
+        link.href='data:image/png;base64,'+row[label];
+        link.download=label+'.png';
+        link.textContent='Download '+label+' screenshot';
+        evidence.append(link,document.createElement('br'));
+      }
+    }catch(error){status.textContent=error.message}
+    if(panel.isConnected&&panel.open)timer=setTimeout(refreshGui,750);
+  }
+  control.onclick=()=>send(frame?.phase==='paused'?'resume':'takeover');
+  preview.onclick=event=>{
+    if(frame?.phase!=='paused')return;
+    const bounds=preview.getBoundingClientRect();
+    const x=Math.floor((event.clientX-bounds.left)*preview.naturalWidth/bounds.width);
+    const y=Math.floor((event.clientY-bounds.top)*preview.naturalHeight/bounds.height);
+    send('click',{frame:frame.frame,x,y});
+  };
+  panel.ontoggle=refreshGui;
 }
 async function loadLogs(){
   const identity=selectedId;if(!identity||!selected())return;

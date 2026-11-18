@@ -231,12 +231,15 @@ def install_omp_native(root):
 
 
 def opencode_config(rows, url, token):
+    from codelaboon.desktop_mcp import vision_model
     providers = {}
     for api, identifier, package in (("chat", "codelaboon", "@ai-sdk/openai-compatible"),
                                      ("responses", "codelaboon-chatgpt", "@ai-sdk/openai"),
                                      ("anthropic", "codelaboon-claude", "@ai-sdk/anthropic"),
                                      ("google", "codelaboon-gemini", "@ai-sdk/google")):
         models = {row["id"]: {"name": row["name"], "tool_call": not row["id"].startswith("claude_browser/"),
+                              **({"attachment": True, "modalities": {"input": ["text", "image"], "output": ["text"]}}
+                                 if vision_model(row["id"]) else {}),
                               "limit": {"context": 8192 if row["id"].startswith("local/") else 32768, "output": 4096}}
                   for row in rows if row["api"] == api}
         if models:

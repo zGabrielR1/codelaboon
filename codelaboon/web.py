@@ -89,7 +89,7 @@ def create_server(port=8765, cli=None):
                 from codelaboon import __version__
                 import platform
                 return self.respond(200,{'token':token,'version':__version__,'workspace':str(Path.cwd().resolve()),'platform':platform.system()})
-            if url.path in ('/api/task-chat','/api/tasks','/api/tasks/logs','/api/tasks/messages','/api/tasks/settings','/api/tasks/changes','/api/tasks/models','/api/tasks/attempts'):
+            if url.path in ('/api/task-chat','/api/tasks','/api/tasks/logs','/api/tasks/messages','/api/tasks/settings','/api/tasks/changes','/api/tasks/models','/api/tasks/attempts','/api/tasks/gui'):
                 if self.headers.get('X-Codelaboon-Token') != token:
                     return self.respond(403,{'error':'Reload this workspace and retry'})
                 from codelaboon import task_api
@@ -97,6 +97,8 @@ def create_server(port=8765, cli=None):
                     if url.path=='/api/task-chat':
                         from codelaboon.task_chat import document
                         return self.respond(200,document(parse_qs(url.query).get('task',[''])[0]))
+                    if url.path=='/api/tasks/gui':
+                        return self.respond(200,task_api.gui_desktop(parse_qs(url.query).get('task',[''])[0]))
                     if url.path=='/api/tasks/attempts':return self.respond(200,task_api.attempts(parse_qs(url.query).get('task',[''])[0]))
                     if url.path=='/api/tasks/models':return self.respond(200,task_api.model_choices(cli))
                     if url.path=='/api/tasks/settings':return self.respond(200,task_api.settings(parse_qs(url.query).get('task',[''])[0]))
@@ -203,7 +205,7 @@ def create_server(port=8765, cli=None):
                     if not save_provider_config(name,existing):raise ValueError('Could not save provider settings')
                     changed();cli.load_providers();return self.respond(200,{'provider':name,'configured':True})
                 except (OSError,ValueError,TypeError,AttributeError):return self.respond(400,{'error':'Provider settings could not be saved. Check the provider and key.'})
-            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages','/api/tasks/settings','/api/tasks/worker','/api/tasks/open'):
+            if self.path in ('/api/tasks','/api/tasks/control','/api/tasks/messages','/api/tasks/settings','/api/tasks/worker','/api/tasks/open','/api/tasks/gui'):
                 from codelaboon import task_api
                 try:
                     length=int(self.headers.get('Content-Length','0'))
@@ -225,6 +227,9 @@ def create_server(port=8765, cli=None):
                                 result=launch(body.get('task'),body.get('engine'))
                                 if len(task_requests)>=128:task_requests.pop(next(iter(task_requests)))
                                 task_requests[cache_key]=(digest,result)
+                    elif self.path=='/api/tasks/gui':
+                        with task_lock:
+                            result=task_api.gui_desktop(body.get('task'),body)
                     elif self.path=='/api/tasks/worker':
                         with task_lock:result=task_api.worker_control(body.get('action'))
                     elif self.path=='/api/tasks/settings':

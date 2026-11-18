@@ -59,9 +59,10 @@ def control_task(task: str, action: Literal["pause", "resume"]) -> dict:
 
 
 class Browser:
-    """An isolated, visible Chromium session owned by the calling workspace."""
+    """An isolated Chromium session owned by the calling workspace."""
 
-    def __init__(self):
+    def __init__(self, headless=False):
+        self.headless = headless
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="desktop-browser")
         self.runtime = self.browser = self.page = None
 
@@ -100,7 +101,7 @@ class Browser:
             self._close()
             self.runtime = sync_playwright().start()
             try:
-                self.browser = self.runtime.chromium.launch(headless=False)
+                self.browser = self.runtime.chromium.launch(headless=self.headless)
                 self.page = self.browser.new_page()
                 self.page.set_default_timeout(8000)
             except Exception:
