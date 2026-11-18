@@ -3,6 +3,7 @@
 - Add a Claude.ai browser provider that uses the default model of a signed-in Firefox session through a temporary add-on and an authenticated loopback bridge.
 - Expose it as `claude_browser` in the CLI, the web workspace and native engine model pickers; the gateway route is `claude_browser/web-default` and remains text-only.
 - Include the add-on assets in the wheel and show provider display names in the web provider list.
+- Keep the workspace header within phone widths without horizontal scrolling.
 
 ## 1.0.0rc32
 

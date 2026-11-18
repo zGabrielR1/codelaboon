@@ -39,6 +39,12 @@ loaded.
 Anthropic's Consumer Terms, section 3 require explicit permission for automated
 browser access. Use this provider only if you have that permission.
 
+## Phone header
+
+The workspace header now fits a 390 pixel viewport. The redundant route label
+is hidden on phones and the spacing is reduced, so the Connections, Tasks and
+workspace-action controls remain reachable without horizontal scrolling.
+
 ## Packaging
 
 The wheel now includes the browser add-on manifest, content script and
