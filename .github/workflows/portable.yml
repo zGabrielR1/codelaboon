@@ -62,11 +62,17 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - name: Open and follow a task conversation in a real browser
         run: |
+          mkdir -p .runtime
           set -o pipefail
           python scripts/smoke_task_chat.py 2>&1 | tee .runtime/browser-smoke.log
       - name: Surface browser smoke failure
         if: failure()
-        run: test -f .runtime/browser-smoke.log && tail -25 .runtime/browser-smoke.log | sed 's/^/::error::/' || true
+        run: |
+          if [ -f .runtime/browser-smoke.log ]; then
+            tail -25 .runtime/browser-smoke.log | sed 's/^/::error::/'
+          else
+            echo '::error::Browser smoke log missing.'
+          fi
       - name: Task history, retries, scheduling and provider key privacy
         run: python scripts/smoke_task_operations.py
       - uses: actions/upload-artifact@v4
