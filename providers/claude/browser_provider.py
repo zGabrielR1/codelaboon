@@ -19,17 +19,33 @@ def profile_marker():
     return config_dir() / "claude-browser-extension-enabled"
 
 
-def setup():
+def extension_manifest():
     manifest = Path(__file__).resolve().parents[2] / "codelaboon/integrations/claude-browser/manifest.json"
     if not manifest.is_file():
         raise ValueError("The Codelaboon browser extension files are missing.")
+    return manifest
+
+
+def enable():
+    manifest = extension_manifest()
     marker = profile_marker()
     marker.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     marker.touch(mode=0o600)
+    return manifest
+
+
+def setup():
+    manifest = enable()
     print("In Firefox, open about:debugging#/runtime/this-firefox and select Load Temporary Add-on.")
     print(f"Select this manifest: {manifest}")
     print("Then run codelaboon claude-browser test.")
     webbrowser.open("https://claude.ai/new", new=2)
+
+
+def test_connection(provider):
+    return provider.chat(
+        MODEL, [{"role": "user", "content": "Reply with only: Codelaboon browser bridge works."}]
+    )
 
 
 class ClaudeBrowserProvider(BaseProvider):

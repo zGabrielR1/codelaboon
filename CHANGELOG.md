@@ -1,3 +1,9 @@
+## 1.0.0rc34
+
+- Set up and test Claude.ai browser chat from Connections, with a direct link from the chat provider picker.
+- Show a copyable Firefox add-on manifest path and distinguish a saved setup from a verified connection.
+- Preserve provider display names after saving an API key and improve model and Firefox error messages.
+
 ## 1.0.0rc33
 
 - Add a Claude.ai browser provider that uses the default model of a signed-in Firefox session through a temporary add-on and an authenticated loopback bridge.

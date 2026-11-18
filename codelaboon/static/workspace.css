@@ -11,3 +11,4 @@ main>header,.connections-header{background:var(--side)}.toolbar select{border:1p
 #composer{background:var(--panel);border-color:var(--control)}#composer:focus-within{border-color:var(--accent)}.message.assistant .role{color:var(--accent)}
 .ops-head,.connections-title{border-bottom:1px solid var(--line);padding-bottom:18px}.connections-title h1{font-size:clamp(30px,5vw,54px);letter-spacing:-.065em}.connection-row button:hover,.task-row:hover{border-color:var(--accent)}.task-chat-title{letter-spacing:-.025em}
 @media(max-width:660px){.suggestions{grid-template-columns:1fr;gap:6px;margin-top:18px}.suggestions button{padding:8px 12px}.suggestions small{display:none}#dot-field{height:170px;width:66%;opacity:.55}#welcome h1{margin-bottom:12px}.toolbar{padding-inline:12px}}
+#claude-browser-link{color:var(--accent);font-size:13px;white-space:nowrap}

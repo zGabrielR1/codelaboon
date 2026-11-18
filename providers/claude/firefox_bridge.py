@@ -79,6 +79,8 @@ def chat(prompt, *, background=False):
         while not result and time.monotonic() < (reply_deadline if prompt_requested else connect_deadline):
             server.handle_request()
     if not result:
+        if not prompt_requested:
+            raise ValueError("Firefox did not connect. Set Firefox as your default browser and load the Codelaboon temporary add-on.")
         raise ValueError("The browser extension did not return a reply. Check that it is installed and Claude.ai is signed in.")
     if result.get("error"):
         raise ValueError(result["error"])

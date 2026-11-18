@@ -735,16 +735,13 @@ class CodelaboonCLI:
             return
 
         if args.command == "claude-browser":
-            from providers.claude.browser_provider import MODEL, ClaudeBrowserProvider, setup
+            from providers.claude.browser_provider import ClaudeBrowserProvider, setup, test_connection
 
             try:
                 if args.browser_action == "setup":
                     setup()
                 else:
-                    reply = ClaudeBrowserProvider("").chat(
-                        MODEL, [{"role": "user", "content": "Reply with only: Codelaboon browser bridge works."}]
-                    )
-                    print(reply)
+                    print(test_connection(ClaudeBrowserProvider("")))
             except (OSError, ValueError, subprocess.CalledProcessError) as error:
                 parser.exit(1, f"Claude.ai browser: {error}\n")
             return

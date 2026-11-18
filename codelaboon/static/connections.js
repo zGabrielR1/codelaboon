@@ -4,6 +4,43 @@ const names={mistral_labs:"Mistral Labs",chatgpt:'ChatGPT',claude:'Claude',gemin
 try{if(localStorage.getItem('codelaboon.theme')==='light')document.body.classList.add('light')}catch{}
 async function request(path,body){const response=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-Codelaboon-Token':token},...(body?{body:JSON.stringify(body)}:{})});const value=await response.json();if(!response.ok)throw Error(value.error||'Connection request failed');return value}
 function error(text){$('#connection-error').textContent=text;$('#connection-error').hidden=!text}
+const browserSetup=$('#claude-browser-setup');
+const browserTest=$('#claude-browser-test');
+const browserStatus=$('#claude-browser-status');
+let browserEnabled=false,browserWorking=false;
+function renderBrowser(state){
+ $('#claude-browser').hidden=!state;
+ browserEnabled=!!state?.enabled;
+ browserSetup.disabled=browserWorking;
+ browserTest.disabled=browserWorking||!browserEnabled;
+ if(!browserWorking&&!browserStatus.textContent){
+  browserStatus.textContent=browserEnabled?'Enabled locally. Test the Firefox connection before chatting.':'Enable the provider to get the add-on path.';
+ }
+}
+async function browserAction(action){
+ browserWorking=true;browserSetup.disabled=true;browserTest.disabled=true;
+ browserStatus.textContent=action==='test'?'Waiting for Firefox and Claude.ai…':'Preparing the local add-on…';
+ try{
+  const value=await request('/api/claude-browser/'+action,{});
+  if(action==='setup'){
+   browserEnabled=true;
+   $('#claude-browser-manifest').value=value.manifest;
+   $('#claude-browser-steps').hidden=false;
+   browserStatus.textContent='Provider enabled. Load the add-on in Firefox, then test the connection.';
+  }else{
+   browserStatus.textContent='Connection verified. Claude.ai returned a reply.';
+   $('#claude-browser-chat').hidden=false;
+  }
+ }catch(e){browserStatus.textContent=e.message}
+ finally{browserWorking=false;browserSetup.disabled=false;browserTest.disabled=!browserEnabled}
+}
+browserSetup.onclick=()=>browserAction('setup');
+browserTest.onclick=()=>browserAction('test');
+$('#claude-browser-copy').onclick=async()=>{
+ const path=$('#claude-browser-manifest');
+ try{await navigator.clipboard.writeText(path.value);browserStatus.textContent='Manifest path copied.'}
+ catch{path.focus();path.select();browserStatus.textContent='Manifest path selected. Use your copy shortcut.'}
+};
 function render(){
  for(const [kind,target] of [['account','#account-connections'],['key','#key-connections']]){
   const list=$(target);list.replaceChildren();
@@ -26,7 +63,7 @@ function render(){
   }
  }
 }
-async function refresh(){if(loading||!token)return;loading=true;try{const value=await request('/api/connections');const next=JSON.stringify(value.connections);if(next!==JSON.stringify(connections)){connections=value.connections;render()}}catch(e){error(e.message)}finally{loading=false}}
+async function refresh(){if(loading||!token)return;loading=true;try{const value=await request('/api/connections');error('');renderBrowser(value.claude_browser);const next=JSON.stringify(value.connections);if(next!==JSON.stringify(connections)){connections=value.connections;render()}}catch(e){error(e.message)}finally{loading=false}}
 $('#refresh-connections').onclick=refresh;
 $('#cancel-connection-key').onclick=()=>{$('#connection-key-dialog').close();$('#connection-key').value=''};
 $('#connection-key-dialog').addEventListener('close',()=>{$('#connection-key').value=''});

@@ -103,7 +103,9 @@ def create_server(port=8765, cli=None):
                 if self.headers.get('X-Codelaboon-Token')!=token:return self.respond(403,{'error':'Reload this workspace and retry'})
                 from codelaboon.connections import KEY_PROVIDERS
                 cli.load_providers()
-                return self.respond(200,{'connections':[{'id':name,'kind':'account' if name in auth_providers else 'key','configured':bool(cli.providers[name].validate_api_key()) if name in cli.providers else False,'login':dict(auth_states.get(name,{}))} for name in (*auth_providers,*KEY_PROVIDERS)],'shared':True})
+                browser = cli.providers.get("claude_browser")
+                return self.respond(200,{'connections':[{'id':name,'kind':'account' if name in auth_providers else 'key','configured':bool(cli.providers[name].validate_api_key()) if name in cli.providers else False,'login':dict(auth_states.get(name,{}))} for name in (*auth_providers,*KEY_PROVIDERS)],'shared':True,
+                                         "claude_browser": {"enabled": browser.validate_api_key()} if browser else None})
             if url.path == "/api/auth/status":
                 provider = parse_qs(url.query).get("provider", ["chatgpt"])[0]
                 if provider not in auth_providers:
@@ -133,6 +135,25 @@ def create_server(port=8765, cli=None):
         def do_POST(self):
             if not self.trusted() or self.headers.get("X-Codelaboon-Token") != token:
                 return self.respond(403, {"error": "Reload this workspace and retry"})
+            if self.path in ("/api/claude-browser/setup", "/api/claude-browser/test"):
+                from providers.claude.browser_provider import enable, test_connection
+
+                browser = cli.providers.get("claude_browser")
+                if browser is None:
+                    return self.respond(404, {"error": "Claude.ai browser provider is unavailable."})
+                try:
+                    if self.path.endswith("/setup"):
+                        manifest = enable()
+                        changed()
+                        return self.respond(200, {"manifest": str(manifest)})
+                    if not browser.validate_api_key():
+                        return self.respond(400, {"error": "Enable the browser provider first."})
+                    test_connection(browser)
+                    return self.respond(200, {"connected": True})
+                except ValueError as error:
+                    return self.respond(502, {"error": str(error)})
+                except OSError:
+                    return self.respond(502, {"error": "Could not access the local browser setup. Check your installation and retry."})
             if self.path=='/api/providers/configure':
                 try:
                     length=int(self.headers.get('Content-Length','0'))

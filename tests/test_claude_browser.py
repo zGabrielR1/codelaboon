@@ -3,10 +3,13 @@
 import json
 import os
 import tempfile
+import threading
 import unittest
-from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import requests
+
+from codelaboon.web import create_server
 from providers.claude import browser_provider
 
 
@@ -53,6 +56,30 @@ class ClaudeBrowserProviderTests(unittest.TestCase):
         self.assertEqual(reply, "hello back")
         self.assertEqual(chat.call_args.args[0], "system:\nBe brief.\n\nuser:\nhi")
         self.assertEqual(chat.call_args.kwargs, {"background": True})
+
+    def test_web_setup_and_test_use_the_shared_provider(self):
+        with create_server(0, Mock(providers={"claude_browser": self.provider})) as server:
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_port}"
+                token = requests.get(url + "/api/session", timeout=5).json()["token"]
+                headers = {"X-Codelaboon-Token": token}
+                setup = url + "/api/claude-browser/setup"
+                test = url + "/api/claude-browser/test"
+                self.assertEqual(requests.post(setup, timeout=5).status_code, 403)
+                self.assertEqual(requests.post(test, headers=headers, timeout=5).status_code, 400)
+                result = requests.post(setup, headers=headers, timeout=5)
+                self.assertEqual(result.json(), {"manifest": str(browser_provider.extension_manifest())})
+                self.assertTrue(self.provider.validate_api_key())
+                connections = requests.get(url + "/api/connections", headers=headers, timeout=5).json()
+                self.assertEqual(connections["claude_browser"], {"enabled": True})
+                with patch.object(browser_provider, "chat", return_value="Verified") as chat:
+                    self.assertEqual(requests.post(test, headers=headers, timeout=5).json(), {"connected": True})
+                    self.assertIn("Codelaboon browser bridge works", chat.call_args.args[0])
+            finally:
+                server.shutdown()
+                thread.join()
 
     def test_chat_rejects_tools_and_non_text_content(self):
         self.enable()
