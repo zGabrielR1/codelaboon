@@ -91,6 +91,7 @@ class CodelaboonCLI:
             "cerebras": "providers.compatible.CerebrasProvider",
             "chatgpt": "providers.chatgpt.chatgpt_provider.ChatGPTProvider",
             "claude": "providers.claude.claude_provider.ClaudeProvider",
+            "claude_browser": "providers.claude.browser_provider.ClaudeBrowserProvider",
             "gemini": "providers.gemini.gemini_provider.GeminiProvider",
             "freebuff": "providers.freebuff.freebuff_provider.FreebuffProvider",
             "qoder": "providers.qoder.qoder_provider.QoderProvider",
@@ -586,6 +587,11 @@ class CodelaboonCLI:
         subparsers.add_parser("omp", help="Open the optional OMP interface (automatic setup)")
         subparsers.add_parser("kilo", help="Open the optional official Kilo native CLI")
         subparsers.add_parser("claude", help="Open Claude Code on Codelaboon free models")
+        browser = subparsers.add_parser("claude-browser", help="Set up or test the Claude.ai browser provider")
+        browser_commands = browser.add_subparsers(dest="browser_action", required=True)
+        browser_commands.add_parser("setup", help="Open Claude.ai in your default browser and show the Firefox add-on setup")
+        browser_commands.add_parser("test", help="Send one live test prompt through the signed-in browser")
+
         subparsers.add_parser("ide", help="Connect official engine editor integrations to Codelaboon")
         subparsers.add_parser("proxy", help="Run a stable loopback gateway for desktop apps and editors")
         subparsers.add_parser("storage", help="Audit or relocate development/cache bulk outside the project")
@@ -726,6 +732,21 @@ class CodelaboonCLI:
 
         if not args.command:
             run_tui()
+            return
+
+        if args.command == "claude-browser":
+            from providers.claude.browser_provider import MODEL, ClaudeBrowserProvider, setup
+
+            try:
+                if args.browser_action == "setup":
+                    setup()
+                else:
+                    reply = ClaudeBrowserProvider("").chat(
+                        MODEL, [{"role": "user", "content": "Reply with only: Codelaboon browser bridge works."}]
+                    )
+                    print(reply)
+            except (OSError, ValueError, subprocess.CalledProcessError) as error:
+                parser.exit(1, f"Claude.ai browser: {error}\n")
             return
 
         if args.command == "install":

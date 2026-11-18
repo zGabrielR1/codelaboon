@@ -110,7 +110,7 @@ def create_server(port=8765, cli=None):
                     return self.respond(404, {"error": "Unknown sign-in provider"})
                 return self.respond(200, auth_states[provider])
             if url.path == "/api/providers":
-                return self.respond(200, {"token": token, "providers": [{"name": n, "configured": p.validate_api_key(), "keyless": p.keyless} for n, p in sorted(cli.providers.items())]})
+                return self.respond(200, {"token": token, "providers": [{"name": n, "configured": p.validate_api_key(), "keyless": p.keyless, "label": getattr(type(p), "display_name", n)} for n, p in sorted(cli.providers.items())]})
             if url.path == "/api/models":
                 name = parse_qs(url.query).get("provider", [""])[0]
                 if name not in cli.providers:
@@ -218,6 +218,12 @@ def create_server(port=8765, cli=None):
                 model = body["model"]
                 if not isinstance(model, str) or not model.strip():
                     raise ValueError()
+                if body["provider"] == "claude_browser":
+                    try:
+                        reply = provider.chat(model, messages, background=True)
+                    except ValueError as error:
+                        return self.respond(502, {"error": str(error)})
+                    return self.respond(200, {"reply": reply})
                 if not provider.validate_api_key():
                     return self.respond(400, {"error": "Configure this provider using codelaboon configure " + body["provider"]})
                 reply = provider.chat(model, messages, temperature=0.7, max_tokens=4096)

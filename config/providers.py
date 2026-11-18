@@ -28,6 +28,7 @@ def _default_config() -> Dict[str, Dict[str, Any]]:
         "mistral_labs": {"api_key": "", "models": []},
         "groq": {"api_key": "", "models": []},
         "cerebras": {"api_key": "", "models": []},
+        "claude_browser": {"api_key": "", "models": []},
         "chatgpt": {
             "api_key": "",
             "models": [],

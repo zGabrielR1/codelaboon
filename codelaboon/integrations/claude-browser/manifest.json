@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Codelaboon Claude Browser Bridge",
+  "version": "1.0.0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "claude-browser@codelaboon.local",
+      "data_collection_permissions": { "required": ["none"] }
+    }
+  },
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "scripts": ["background.js"] },
+  "content_scripts": [{
+    "matches": ["https://claude.ai/new*"],
+    "js": ["content.js"],
+    "run_at": "document_start"
+  }]
+}

@@ -19,7 +19,7 @@ def launch(binary,arguments,profile,local_only,rows,url,token):
               'model_providers.codelaboon.supports_websockets':False,
               'model_context_window':32768,'model_auto_compact_token_limit':24576,'analytics.enabled':False}
     if profile=='security': settings['developer_instructions']=(Path(__file__).parent/'prompts/security.md').read_text()
-    models=[{'slug':row['id'],'display_name':row['name'],'description':'Codelaboon verified route',
+    models=[{'slug':row['id'],'display_name':row['name'],'description':row.get('description','Codelaboon verified route'),
              'base_instructions':'You are a coding agent. Use the available tools to complete the user request. Respect tool permissions and report results accurately.',
              'supported_reasoning_levels':[],'shell_type':'unified_exec','visibility':'list','supported_in_api':True,
              'priority':index,'support_verbosity':False,'default_verbosity':None,'apply_patch_tool_type':'freeform',

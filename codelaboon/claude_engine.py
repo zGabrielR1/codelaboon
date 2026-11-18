@@ -49,7 +49,7 @@ def launch(binary, arguments, profile, local_only, rows, url, token):
                CLAUDE_CODE_MAX_CONTEXT_TOKENS='32768')
     settings = {'enforceAvailableModels': True, 'availableModels': [row['id'] for row in rows],
                 'modelPicker': {'replaceBuiltInOptions': True, 'options': [
-                    {'model': row['id'], 'label': row['name'], 'description': row['id']} for row in rows]}}
+                    {'model': row['id'], 'label': row['name'], 'description': row.get('description', row['id'])} for row in rows]}}
     # CLI settings take precedence over project settings. Keep the gateway token
     # out of argv and never persist it in the user's or project's configuration.
     owned = {key: value for key, value in env.items() if key.startswith('ANTHROPIC_') or key.startswith('CLAUDE_CODE_') or key in ('ENABLE_TOOL_SEARCH', 'MAX_THINKING_TOKENS', 'DISABLE_AUTOUPDATER')}

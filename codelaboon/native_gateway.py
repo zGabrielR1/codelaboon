@@ -22,7 +22,7 @@ from codelaboon import free_auto
 from codelaboon.paths import config_dir
 
 COMPATIBLE = {"ourfree", "kilo", "pollinations", "openrouter", "nvidia", "luna", "chatgpt",
-              "local", "openrouter_free", "mistral_labs", "groq", "cerebras", "wusrouter", "howtofix", "copilot", "claude", "gemini", "freebuff", "zai_free", "vercel", "vercel_free"}
+              "local", "openrouter_free", "mistral_labs", "groq", "cerebras", "wusrouter", "howtofix", "copilot", "claude", "claude_browser", "gemini", "freebuff", "zai_free", "vercel", "vercel_free"}
 FREE_COMPATIBLE = {"mistral_labs", "ourfree", "kilo", "pollinations", "openrouter_free", "freebuff", "zai_free", "vercel_free"}
 
 
@@ -130,6 +130,9 @@ class Gateway:
                     continue
                 if not model_health.verified(name,provider,model,coding=name in model_health.WIRE_PROVIDERS):
                     continue
+            if name == "claude_browser" and provider and model in provider.model_names:
+                row = dict(row, name=provider.model_names[model],
+                           description=provider.model_descriptions[model])
             result.append(row)
         if os.environ.get('CODELABOON_HEADLESS_TASK')!='1' and set(self.providers)!={'local'}:
             from codelaboon.task_chat import model_rows
@@ -276,6 +279,8 @@ class Gateway:
         if not separator or name not in COMPATIBLE or name not in self.providers:
             raise ValueError("Unknown codelaboon model")
         if not self.providers[name].validate_api_key():
+            if name == "claude_browser":
+                raise ValueError("Run codelaboon claude-browser setup to enable this model.")
             raise ValueError(f"Configure {name} with codelaboon configure {name}")
         accepts = getattr(self.providers[name], "accepts", None)
         if accepts and not accepts({"id": identifier}):
@@ -288,6 +293,15 @@ class Gateway:
         if self.model_alias and api=='anthropic' and (model in ('default','sonnet','opus','haiku') or model.startswith('claude-')):
             body=dict(body,model=self.model_alias)
         if self.task_model:body=dict(body,model=self.task_model.removeprefix('codelaboon/'))
+        if body["model"].startswith("claude_browser/"):
+            # Engines often advertise tools on every turn. The browser can
+            # answer in text, so accept optional tools without forwarding them.
+            choice = body.get("tool_choice")
+            if isinstance(choice, dict):
+                choice = choice.get("type")
+            if choice not in (None, "auto", "none"):
+                raise ValueError("Claude.ai browser chat cannot execute engine tools.")
+            body = {key: value for key, value in body.items() if key != "tools"}
         if api == "anthropic" and not body.get("model", "").startswith(("claude/","vercel/","vercel_free/")):
             from codelaboon.anthropic_bridge import MessagesResponse, to_chat
             routed = dict(body, model=body["model"].removesuffix("[1m]"))
@@ -321,6 +335,10 @@ class Gateway:
             if body.get("model")=="free" and self.cooldowns.get(name,0)>time.monotonic():
                 continue
             provider = self.providers[name]
+            if name == "claude_browser":
+                if api != "chat":
+                    raise ValueError("Claude.ai browser chat requires Chat Completions, Messages, or Responses.")
+                return provider.engine_response(model, body)
             if body.get('model') == 'free' and name in ('openrouter_free', 'mistral_labs'):
                 accepts = getattr(provider, 'accepts', None)
                 if not accepts or not accepts({'id': model}):

@@ -236,7 +236,7 @@ def opencode_config(rows, url, token):
                                      ("responses", "codelaboon-chatgpt", "@ai-sdk/openai"),
                                      ("anthropic", "codelaboon-claude", "@ai-sdk/anthropic"),
                                      ("google", "codelaboon-gemini", "@ai-sdk/google")):
-        models = {row["id"]: {"name": row["name"], "tool_call": True,
+        models = {row["id"]: {"name": row["name"], "tool_call": not row["id"].startswith("claude_browser/"),
                               "limit": {"context": 8192 if row["id"].startswith("local/") else 32768, "output": 4096}}
                   for row in rows if row["api"] == api}
         if models:

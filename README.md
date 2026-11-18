@@ -90,6 +90,36 @@ routes do not preserve Anthropic prompt caching. Desktop UI and live inference
 validation remain pending; offline protocol tests cover discovery, authentication,
 Messages streaming and tool translation.
 
+### Claude.ai browser chat
+
+The browser provider uses the default model in your signed-in Firefox session.
+Anthropic's [Consumer Terms, section 3](https://www.anthropic.com/legal/consumer-terms)
+require explicit permission for automated browser access.
+
+```bash
+codelaboon claude-browser setup
+codelaboon claude-browser test
+codelaboon chat claude_browser web-default "Explain this function"
+```
+
+Setup opens Claude.ai in your system's default browser and prints the path to the
+Firefox add-on manifest. In Firefox, open `about:debugging#/runtime/this-firefox`,
+select **Load Temporary Add-on**, and choose the manifest. Firefox removes
+temporary add-ons when it restarts. Sign in to Claude.ai normally if needed.
+Each CLI request opens a new text conversation and returns its reply over an
+authenticated loopback connection.
+
+In `codelaboon web`, select **Claude.ai (Firefox)** and send a message in the
+workspace chat. Firefox briefly opens a Claude.ai tab, then returns focus to
+your previous tab. The reply appears in the workspace conversation.
+
+In a native engine launched by Codelaboon, select **Claude · Browser default (Firefox)**
+in the model picker. This single entry uses your current Claude.ai session's
+model. The gateway route is `claude_browser/web-default`. Start a new conversation if the previous one has
+tool calls or attachments. The engine displays the reply once Firefox has
+finished receiving it. This route supports text conversation and has no
+engine tool execution.
+
 ### Vercel AI Gateway
 
 Run `codelaboon configure vercel` and enter an **AI Gateway API key** from your

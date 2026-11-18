@@ -51,4 +51,4 @@ packages = [
 
 [tool.setuptools.package-data]
 config = ["providers.toml.example"]
-codelaboon = ["static/*", "integrations/vscode/*", "_vendor/engines.json", "prompts/*.md", "themes/*", "themes/opencode/*.json", "themes/omp/*.json"]
+codelaboon = ["static/*", "integrations/vscode/*", "integrations/claude-browser/*", "_vendor/engines.json", "prompts/*.md", "themes/*", "themes/opencode/*.json", "themes/omp/*.json"]
