@@ -1,3 +1,7 @@
+## 1.0.0rc37
+
+- Simplify task workspace labels, worker status, and App verification progress.
+
 ## 1.0.0rc36
 
 - Add Linux Build → Launch → Verify jobs with a saved accessibility flow, private display, and independent checks against both builds.
