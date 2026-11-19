@@ -161,7 +161,11 @@ def create_server(port=8765, cli=None):
                     if not isinstance(body, dict):
                         raise ValueError("Invalid desktop request.")
                     action = body.get("action")
-                    if action == "terminal":
+                    if action in ("agents", "pause_agent", "resume_agent"):
+                        from codelaboon import desktop_agents
+                        result = (desktop_agents.list_agents() if action == "agents" else
+                                  desktop_agents.control_agent(body.get("agent"), action.removesuffix("_agent")))
+                    elif action == "terminal":
                         result = desktop.open_workspace_terminal()
                     elif action == "command":
                         result = desktop.run_command(body.get("argv"))

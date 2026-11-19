@@ -922,6 +922,11 @@ remembered access on portal implementations that support it. The compositor
 can require another approval. On Linux X11, Pillow needs XCB support for screen capture. On macOS, grant your launcher Accessibility and Screen
 Recording access. On Windows, start from the interactive user session.
 
+In Tasks, choose **Allow desktop control each cycle** when queueing a coding
+task. Open **Desktop controls** beside a task to inspect its desktop agent
+or pause and resume connected agents. The MCP tools can also list and
+pause or resume tasks and desktop agents between actions.
+
 Queue a scoped objective with an independent check and a model that supports
 vision and tool calls.
 

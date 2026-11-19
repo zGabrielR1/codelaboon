@@ -12,3 +12,13 @@
 .desktop-main pre{max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);border:1px solid var(--line);padding:12px}
 #desktop-workspace,#browser-status{overflow-wrap:anywhere}
 @media(max-width:680px){.desktop-grid{grid-template-columns:minmax(0,1fr);gap:0}}
+
+.task-desktop { margin-block: 24px; }
+.task-desktop #desktop-agents > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-wrap: anywhere;
+  margin-block: 8px;
+}

@@ -1,3 +1,8 @@
+## 1.0.0rc38
+
+- Put desktop controls beside continuous tasks and allow eligible jobs to opt in to desktop access each cycle.
+- List desktop agents in Tasks and support pause and resume from the task UI and MCP.
+
 ## 1.0.0rc37
 
 - Simplify task workspace labels, worker status, and App verification progress.

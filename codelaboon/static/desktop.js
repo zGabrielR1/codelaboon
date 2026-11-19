@@ -1,3 +1,4 @@
+(() => {
 const $ = selector => document.querySelector(selector);
 const browserButtons = [...document.querySelectorAll('[data-browser]')];
 let token = '';
@@ -98,4 +99,47 @@ for (const button of browserButtons.filter(button => button.type === 'button')) 
   } catch (error) {
     $('#desktop-workspace').textContent = error.message;
   }
+})();
+
+const panel = $('#desktop-tools');
+const agents = $('#desktop-agents');
+async function refreshAgents() {
+  if (!panel?.open || !token) return;
+  try {
+    const {agents: rows} = await desktop('agents');
+    const active = document.activeElement?.dataset.agent;
+    if (active && rows.some(agent => agent.id === active)) return;
+    agents.replaceChildren();
+    if (!rows.length) agents.textContent = 'No active desktop agents.';
+    for (const agent of rows) {
+      const row = document.createElement('div');
+      const label = document.createElement(agent.task ? 'a' : 'span');
+      label.textContent = agent.task ? agent.task : agent.project;
+      if (agent.task) label.href = '/tasks?task=' + encodeURIComponent(agent.task);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.agent = agent.id;
+      button.textContent = agent.paused ? 'Resume desktop' : 'Pause desktop';
+      button.onclick = async () => {
+        button.disabled = true;
+        try {
+          await desktop(agent.paused ? 'resume_agent' : 'pause_agent', {agent: agent.id});
+          button.blur();
+          await refreshAgents();
+        } catch (error) {
+          $('#desktop-workspace').textContent = error.message;
+          button.disabled = false;
+        }
+      };
+      row.append(label, button);
+      agents.append(row);
+    }
+  } catch (error) {
+    agents.textContent = error.message;
+  }
+}
+if (panel) {
+  panel.addEventListener('toggle', refreshAgents);
+  setInterval(refreshAgents, 2000);
+}
 })();

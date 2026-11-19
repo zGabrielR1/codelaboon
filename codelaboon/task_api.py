@@ -218,6 +218,9 @@ def enqueue(body):
     checks=body.get('checks')
     if not isinstance(checks,list) or not checks or len(checks)>20 or any(not isinstance(argv,list) or not argv or len(argv)>100 or any(not isinstance(part,str) or not part or len(part)>4096 for part in argv) for argv in checks):
         raise ValueError('Verification must contain nonempty argument arrays, not shell strings')
+    foreground=body.get('foreground_desktop',False)
+    if type(foreground) is not bool:raise ValueError('Invalid desktop selection')
+    if foreground and '/' not in model:raise ValueError('Desktop tasks require an explicit vision-capable provider/model')
     options={key:body.get(key,default) for key,default in (('workers',4 if engine=='jcode' else 1),('timeout',1800),('interval',60),('cycles',0))}
     if any(type(value) is not int for value in options.values()):raise ValueError('Budgets must be whole numbers')
     allowed=body.get('allowed_paths',[])
@@ -226,7 +229,7 @@ def enqueue(body):
     identity=add(objective,checks=checks,model=model,controller='worker',project=Path(project).expanduser(),
         permissions=permissions,profile=body.get('profile','security'),scope=scope,
         supervise=body.get('supervise',False),allowed_paths=allowed,
-        elevation=body.get('elevation','none'),engine=engine,start_worker=False,execution_settings=body.get('execution_settings'),**options)
+        elevation=body.get('elevation','none'),engine=engine,start_worker=False,execution_settings=body.get('execution_settings'),foreground_desktop=foreground,**options)
     from codelaboon.work import start
     try:start()
     except (OSError,RuntimeError,ValueError):
