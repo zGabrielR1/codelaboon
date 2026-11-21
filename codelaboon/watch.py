@@ -451,6 +451,7 @@ def supervise(config, base, root, once):
                     execution['env'].update(
                         CODELABOON_DESKTOP_MCP='1', CODELABOON_FOREGROUND_TASK='1',
                         CODELABOON_DESKTOP_TASK_ID=task['id'],
+                        CODELABOON_DESKTOP_TASK_CONTROL=str(controls(root, task['id']).resolve()),
                         CODELABOON_DESKTOP_VISION_MODEL=(model if regression else task['swarm']['model']).removeprefix('codelaboon/'),
                     )
                 if regression and regression['isolated']:

@@ -199,11 +199,13 @@ def discover(name,provider):
 
 
 def eligible(name,provider):
+    if name not in FREE_PROVIDERS:
+        return False
     try:
         usable=bool(provider.validate_api_key())
     except Exception:
         usable=False
-    if name not in FREE_PROVIDERS or not usable:
+    if not usable:
         return False
     if name=='gemini' and (getattr(provider,'api_key','').strip() or os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')):
         return False

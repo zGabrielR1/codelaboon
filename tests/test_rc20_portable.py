@@ -155,6 +155,13 @@ class RoutingObservations(unittest.TestCase):
         original=m.key('fixture',self.provider,'fast','coding');self.provider.api_key='other'
         self.assertNotEqual(original,m.key('fixture',self.provider,'fast','coding'))
         self.assertNotIn('never-store-this-secret',(Path(self.directory.name)/'routing.sqlite3').read_bytes().decode('latin1'))
+    def test_nonstreaming_latency_contributes_to_routing(self):
+        for _ in range(2):
+            m.observe('fixture', self.provider, 'quick', 'general', 'ok', 0.2)
+            m.observe('fixture', self.provider, 'slow', 'general', 'ok', 10)
+        self.assertGreater(m.adjustment('fixture', self.provider, 'quick', 'general'),
+                           m.adjustment('fixture', self.provider, 'slow', 'general'))
+
     def test_acceptance_feedback_idempotent_and_failed_candidates_penalized(self):
         self.observe();self.observe();trace=Path(self.directory.name)/'trace.jsonl';trace.write_text(json.dumps({'key':m.key('fixture',self.provider,'fast','coding')})+'\n')
         m.feedback(trace,True);m.feedback(trace,True);m.feedback(trace,False)

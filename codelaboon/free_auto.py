@@ -23,8 +23,7 @@ worth everything.
 """
 
 from dataclasses import dataclass
-import os
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 
 AUTO_PROVIDER = "free"
@@ -99,52 +98,44 @@ def _roster(provider) -> List[str]:
     return roster
 
 
-def _availability(model: FreeModel, providers: Dict[str, object]) -> float:
-    """How confidently this entry can answer right now, between 0 and 1."""
-    provider = providers.get(model.provider)
-    if provider is None:
-        return 0.0
-    try:
-        usable = bool(provider.validate_api_key())
-    except Exception:
-        usable = False
-    if not usable:
-        return 0.0
-    if model.provider == "gemini" and (getattr(provider, "api_key", "").strip()
-            or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
-        return 0.0  # AI Studio keys do not establish free Code Assist access.
-    if model.provider == "qoder" and getattr(provider, "_pat", lambda: "")():
-        return 0.0  # Cloud Agents PAT usage can consume credits.
-    from codelaboon import model_health
-    if model_health.cooldown(model.provider,provider)>0:return 0.0
-    roster = model_health.catalog(model.provider, provider)
-    if roster is None:
-        roster = _roster(provider)
-    if model.model not in roster or model_health.blocked(model.provider, provider, model.model):
-        return 0.0
-    return 1.0 if model_health.verified(model.provider, provider, model.model) else 0.8
-
-
 def ranked(providers: Dict[str, object], task=None) -> List[FreeModel]:
-    """Rank current provider IDs only; historical capability hints are never model discovery."""
-    from codelaboon import model_health
+    """Rank advertised model IDs using one set of health and routing observations."""
+    from codelaboon import model_health, routing_metrics
+    import time
+
     hints = {(entry.provider, entry.model): entry for entry in CATALOG}
-    scored=[]
-    for name,provider in providers.items():
-        if not model_health.eligible(name,provider):
+    category = task or routing_metrics.task_class()
+    observations = routing_metrics.rows()
+    preset = routing_metrics.preset() if observations else None
+    checks = model_health.enabled()
+    backoffs, records = {}, {}
+    if checks:
+        with model_health.database() as health:
+            backoffs, records = health['backoffs'], health['models']
+    scored = []
+    for name, provider in providers.items():
+        if not model_health.eligible(name, provider):
             continue
-        models=model_health.catalog(name,provider)
+        scope = model_health.scope(name, provider) if checks or observations else ''
+        now = time.time()
+        if backoffs.get(scope, 0) > now:
+            continue
+        models = model_health.catalog(name, provider)
         if models is None:
-            models=_roster(provider)
+            models = _roster(provider)
         for model in dict.fromkeys(models):
-            entry=hints.get((name,model),FreeModel(name,model,8.0,8.0))
-            availability=_availability(entry,providers)
-            if availability>0:
-                from codelaboon import routing_metrics
-                learned=routing_metrics.adjustment(name,provider,model,task or routing_metrics.task_class()) if routing_metrics.enabled() else 0
-                scored.append((entry.score(availability)+learned,-len(scored),entry))
-    scored.sort(reverse=True)
-    return [entry for _,_,entry in scored]
+            row = records.get(scope + '/' + model)
+            current = row and row['retry_at'] > now
+            if current and row['status'] != 'working':
+                continue
+            entry = hints.get((name, model), FreeModel(name, model, 8.0, 8.0))
+            learned = 0.0
+            if observations:
+                key = routing_metrics.scoped_key(scope, model, category)
+                learned = routing_metrics.score(observations.get(key, {}), category, preset)
+            scored.append((entry.score(1.0 if current else 0.8) + learned, entry))
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [entry for _, entry in scored]
 
 
 def candidates(providers: Dict[str, object]) -> List[Tuple[str, str, str]]:
@@ -222,7 +213,7 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
     """
     import time
 
-    from codelaboon import routing_metrics
+    from codelaboon import model_health, routing_metrics
     category=routing_metrics.task_class(messages)
     entries = ranked(providers,category)
     if not entries:
@@ -234,7 +225,7 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
     errors: List[str] = []
     attempts = 0
     max_attempts = 12  # avoid very long stalls while still being resilient
-    for entry in entries:
+    for index, entry in enumerate(entries):
         provider = providers.get(entry.provider)
         if provider is None:
             continue
@@ -246,16 +237,21 @@ def chat(providers: Dict[str, object], messages: Sequence[Dict[str, str]], **kwa
                 started=time.monotonic()
                 reply = provider.chat(entry.model, list(messages), **kwargs)
             except Exception as error:  # Fail over: the point of Auto is availability.
-                from codelaboon import model_health
-                model_health.observe(entry.provider,provider,entry.model,model_health.failure(error))
+                failure = model_health.failure(error)
+                model_health.observe(entry.provider, provider, entry.model, failure)
                 routing_metrics.observe(entry.provider,provider,entry.model,category,'failed',time.monotonic()-started)
                 errors.append(f"{entry.provider}/{entry.model}: {error}")
+                if failure == 'rate_limited':
+                    alternative = next((i for i in range(index + 1, len(entries))
+                                        if entries[i].provider != entry.provider), None)
+                    if alternative is not None:
+                        entries.insert(index + 1, entries.pop(alternative))
+                        break
                 if attempt == 0 and _is_transient_error(error):
                     time.sleep(0.6)
                     continue
                 break
             if isinstance(reply, str) and reply.strip():
-                from codelaboon import model_health
                 model_health.observe(entry.provider,provider,entry.model,"working")
                 routing_metrics.observe(entry.provider,provider,entry.model,category,'ok',time.monotonic()-started)
                 return entry, reply

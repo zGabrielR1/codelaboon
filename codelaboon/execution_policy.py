@@ -20,7 +20,7 @@ def child_environment(task):
     environment=dict(os.environ)
     environment.pop('CODELABOON_TASK_CHAT_MODEL',None)
     for name in ('CODELABOON_DESKTOP_MCP', 'CODELABOON_FOREGROUND_TASK', 'CODELABOON_NATIVE_DESKTOP',
-                 'CODELABOON_DESKTOP_VISION_MODEL', 'CODELABOON_DESKTOP_TASK_ID'):
+                 'CODELABOON_DESKTOP_VISION_MODEL', 'CODELABOON_DESKTOP_TASK_ID', 'CODELABOON_DESKTOP_TASK_CONTROL'):
         environment.pop(name, None)
     return dict(environment,CODELABOON_WORK_PERMISSIONS=permissions,CODELABOON_WORK_PROFILE=selected,
                 CODELABOON_ROUTING_TASK='security' if selected=='security' else 'coding',

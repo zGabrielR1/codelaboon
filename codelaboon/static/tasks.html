@@ -12,6 +12,13 @@
       <section class="task-queue" aria-labelledby="queue-heading"><div class="section-heading"><h2 id="queue-heading">Task queue <span id="task-total">0</span></h2></div><label class="sr-only" for="task-filter">Filter tasks</label><input id="task-filter" type="search" placeholder="Find a task or project"><label class="sr-only" for="task-state-filter">Task state</label><select id="task-state-filter" aria-label="Filter tasks by state"><option value="all">All tasks</option><option value="attention">Needs attention</option><option value="active">Running</option><option value="paused">Paused</option><option value="finished">Finished</option></select><div id="task-list" class="task-list" aria-label="Task list"><p class="ops-empty">Reading the task queue…</p></div></section>
       <section id="task-detail" class="task-detail" aria-label="Selected task"><div class="ops-empty"><h2>No task selected</h2></div></section>
     </div>
+    <details id="runtime-tools" class="task-desktop">
+      <summary>Engine maintenance</summary>
+      <p id="runtime-status" role="status"></p>
+      <ul id="runtime-list"></ul>
+      <p>Run <code>codelaboon update</code> in your terminal, then restart Codelaboon and any running task worker.</p>
+      <button id="runtime-refresh" type="button">Refresh runtime status</button>
+    </details>
     <details id="desktop-tools" class="task-desktop">
       <summary>Desktop controls</summary>
       <p id="desktop-workspace" role="status"></p>

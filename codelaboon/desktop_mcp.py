@@ -32,6 +32,8 @@ def server_args():
         args = ["-c", bootstrap, "mcp", "--foreground-task"]
         if task := os.environ.get("CODELABOON_DESKTOP_TASK_ID"):
             args.extend(["--task-id", task])
+        if control := os.environ.get("CODELABOON_DESKTOP_TASK_CONTROL"):
+            args.extend(["--task-control", control])
         return args
     if os.environ.get("CODELABOON_NATIVE_DESKTOP") == "1":
         return [*ARGS, "--native"]
@@ -59,6 +61,7 @@ def main(argv=None):
                         default="claude", help="Configuration format for the config action")
     parser.add_argument("--native", action="store_true", help="Expose foreground desktop actions")
     parser.add_argument("--task-id", help=argparse.SUPPRESS)
+    parser.add_argument("--task-control", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--foreground-task", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.action == "config":
@@ -82,7 +85,7 @@ def main(argv=None):
     server = FastMCP("Codelaboon Desktop")
     foreground = args.foreground_task
     from codelaboon import desktop_agents
-    agent = desktop_agents.Agent(args.task_id)
+    agent = desktop_agents.Agent(args.task_id, args.task_control if foreground else None)
     browser = desktop.Browser(headless=foreground)
     native = None
 

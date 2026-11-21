@@ -21,6 +21,29 @@ class DesktopAgentTests(unittest.TestCase):
                 agent.close()
             self.assertEqual(desktop_agents.list_agents(), {"agents": []})
 
+    def test_linked_task_controls_existing_desktop_tools(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            control = root / "task-controls"
+            control.mkdir()
+            with patch.object(desktop_agents, "root", return_value=root / "agents"):
+                agent = desktop_agents.Agent("task-1", control)
+                try:
+                    (control / "PAUSE").touch()
+                    desktop_agents.control_agent(agent.id, "resume")
+                    with self.assertRaisesRegex(ValueError, "linked task is paused"):
+                        agent.check()
+                    row = desktop_agents.list_agents()["agents"][0]
+                    self.assertEqual(row["task_state"], "paused")
+                    self.assertNotIn("task_control", row)
+                    (control / "PAUSE").unlink()
+                    agent.check()
+                    (control / "STOP").touch()
+                    with self.assertRaisesRegex(ValueError, "linked task is stopped"):
+                        agent.check()
+                finally:
+                    agent.close()
+
     def test_web_queue_passes_desktop_opt_in_and_continuous_cycles(self):
         with tempfile.TemporaryDirectory() as project:
             task = {"objective": "Review the app", "project": project, "scope": "App window",

@@ -1,3 +1,10 @@
+## 1.0.0rc39
+
+- Offer Free (Auto) in Web Chat and show which provider and model answered each turn.
+- Reuse routing observations across candidates, rank non-streaming latency, and try another provider promptly after rate limiting.
+- Synchronize linked desktop agents with continuous-task pause and stop controls.
+- Show OpenCode and OMP runtime health and maintenance results alongside the task queue.
+
 ## 1.0.0rc38
 
 - Put desktop controls beside continuous tasks and allow eligible jobs to opt in to desktop access each cycle.

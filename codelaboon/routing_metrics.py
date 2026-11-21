@@ -28,7 +28,11 @@ def task_class(messages=(),default=None):
 def enabled():return os.environ.get('CODELABOON_METRICS','1')!='0'
 def key(name,provider,model,task):
     from codelaboon.model_health import scope
-    return hashlib.sha256((scope(name,provider)+'/'+model+'/'+task).encode()).hexdigest()
+    return scoped_key(scope(name,provider),model,task)
+
+
+def scoped_key(scope, model, task):
+    return hashlib.sha256((scope+'/'+model+'/'+task).encode()).hexdigest()
 
 
 @contextmanager
@@ -112,14 +116,18 @@ def percentile(values,fraction):
 
 
 def adjustment(name,provider,model,task):
-    row=rows().get(key(name,provider,model,task),{});success=row.get('ok',0);fail=row.get('failed',0)
+    return score(rows().get(key(name,provider,model,task),{}), task, preset())
+
+
+def score(row, task, routing_preset):
+    success=row.get('ok',0);fail=row.get('failed',0)
     if success+fail<2:return 0.0
     reliability=(success+1)/(success+fail+2)
     quality=(row.get('checks_passed',0)+1)/(row.get('checks_passed',0)+row.get('checks_failed',0)+2)
-    delay=percentile(row.get('first_token',[]) or row.get('first_byte',[]),.5)
+    delay=percentile(row.get('first_token',[]) or row.get('first_byte',[]) or row.get('seconds',[]),.5)
     speed=1/(1+delay) if delay is not None else .5
     # Bound learned influence; diagnostic probes are not model intelligence scores.
-    quality_weight,speed_weight={'fast':(.15,.25),'balanced':(.25,.10),'deep':(.40,.03)}[preset()]
+    quality_weight,speed_weight={'fast':(.15,.25),'balanced':(.25,.10),'deep':(.40,.03)}[routing_preset]
     if task=='security':quality_weight=max(.30,quality_weight)
     return .20*(reliability-.5)+quality_weight*(quality-.5)+speed_weight*(speed-.5)
 

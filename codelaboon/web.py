@@ -14,7 +14,7 @@ STATIC = Path(__file__).with_name("static")
 
 
 def create_server(port=8765, cli=None):
-    from codelaboon import desktop
+    from codelaboon import desktop, free_auto
 
     cli = cli or CodelaboonCLI()
     cli.load_providers()
@@ -111,6 +111,17 @@ def create_server(port=8765, cli=None):
                     return self.respond(200,task_api.snapshot())
                 except (OSError,ValueError,KeyError,TypeError):
                     return self.respond(400,{'error':'Task state could not be read. Check worker configuration and retry.'})
+            if url.path == '/api/runtime':
+                if self.headers.get('X-Codelaboon-Token') != token:
+                    return self.respond(403, {'error': 'Reload this workspace and retry'})
+                from codelaboon import runtime_management
+                try:
+                    return self.respond(200, {
+                        'runtimes': [runtime_management.inspect(engine) for engine in runtime_management.ENGINES],
+                        'last_update': runtime_management.read_receipt(),
+                    })
+                except (OSError, ValueError, KeyError):
+                    return self.respond(500, {'error': 'Runtime status could not be read. Run codelaboon runtime status.'})
             if url.path=='/api/connections':
                 if self.headers.get('X-Codelaboon-Token')!=token:return self.respond(403,{'error':'Reload this workspace and retry'})
                 from codelaboon.connections import KEY_PROVIDERS
@@ -124,9 +135,15 @@ def create_server(port=8765, cli=None):
                     return self.respond(404, {"error": "Unknown sign-in provider"})
                 return self.respond(200, auth_states[provider])
             if url.path == "/api/providers":
-                return self.respond(200, {"token": token, "providers": [{"name": n, "configured": p.validate_api_key(), "keyless": p.keyless, "label": getattr(type(p), "display_name", n)} for n, p in sorted(cli.providers.items())]})
+                providers = [{"name": n, "configured": p.validate_api_key(), "keyless": p.keyless,
+                              "label": getattr(type(p), "display_name", n)} for n, p in sorted(cli.providers.items())]
+                providers.append({"name": free_auto.AUTO_PROVIDER, "configured": True, "keyless": False,
+                                  "label": "Free (Auto)"})
+                return self.respond(200, {"token": token, "providers": providers})
             if url.path == "/api/models":
                 name = parse_qs(url.query).get("provider", [""])[0]
+                if name == free_auto.AUTO_PROVIDER:
+                    return self.respond(200, {"models": [free_auto.AUTO_MODEL]})
                 if name not in cli.providers:
                     return self.respond(404, {"error": "Unknown provider"})
                 try:
@@ -277,14 +294,23 @@ def create_server(port=8765, cli=None):
                 if not 0 < length <= 1048576:
                     return self.respond(413, {"error": "Conversation is too large"})
                 body = json.loads(self.rfile.read(length))
-                provider = cli.providers[body["provider"]]
+                name = body["provider"]
                 messages = body["messages"]
                 if not isinstance(messages, list) or not messages or len(messages) > 200 or any(not isinstance(m, dict) or m.get("role") not in ("system", "user", "assistant") or not isinstance(m.get("content"), str) for m in messages):
                     raise ValueError()
                 model = body["model"]
                 if not isinstance(model, str) or not model.strip():
                     raise ValueError()
-                if body["provider"] == "claude_browser":
+                if name == free_auto.AUTO_PROVIDER:
+                    if model != free_auto.AUTO_MODEL:
+                        raise ValueError()
+                    try:
+                        chosen, reply = free_auto.chat(cli.providers, messages, temperature=0.7, max_tokens=4096)
+                    except ValueError:
+                        return self.respond(502, {"error": "No free model answered. Check your connections or retry later."})
+                    return self.respond(200, {"reply": reply, "route": f"{chosen.provider}/{chosen.model}"})
+                provider = cli.providers[name]
+                if name == "claude_browser":
                     try:
                         reply = provider.chat(model, messages, background=True)
                     except ValueError as error:

@@ -96,6 +96,7 @@ for (const button of browserButtons.filter(button => button.type === 'button')) 
     token = session.token;
     $('#desktop-workspace').textContent = session.workspace + ' · ' + session.platform;
     controls();
+    refreshAgents();
   } catch (error) {
     $('#desktop-workspace').textContent = error.message;
   }
@@ -103,12 +104,16 @@ for (const button of browserButtons.filter(button => button.type === 'button')) 
 
 const panel = $('#desktop-tools');
 const agents = $('#desktop-agents');
+let refreshingAgents = false, lastAgents = '';
 async function refreshAgents() {
-  if (!panel?.open || !token) return;
+  if (!panel?.open || !token || refreshingAgents) return;
+  refreshingAgents = true;
   try {
     const {agents: rows} = await desktop('agents');
+    const signature = JSON.stringify(rows);
+    if (signature === lastAgents) return;
+    lastAgents = signature;
     const active = document.activeElement?.dataset.agent;
-    if (active && rows.some(agent => agent.id === active)) return;
     agents.replaceChildren();
     if (!rows.length) agents.textContent = 'No active desktop agents.';
     for (const agent of rows) {
@@ -124,7 +129,7 @@ async function refreshAgents() {
         button.disabled = true;
         try {
           await desktop(agent.paused ? 'resume_agent' : 'pause_agent', {agent: agent.id});
-          button.blur();
+          button.disabled = false;
           await refreshAgents();
         } catch (error) {
           $('#desktop-workspace').textContent = error.message;
@@ -132,10 +137,19 @@ async function refreshAgents() {
         }
       };
       row.append(label, button);
+      if (agent.task_state) {
+        const state = document.createElement('span');
+        state.textContent = 'Task ' + agent.task_state;
+        row.append(state);
+      }
       agents.append(row);
+      if (active === agent.id) button.focus();
     }
   } catch (error) {
+    lastAgents = '';
     agents.textContent = error.message;
+  } finally {
+    refreshingAgents = false;
   }
 }
 if (panel) {

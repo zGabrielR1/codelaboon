@@ -1,6 +1,8 @@
 """The free (Auto) ranking and failover contract."""
 
+from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from codelaboon import free_auto
 
@@ -31,6 +33,10 @@ class UnconfiguredProvider(FakeProvider):
 
 
 class FreeAutoTests(unittest.TestCase):
+    def setUp(self):
+        directory = self.enterContext(TemporaryDirectory())
+        self.enterContext(patch.dict("os.environ", CODELABOON_CONFIG_DIR=directory))
+
     def test_ranks_available_smart_models_first(self):
         ourfree = FakeProvider(["deepseek-v4.1-flash-free", "space-bunny-free"])
         providers = {"ourfree": ourfree}
@@ -64,6 +70,18 @@ class FreeAutoTests(unittest.TestCase):
             provider.calls[2],
             next(entry.model for entry in free_auto.ranked(providers) if entry.model != "deepseek-v4.1-flash-free"),
         )
+
+    def test_rate_limit_tries_another_provider_before_retrying(self):
+        limited = FakeProvider(["deepseek-v4.1-flash-free", "glm-5.3-flash-free"], error="429")
+        fallback = FakeProvider(["kilo-auto/free"])
+        with (
+            patch.dict("os.environ", CODELABOON_MODEL_CHECKS="0", CODELABOON_METRICS="0"),
+            patch("time.sleep") as sleep,
+        ):
+            chosen, _ = free_auto.chat({"ourfree": limited, "kilo": fallback}, [])
+        self.assertEqual(chosen.provider, "kilo")
+        self.assertEqual(limited.calls, ["deepseek-v4.1-flash-free"])
+        sleep.assert_not_called()
 
     def test_chat_reports_every_failure(self):
         provider = FakeProvider(["deepseek-v4.1-flash-free"], error="boom")

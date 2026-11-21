@@ -408,7 +408,9 @@ class KiloTests(unittest.TestCase):
             return_value={"kilo": {"api_key": "", "models": []}},
         ):
             cli.load_providers()
-        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+        with mock.patch.object(KiloProvider, "list_models", return_value=[]), (
+            mock.patch("sys.stdout", new_callable=io.StringIO)
+        ) as out:
             cli.list_providers()
         self.assertIn("Free (no key needed)", out.getvalue())
 

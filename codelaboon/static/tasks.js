@@ -12,6 +12,35 @@ async function api(path,options={}){
   const response=await fetch(path,{...options,headers:{'X-Codelaboon-Token':token,...options.headers}});
   const value=await response.json();if(!response.ok)throw Error(value.error||'Task operation failed');return value;
 }
+async function refreshRuntimes(){
+  const status=$('#runtime-status'), list=$('#runtime-list'), button=$('#runtime-refresh');
+  button.disabled=true;
+  status.textContent='Reading runtime status…';
+  try{
+    const {runtimes,last_update}=await api('/api/runtime');
+    list.replaceChildren();
+    for(const runtime of runtimes){
+      const item=document.createElement('li');
+      item.textContent=runtime.engine+' · '+runtime.state.replaceAll('_',' ')+' · '+runtime.message;
+      if(runtime.state!=='ready'){
+        const command=document.createElement('code');
+        command.textContent=runtime.repair_command;
+        item.append(document.createElement('br'),command);
+      }
+      list.append(item);
+    }
+    status.textContent=last_update
+      ? 'Last maintenance for Codelaboon '+last_update.version+' · '+(last_update.success?'verified':'needs attention')
+      : 'No runtime maintenance receipt yet.';
+  }catch(error){
+    list.replaceChildren();
+    status.textContent=error.message;
+  }finally{button.disabled=false}
+}
+$('#runtime-tools').addEventListener('toggle',()=>{
+  if($('#runtime-tools').open && token)refreshRuntimes();
+});
+$('#runtime-refresh').onclick=refreshRuntimes;
 function notice(message,success=false){$('#ops-error span').textContent=message;$('#ops-error').hidden=!message;$('#ops-error').classList.toggle('success',success)}
 function taskState(task){return task.state||'queued'}
 function attention(task){return /failed|retry|interrupted/.test(taskState(task))}
@@ -223,7 +252,7 @@ $('#confirm-task').onclick=async()=>{
   finally{$('#confirm-task').disabled=false;$('#edit-task').disabled=false}
 };
 $('#task-state-filter').onchange=renderList;$('#task-filter').oninput=renderList;$('#ops-refresh').onclick=refresh;$('#ops-retry').onclick=refresh;$('#live-refresh').onchange=()=>{if($('#live-refresh').checked)refresh()};
-(async()=>{try{const session=await api('/api/session');token=session.token;$('#ops-version').textContent='Core '+session.version;$('#task-elevation').replaceChildren(new Option('Current OS account','none'),new Option(session.platform==='Windows'?'Administrator case (native approval)':'Root case (native approval)',session.platform==='Windows'?'administrator':'root'));await refresh()}catch(error){notice(error.message)}})();
+(async()=>{try{const session=await api('/api/session');token=session.token;if($('#runtime-tools').open)refreshRuntimes();$('#ops-version').textContent='Core '+session.version;$('#task-elevation').replaceChildren(new Option('Current OS account','none'),new Option(session.platform==='Windows'?'Administrator case (native approval)':'Root case (native approval)',session.platform==='Windows'?'administrator':'root'));await refresh()}catch(error){notice(error.message)}})();
 setInterval(()=>{if($('#live-refresh').checked&&!document.hidden)refresh()},2000);
 
 async function loadConversation(){

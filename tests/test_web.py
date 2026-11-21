@@ -29,6 +29,37 @@ class WebTests(unittest.TestCase):
         self.assertEqual(requests.get(self.url+'/api/models?provider=test').json()['models'],['test-model'])
         r=requests.post(self.url+'/api/chat',headers={'X-Codelaboon-Token':data['token']},json={'provider':'test','model':'test-model','messages':[{'role':'user','content':'Hello'}]})
         self.assertEqual(r.json(),{'reply':'Verified reply'})
+    def test_web_free_auto_reports_route_and_redacts_failures(self):
+        from codelaboon.free_auto import AUTO_MODEL, FreeModel
+
+        providers = requests.get(self.url + '/api/providers').json()
+        self.assertTrue(any(row['name'] == 'free' for row in providers['providers']))
+        self.assertEqual(requests.get(self.url + '/api/models?provider=free').json()['models'], [AUTO_MODEL])
+        headers = {'X-Codelaboon-Token': providers['token']}
+        body = {'provider': 'free', 'model': AUTO_MODEL, 'messages': [{'role': 'user', 'content': 'Hello'}]}
+        with patch('codelaboon.free_auto.chat', return_value=(FreeModel('kilo', 'fixture', 8, 8), 'Reply')) as chat:
+            response = requests.post(self.url + '/api/chat', json=body, headers=headers)
+            self.assertEqual(response.json(), {'reply': 'Reply', 'route': 'kilo/fixture'})
+            self.assertEqual(chat.call_args.args[1], body['messages'])
+        with patch('codelaboon.free_auto.chat', side_effect=ValueError('private upstream detail')):
+            response = requests.post(self.url + '/api/chat', json=body, headers=headers)
+            self.assertEqual(response.status_code, 502)
+            self.assertNotIn('private upstream detail', response.text)
+
+    def test_runtime_status_requires_token_and_reports_receipt(self):
+        url = self.url + '/api/runtime'
+        self.assertEqual(requests.get(url).status_code, 403)
+        token = requests.get(self.url + '/api/session').json()['token']
+        runtime = {'engine': 'opencode', 'state': 'ready'}
+        receipt = {'version': 'test', 'success': True}
+        with (
+            patch('codelaboon.runtime_management.ENGINES', ('opencode',)),
+            patch('codelaboon.runtime_management.inspect', return_value=runtime),
+            patch('codelaboon.runtime_management.read_receipt', return_value=receipt),
+        ):
+            response = requests.get(url, headers={'X-Codelaboon-Token': token})
+        self.assertEqual(response.json(), {'runtimes': [runtime], 'last_update': receipt})
+
     def test_untrusted_and_invalid_requests(self):
         self.assertEqual(requests.get(self.url,headers={'Host':'evil.example'}).status_code,403)
         self.assertEqual(requests.post(self.url+'/api/chat',json={}).status_code,403)
