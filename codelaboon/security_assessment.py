@@ -213,6 +213,8 @@ def main(arguments=None):
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='action',required=True)
     commands.add_parser('capabilities')
     local_cmd=commands.add_parser('audit-local');local_cmd.add_argument('--project',required=True);local_cmd.add_argument('--file',action='append',required=True);local_cmd.add_argument('--output',required=True)
+    local_cmd.add_argument('--fail-on', choices=('info', 'medium', 'high'),
+                           help='Write the report and exit 2 when a finding meets this severity threshold')
     compare_cmd=commands.add_parser('compare');compare_cmd.add_argument('--before',required=True);compare_cmd.add_argument('--after',required=True);compare_cmd.add_argument('--output',required=True)
     scope_cmd=commands.add_parser('scope');scope_cmd.add_argument('--target',action='append',required=True);scope_cmd.add_argument('--check',action='append',choices=CHECKS);scope_cmd.add_argument('--output',required=True);scope_cmd.add_argument('--max-requests',type=int,default=12);scope_cmd.add_argument('--timeout',type=float,default=5)
     for name in ('assess','tool-case','import-nmap'):
@@ -230,7 +232,12 @@ def main(arguments=None):
         if args.action=='audit-local':
             from codelaboon.security_local import audit_local
             report=audit_local(args.project,args.file);write_new(args.output,report)
-            print(json.dumps({'report':args.output,'findings':len(report['findings'])},indent=2));return
+            print(json.dumps({'report':args.output,'findings':len(report['findings'])},indent=2))
+            severity = {'info': 0, 'medium': 1, 'high': 2}
+            if args.fail_on and any(severity[row['severity']] >= severity[args.fail_on]
+                                    for row in report['findings']):
+                raise SystemExit(2)
+            return
         if args.action=='scope':
             scope=create_scope(args.target,args.check or DEFAULT_CHECKS,args.max_requests,args.timeout);write_new(args.output,scope)
             print(json.dumps({'scope_id':identity(scope),'file':args.output,'targets':scope['targets']},indent=2));return

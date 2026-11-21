@@ -35,6 +35,13 @@ jobs:
       - name: Run structural verification
         run: bash scripts/verify.sh
 
+      - name: Audit release configuration for credential patterns
+        run: |
+          python -m codelaboon security audit-local --project . \
+            --file config/providers.toml.example --file pyproject.toml \
+            --file .github/workflows/release.yml --fail-on high \
+            --output "${RUNNER_TEMP}/codelaboon-release-security.json"
+
       - name: Verify tag and package source bundles
         run: |
           python scripts/verify_bundles.py
@@ -70,7 +77,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          body_path: RELEASE-RC40.md
+          body_path: RELEASE-RC41.md
           generate_release_notes: true
           prerelease: true
           fail_on_unmatched_files: true

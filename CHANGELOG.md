@@ -1,3 +1,9 @@
+## 1.0.0rc41
+
+- Detect likely GitHub and Stripe live credentials in explicitly named local files without retaining matched values.
+- Add a severity threshold to local audits for CI, and apply it to this project's release configuration.
+- Open local audit inputs through no-follow directory handles where supported.
+
 ## 1.0.0rc40
 
 - Sort the web task queue by recent attempt activity.

@@ -141,6 +141,42 @@ class LocalConfiguration(unittest.TestCase):
             except OSError: self.skipTest('Symlink creation unavailable')
             with self.assertRaises(ValueError): audit_local(root, ['link'])
 
+    def test_nested_symlink_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'real').mkdir()
+            (root / 'real' / 'settings').write_text('safe')
+            try:
+                (root / 'link').symlink_to(root / 'real', target_is_directory=True)
+            except OSError:
+                self.skipTest('Symlink creation unavailable')
+            with self.assertRaises(ValueError):
+                audit_local(root, ['link/settings'])
+
+    def test_credential_candidates_are_redacted_and_can_gate_ci(self):
+        from codelaboon.security_assessment import main
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'settings.txt'
+            token = 'ghp_' + 'Z' * 36
+            stripe = 'sk_live_' + 'Z' * 28
+            path.write_text(f'TOKEN={token}\nSTRIPE={stripe}\nSTRIPE_TEST=sk_test_example\n')
+            output = root / 'before.json'
+            args = ['audit-local', '--project', directory, '--file', path.name, '--fail-on', 'high']
+            with self.assertRaises(SystemExit) as gated:
+                main([*args, '--output', str(output)])
+            self.assertEqual(gated.exception.code, 2)
+            original = output.read_text()
+            self.assertNotIn(token, original)
+            self.assertNotIn(stripe, original)
+            candidates = [(row['rule'], row['line']) for row in json.loads(original)['findings']
+                          if row['status'] == 'suspected_credential']
+            self.assertEqual(candidates, [('github-token-pattern', 1), ('stripe-live-secret-pattern', 2)])
+            path.write_text('TOKEN_FROM_ENV=true\n')
+            main([*args, '--output', str(root / 'after.json')])
+            self.assertEqual(json.loads((root / 'after.json').read_text())['findings'], [])
+
 
 class ReportAndEvidence(unittest.TestCase):
     def test_compare_refuses_incomplete_or_different_coverage(self):
