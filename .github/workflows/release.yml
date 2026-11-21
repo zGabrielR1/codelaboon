@@ -75,7 +75,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir dist
+          release="repos/$GITHUB_REPOSITORY/releases/453867675"
+          test "$(gh api "$release" --jq '.tag_name + ":" + (.draft | tostring)')" = "$GITHUB_REF_NAME:true"
+          mkdir -p dist
+          assets=$(gh api "$release/assets" --jq '.[] | [.id, .name] | @tsv')
+          while IFS=$'\t' read -r id name; do
+            test "$id" -gt 0
+            [[ "$name" =~ ^(codelaboon[-.A-Za-z0-9_]+|SHA256SUMS)$ ]]
+            gh api "repos/$GITHUB_REPOSITORY/releases/assets/$id" \
+              -H 'Accept: application/octet-stream' > "dist/$name"
+          done <<< "$assets"
           cd dist
           echo "036fdaf350f6ac97e95cb0fb1854c0bba57e016ec1521d43b4e7954f7b8f6a36  SHA256SUMS" | sha256sum --check
           sha256sum --check SHA256SUMS
@@ -102,4 +111,4 @@ jobs:
         if: github.ref_name == 'v1.0.0-rc.42'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+        run: gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/453867675" -F draft=false --jq .html_url
