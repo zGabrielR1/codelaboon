@@ -1,3 +1,10 @@
+## 1.0.0rc40
+
+- Sort the web task queue by recent attempt activity.
+- Reduce idle web polling and skip periodic requests from hidden tabs.
+- Scan attempt receipts once per monitor snapshot and skip corrupt receipts.
+- Bound conversation event memory and open selected historical logs without scanning other attempts.
+
 ## 1.0.0rc39
 
 - Offer Free (Auto) in Web Chat and show which provider and model answered each turn.

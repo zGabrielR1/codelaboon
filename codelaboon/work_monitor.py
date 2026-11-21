@@ -13,22 +13,37 @@ def read(path, default):
         return default
 
 
-def snapshot(config=None, task_id=None, swarm_only=False):
-    from codelaboon.work import status
-    state = status(config)
-    root = Path(state['runtime'])
-    tasks = [row for row in state['pending'] if (not task_id or row['id']==task_id) and (not swarm_only or row.get('swarm'))]
-    selected_ids={row['id'] for row in tasks}
-    attempts = {}
-    for path in root.glob('*/result.json'):
+def attempt_rows(root, active=None):
+    for path in Path(root).glob('*/result.json'):
         row = read(path, {})
+        if active is not None and row.get('status') == 'running' and all(key in row for key in ('task', 'stage', 'harness')):
+            active.append({key: row[key] for key in ('task', 'stage', 'harness')} | {'logs': str(path.parent)})
+        yield path, row
+
+
+def latest_attempts(root, task_id=None, selected_ids=None, active=None):
+    attempts = {}
+    for path, row in attempt_rows(root, active):
         identity = row.get('task')
-        if not identity or (task_id and identity != task_id) or (swarm_only and not task_id and identity not in selected_ids):
+        if not isinstance(identity, str) or not identity or (task_id and identity != task_id) or (selected_ids is not None and identity not in selected_ids):
             continue
         if not isinstance(row.get('started',0),(int,float)):continue
         if row.get('started',0) >= attempts.get(identity,{}).get('started',0):
             attempts[identity] = {key:row[key] for key in ('status','stage','exit_code','started','finished','harness','verification','failure_detail','needs_attention','recovery','phase') if key in row}
             attempts[identity]['logs'] = str(path.parent)
+    return attempts
+
+
+def snapshot(config=None, task_id=None, swarm_only=False):
+    from codelaboon.work import status
+    state = status(config, include_active=False)
+    root = Path(state['runtime'])
+    tasks = [row for row in state['pending'] if (not task_id or row['id']==task_id) and (not swarm_only or row.get('swarm'))]
+    selected_ids={row['id'] for row in tasks}
+    active = []
+    attempts = latest_attempts(root, task_id, selected_ids if swarm_only and not task_id else None,
+                               active=active)
+    state['active_or_interrupted_attempts'] = active
     for row in tasks:
         latest = attempts.get(row['id'])
         row['last_attempt'] = latest

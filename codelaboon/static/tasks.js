@@ -50,6 +50,9 @@ function renderList(){
   const query=$('#task-filter').value.toLowerCase();
   const filter=$('#task-state-filter').value;
   const tasks=(state?.tasks||[]).filter(task=>filter==='all'||(filter==='attention'?attention(task):filter==='active'?taskState(task)==='active attempt':filter==='finished'?['completed','stopped'].includes(taskState(task)):taskState(task)==='paused')).filter(task=>[task.id,task.title,task.project,task.engine].some(value=>String(value).toLowerCase().includes(query)));
+  if($('#task-sort').value==='recent'){
+    tasks.sort((a,b)=>(b.last_attempt?.finished||b.last_attempt?.started||0)-(a.last_attempt?.finished||a.last_attempt?.started||0));
+  }
   $('#task-total').textContent=String(tasks.length);
   const list=$('#task-list');const ids=tasks.map(task=>task.id).join('|');
   if(list.dataset.ids!==ids){
@@ -62,14 +65,15 @@ function renderList(){
     }
     if(!tasks.length){const empty=document.createElement('div');empty.className='ops-empty';empty.textContent=query?'No matching tasks.':'No tasks queued. Queue one fixed objective with an independent verification command.';list.append(empty)}
   }
-  for(const task of tasks){
-    const button=[...list.querySelectorAll('.task-row')].find(row=>row.dataset.id===task.id);
+  const buttons=list.querySelectorAll('.task-row');
+  tasks.forEach((task,index)=>{
+    const button=buttons[index];
     button.classList.toggle('selected',task.id===selectedId);if(task.id===selectedId)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
     button.querySelector('.task-name').textContent=task.title;
     pill(button.querySelector('.state-pill'),task);
     button.querySelector('.task-cycle-count').textContent=(task.cycles_completed||0)+' verified';
     button.querySelector('.task-row-meta').textContent=task.engine+' · '+task.project.split(/[\\/]/).filter(Boolean).pop();
-  }
+  });
 }
 function selected(){return state?.tasks.find(task=>task.id===selectedId)}
 async function selectTask(identity,push=true){
@@ -251,9 +255,19 @@ $('#confirm-task').onclick=async()=>{
   catch(error){$('#task-form-error').textContent=error.message;$('#task-form-error').hidden=false}
   finally{$('#confirm-task').disabled=false;$('#edit-task').disabled=false}
 };
-$('#task-state-filter').onchange=renderList;$('#task-filter').oninput=renderList;$('#ops-refresh').onclick=refresh;$('#ops-retry').onclick=refresh;$('#live-refresh').onchange=()=>{if($('#live-refresh').checked)refresh()};
+$('#task-sort').onchange=renderList;$('#task-state-filter').onchange=renderList;$('#task-filter').oninput=renderList;$('#ops-refresh').onclick=refresh;$('#ops-retry').onclick=refresh;$('#live-refresh').onchange=()=>{if($('#live-refresh').checked)refresh()};
 (async()=>{try{const session=await api('/api/session');token=session.token;if($('#runtime-tools').open)refreshRuntimes();$('#ops-version').textContent='Core '+session.version;$('#task-elevation').replaceChildren(new Option('Current OS account','none'),new Option(session.platform==='Windows'?'Administrator case (native approval)':'Root case (native approval)',session.platform==='Windows'?'administrator':'root'));await refresh()}catch(error){notice(error.message)}})();
-setInterval(()=>{if($('#live-refresh').checked&&!document.hidden)refresh()},2000);
+let lastPoll=0;
+setInterval(()=>{
+  const active=state?.tasks.some(task=>taskState(task)==='active attempt');
+  if(token&&$('#live-refresh').checked&&!document.hidden&&Date.now()-lastPoll>=(active?2000:10000)){
+    lastPoll=Date.now();
+    refresh();
+  }
+},2000);
+document.addEventListener('visibilitychange',()=>{
+  if(token&&!document.hidden&&$('#live-refresh').checked)refresh();
+});
 
 async function loadConversation(){
   const identity=selectedId;if(!identity)return;const version=++conversationVersion;
@@ -261,7 +275,7 @@ async function loadConversation(){
     const data=await api('/api/tasks/messages?task='+encodeURIComponent(identity));
     if(identity!==selectedId||version!==conversationVersion||!$('#conversation-feed'))return;
     if(data.messages.length)lastSentMessages.set(identity,data.messages[data.messages.length-1].text);
-    const feed=$('#conversation-feed');const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<64;const previousScroll=feed.scrollTop;const first=!feed.dataset.signature;const output=$('#task-log')?.textContent||'';const signature=JSON.stringify(data)+output;
+    const feed=$('#conversation-feed');const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<64;const previousScroll=feed.scrollTop;const first=!feed.dataset.signature;const output=$('#task-log')?.textContent||'';const signature=JSON.stringify(data)+(data.events.length?'':output);
     if(feed.dataset.signature===signature)return;
     const activity=data.events.filter(row=>['status','error'].includes(row.kind)).at(-1);const activityNode=$('#task-activity');if(activityNode){activityNode.textContent=activity?.text||'Messages reach the orchestrator at its next checkpoint.';activityNode.classList.toggle('needs-attention',activity?.kind==='error')}
     const task=selected();const rows=[{created:0,role:'You / objective',text:task.objective},

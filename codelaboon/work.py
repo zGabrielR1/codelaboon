@@ -64,7 +64,7 @@ def running(root):
     return False
 
 
-def status(path=None):
+def status(path=None, *, include_active=True):
     path, config, root = configuration(path)
     state_path = root / 'state.json'
     state = json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else {}
@@ -73,11 +73,10 @@ def status(path=None):
         tasks.append(json.loads(item.read_text(encoding='utf-8')))
     done = set(state.get('done', []))
     active = []
-    for item in root.glob('*/result.json'):
-        result = json.loads(item.read_text(encoding='utf-8'))
-        if result.get('status') == 'running':
-            active.append({'task': result['task'], 'stage': result['stage'],
-                           'harness': result['harness'], 'logs': str(item.parent)})
+    if include_active:
+        from codelaboon.work_monitor import attempt_rows
+        for _ in attempt_rows(root, active):
+            pass
     from codelaboon.work_queue import controls
     def task_status(task):
         from codelaboon.task_settings import apply as apply_settings

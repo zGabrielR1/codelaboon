@@ -108,7 +108,15 @@ $('#composer').addEventListener('submit',async e=>{
 const normalNewChat=newChat;
 newChat=function(){if(busy)return;history.replaceState(null,'','/');taskState=null;normalNewChat();$('#compose-label').textContent='Conversation stays in this browser';$('#send').disabled=!$('#model').value};
 $('#new').onclick=newChat;
-setInterval(()=>refreshTaskChats(),2500);
+let lastTaskPoll=0;
+setInterval(()=>{
+ if(document.hidden)return;
+ if(current?.taskId||Date.now()-lastTaskPoll>=10000){
+  lastTaskPoll=Date.now();
+  refreshTaskChats();
+ }
+},2500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshTaskChats()});
 
 document.addEventListener('task-deleted',event=>{
  const identity=event.detail.task;try{localStorage.removeItem('codelaboon.draft.task:'+identity);const draft=JSON.parse(localStorage.getItem('codelaboon.activeDraft')||'null');if(draft?.chat?.taskId===identity)localStorage.removeItem('codelaboon.activeDraft')}catch{}

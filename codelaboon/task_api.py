@@ -63,10 +63,7 @@ def selected(identity,include_deleted=False):
 
 
 def logs(identity,attempt_id=None):
-    path,root,_=selected(identity)
-    from codelaboon.work_monitor import snapshot as monitored
-    state=monitored(path,identity)
-    attempt=state['latest_attempts'].get(identity)
+    _,root,_=selected(identity)
     if attempt_id is not None:
         if not isinstance(attempt_id,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',attempt_id):raise ValueError('Invalid attempt ID')
         source=root/attempt_id/'result.json'
@@ -74,6 +71,9 @@ def logs(identity,attempt_id=None):
         row=json.loads(source.read_text(encoding='utf-8'))
         if row.get('task')!=identity:raise ValueError('Attempt belongs to another task')
         attempt={'logs':str(root/attempt_id)}
+    else:
+        from codelaboon.work_monitor import latest_attempts
+        attempt=latest_attempts(root,identity).get(identity)
     if not attempt:return {'task':identity,'text':'','attempt':None,'truncated':False}
     source=Path(attempt['logs'])/'output.log'
     if not source.resolve().is_relative_to(root.resolve()):raise ValueError('Log path is outside the worker runtime')
@@ -92,7 +92,7 @@ def conversation(identity):
     _,root,task=selected(identity)
     from codelaboon.task_conversation import history,attempt_events
     events=attempt_events(root,identity)
-    return {'task':identity,'messages':history(root,identity),'events':sorted(events,key=lambda row:row['created'])[-40:]}
+    return {'task':identity,'messages':history(root,identity),'events':events[-40:]}
 
 
 def message(body):

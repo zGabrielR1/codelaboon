@@ -29,6 +29,22 @@ class LiveMonitoring(unittest.TestCase):
         self.assertEqual(row['state'],'retry wait');self.assertEqual(row['cooldown_seconds'],45)
         self.assertEqual(row['last_attempt']['logs'],str(latest))
         self.assertEqual(row['cycles_completed'],0)
+    def test_corrupt_receipt_does_not_hide_active_attempt(self):
+        broken = self.attempt('broken', 1)
+        (broken / 'result.json').write_text('{')
+        active = self.attempt('active', 2, status='running')
+        receipt = active / 'result.json'
+        row = json.loads(receipt.read_text())
+        receipt.write_text(json.dumps({**row, 'harness': 'fixture'}))
+        with (
+            patch('codelaboon.work.status', return_value=self.state),
+            patch.object(monitor, 'read', wraps=monitor.read) as read,
+        ):
+            state = monitor.snapshot()
+        self.assertEqual(read.call_count, 2)
+        self.assertEqual(state['pending'][0]['state'], 'active attempt')
+        self.assertEqual(state['active_or_interrupted_attempts'][0]['logs'], str(active))
+
     def test_log_follow_switches_to_new_attempt_and_does_not_change_task_state(self):
         self.attempt('first',1,text='first-cycle\n')
         calls=[]

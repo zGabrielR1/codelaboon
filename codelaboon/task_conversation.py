@@ -108,12 +108,19 @@ def failure_kind(text):
     return 'execution'
 
 
-def attempt_events(root,identity):
-    """The durable conversation contains real plans/replies and honest status turns."""
+def attempt_events(root, identity):
+    """Retain only the newest events while scanning durable attempts."""
+    from heapq import nlargest
+
+    key = lambda row: (row['created'], row['id'])
+    return list(reversed(nlargest(120, iter_attempt_events(root, identity), key=key)))
+
+
+def iter_attempt_events(root, identity):
     from codelaboon.task_changes import redact
-    result=[]
-    for source in Path(root).glob('*/result.json'):
-        if not source.resolve().is_relative_to(Path(root).resolve()):continue
+    root=Path(root).resolve()
+    for source in root.glob('*/result.json'):
+        if not source.resolve().is_relative_to(root):continue
         try:
             if source.stat().st_size>131072:continue
             row=json.loads(source.read_text(encoding='utf-8'))
@@ -125,16 +132,21 @@ def attempt_events(root,identity):
                   'working':'The orchestrator is coordinating '+(engine+' workers.' if engine!='worker' else 'the workers.'),
                   'verifying':'The workers have replied. Independent checks are running.'}.get(phase,'The task is running.')
             if state!='running':text='Work started with '+engine+'.'
-            result.append({'id':attempt.name+'-started','created':started,'role':'orchestrator','kind':'status','text':text})
+            yield {'id':attempt.name+'-started','created':started,'role':'orchestrator','kind':'status','text':text}
             plan=attempt/'orchestrator-plan.md'
-            if plan.is_file():result.append({'id':attempt.name+'-plan','created':min(plan.stat().st_mtime,row.get('finished',time.time())),'role':'orchestrator','kind':'plan','text':redact(tail(plan,24000))})
+            if plan.is_file():
+                yield {'id':attempt.name+'-plan','created':min(plan.stat().st_mtime,row.get('finished',time.time())),'role':'orchestrator','kind':'plan','text':redact(tail(plan,24000))}
             reply_path=attempt/'reply.txt';partial=not reply_path.is_file()
             if partial:reply_path=attempt/'reply.partial.txt'
             reply=tail(reply_path,48000)
-            if reply:result.append({'id':attempt.name+'-reply','created':min(reply_path.stat().st_mtime,row.get('finished',time.time())),
-                'role':'orchestrator','kind':'reply','text':redact(reply),'engine':engine,'partial':partial})
+            if reply:
+                yield {'id':attempt.name+'-reply','created':min(reply_path.stat().st_mtime,row.get('finished',time.time())),
+                'role':'orchestrator','kind':'reply','text':redact(reply),'engine':engine,'partial':partial}
             if state=='failed':
-                output=tail(attempt/'output.log')+'\n'+tail(attempt/'orchestrator.log');kind=row.get('failure_kind') or failure_kind(output)
+                kind=row.get('failure_kind')
+                if not kind:
+                    output=tail(attempt/'output.log')+'\n'+tail(attempt/'orchestrator.log')
+                    kind=failure_kind(output)
                 if kind=='provider_unavailable':text='The local gateway is reachable, but free providers are rate limited or unavailable. No paid model was used. The orchestrator will retry after the cooldown; you can choose another model in Models & prompts.'
                 elif kind=='engine_arguments':text='The engine treated the task instruction as a filename. Update Codelaboon to use the corrected OpenCode/Kilo launcher, then retry this conversation.'
                 elif row.get('verification')=='failed':
@@ -143,9 +155,8 @@ def attempt_events(root,identity):
                     text=(detail['summary']+'\n'+detail['output'] if detail else 'A project check failed. Open Attempts to inspect the check output.')+'\n'+row.get('recovery','The orchestrator receives the check output on its next attempt.')
                     kind=detail['kind'] if detail else 'verification'
                 else:text='The worker did not finish this attempt. Open Attempts for the engine output; your task and messages are saved.'
-                result.append({'id':attempt.name+'-result','created':finished,'role':'orchestrator','kind':'error','text':text,'failure_kind':kind})
+                yield {'id':attempt.name+'-result','created':finished,'role':'orchestrator','kind':'error','text':text,'failure_kind':kind}
             elif state=='succeeded':
                 text='Planning is complete. The workers will execute the plan.' if row.get('stage')=='plan' else 'This cycle passed its independent checks. The orchestrator will continue automatically if more cycles are scheduled; you can reply here to continue the conversation.'
-                result.append({'id':attempt.name+'-result','created':finished,'role':'orchestrator','kind':'status','text':text})
+                yield {'id':attempt.name+'-result','created':finished,'role':'orchestrator','kind':'status','text':text}
         except (OSError,ValueError,TypeError,KeyError):continue
-    return sorted(result,key=lambda row:(row['created'],row['id']))[-120:]

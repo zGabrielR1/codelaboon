@@ -154,6 +154,7 @@ async function refreshAgents() {
 }
 if (panel) {
   panel.addEventListener('toggle', refreshAgents);
-  setInterval(refreshAgents, 2000);
+  setInterval(()=>{if(!document.hidden)refreshAgents()}, 2000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAgents()});
 }
 })();
