@@ -10,6 +10,7 @@ include RELEASE-RC28.md
 include RELEASE-RC39.md
 include RELEASE-RC40.md
 include RELEASE-RC41.md
+include RELEASE-RC42.md
 include Makefile
 include CURRENTTASK
 recursive-include .github/workflows *.yml

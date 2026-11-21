@@ -216,6 +216,8 @@ def main(arguments=None):
     local_cmd.add_argument('--fail-on', choices=('info', 'medium', 'high'),
                            help='Write the report and exit 2 when a finding meets this severity threshold')
     compare_cmd=commands.add_parser('compare');compare_cmd.add_argument('--before',required=True);compare_cmd.add_argument('--after',required=True);compare_cmd.add_argument('--output',required=True)
+    compare_cmd.add_argument('--fail-on-new', action='store_true',
+                             help='Write the comparison and exit 2 when new findings are reported')
     scope_cmd=commands.add_parser('scope');scope_cmd.add_argument('--target',action='append',required=True);scope_cmd.add_argument('--check',action='append',choices=CHECKS);scope_cmd.add_argument('--output',required=True);scope_cmd.add_argument('--max-requests',type=int,default=12);scope_cmd.add_argument('--timeout',type=float,default=5)
     for name in ('assess','tool-case','import-nmap'):
         command=commands.add_parser(name);command.add_argument('--scope',required=True);command.add_argument('--approve',required=True)
@@ -228,7 +230,14 @@ def main(arguments=None):
         if args.action=='compare':
             from codelaboon.security_reports import read_report,compare
             report=compare(read_report(args.before),read_report(args.after));write_new(args.output,report)
-            print(json.dumps({'report':args.output,'new':len(report['new']),'not_observed_on_retest':len(report['not_observed_on_retest'])},indent=2));return
+            summary = {'report': args.output, 'new': len(report['new']),
+                       'not_observed_on_retest': len(report['not_observed_on_retest'])}
+            if 'inconclusive' in report:
+                summary['inconclusive'] = len(report['inconclusive'])
+            print(json.dumps(summary, indent=2))
+            if args.fail_on_new and report['new']:
+                raise SystemExit(2)
+            return
         if args.action=='audit-local':
             from codelaboon.security_local import audit_local
             report=audit_local(args.project,args.file);write_new(args.output,report)

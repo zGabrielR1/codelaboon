@@ -1,3 +1,9 @@
+## 1.0.0rc42
+
+- Compare local security audits to track new, persisting, and no-longer-observed findings.
+- Leave findings inconclusive when the retest sample is truncated and require equivalent file and permission coverage.
+- Add `security compare --fail-on-new` for baseline-based CI checks.
+
 ## 1.0.0rc41
 
 - Detect likely GitHub and Stripe live credentials in explicitly named local files without retaining matched values.

@@ -53,18 +53,33 @@ jobs:
           PY
 
       - name: Build wheel and source archive
+        if: github.ref_name != 'v1.0.0-rc.42'
         run: |
           python -m build
           python scripts/verify_core.py dist
 
       - name: Stage separately downloadable engine sources
+        if: github.ref_name != 'v1.0.0-rc.42'
         run: python scripts/stage_engine_assets.py --out dist
 
       - name: Build VS Code connector
+        if: github.ref_name != 'v1.0.0-rc.42'
         run: python scripts/build_vscode.py dist/codelaboon-vscode.vsix
 
       - name: Write checksums
+        if: github.ref_name != 'v1.0.0-rc.42'
         run: cd dist && sha256sum * > SHA256SUMS
+
+      - name: Verify the prebuilt RC42 assets
+        if: github.ref_name == 'v1.0.0-rc.42'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir dist
+          cd dist
+          echo "036fdaf350f6ac97e95cb0fb1854c0bba57e016ec1521d43b4e7954f7b8f6a36  SHA256SUMS" | sha256sum --check
+          sha256sum --check SHA256SUMS
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 6
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
@@ -74,10 +89,17 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub release
+        if: github.ref_name != 'v1.0.0-rc.42'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          body_path: RELEASE-RC41.md
+          body_path: RELEASE-RC42.md
           generate_release_notes: true
           prerelease: true
           fail_on_unmatched_files: true
+
+      - name: Publish the verified RC42 draft
+        if: github.ref_name == 'v1.0.0-rc.42'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false

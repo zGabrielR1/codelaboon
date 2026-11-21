@@ -7,6 +7,7 @@ import re
 import stat
 
 
+AUDIT_RULESET = "local-config-v1"
 SAMPLE_LIMIT = 65536
 TOKEN_RULES = {
     'github-token-pattern': re.compile(rb'\b(?:gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})\b'),
@@ -64,10 +65,14 @@ def audit_local(project, files):
     if not root.is_dir() or not isinstance(files, list) or not files or len(files) > 100 or any(not isinstance(value, str) for value in files):
         raise ValueError('Provide a project directory and between 1 and 100 explicit files')
     checks, findings = [], []
-    for value in dict.fromkeys(files):
+    seen = set()
+    for value in files:
         relative = Path(value)
         if relative.is_absolute() or relative.drive or '..' in relative.parts or not relative.parts or ':' in str(value):
             raise ValueError('Audit files must be relative paths inside the project')
+        if relative in seen:
+            continue
+        seen.add(relative)
         raw, opened = read_sample(root, relative)
         sample = raw[:SAMPLE_LIMIT]
         row = {'file': relative.as_posix(), 'sample_sha256': hashlib.sha256(sample).hexdigest(),
@@ -98,5 +103,6 @@ def audit_local(project, files):
                 finding['line'] = token_lines[rule]
             findings.append(finding)
         checks.append(row)
-    return {'format': 1, 'kind': 'local_configuration_audit', 'checks': checks, 'findings': findings,
+    return {'format': 1, 'kind': 'local_configuration_audit', 'ruleset': AUDIT_RULESET,
+            'sample_limit': SAMPLE_LIMIT, 'checks': checks, 'findings': findings,
             'limitations': 'Explicit files only; bounded samples; no Windows ACL, dependency, malware or exhaustive secret analysis. Token matches are unverified. On platforms without no-follow directory handles, audit a trusted, quiescent directory.'}

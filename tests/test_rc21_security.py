@@ -179,6 +179,54 @@ class LocalConfiguration(unittest.TestCase):
 
 
 class ReportAndEvidence(unittest.TestCase):
+    def test_local_compare_tracks_remediation_and_incomplete_retests(self):
+        from codelaboon.security_assessment import main
+        from codelaboon.security_reports import compare
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings, repeat, large, other = (root / name for name in ('settings', 'repeat', 'large', 'other'))
+            token = 'ghp_' + 'Z' * 36
+            for path in (settings, repeat, large):
+                path.write_text(token)
+                path.chmod(0o600)
+            other.write_text('safe')
+            other.chmod(0o600)
+            files = [path.name for path in (settings, repeat, large, other)]
+            before = audit_local(root, files + ['./settings'])
+            self.assertEqual(len(before['checks']), 4)
+            settings.write_text('safe')
+            repeat.write_text('\nTOKEN=' + token)
+            large.write_text('x' * 66000)
+            other.write_text('sk_live_' + 'Z' * 28)
+            after = audit_local(root, files)
+            report = compare(before, after)
+            self.assertEqual([item['target'] for item in report['not_observed_on_retest']], ['settings'])
+            self.assertEqual([item['target'] for item in report['inconclusive']], ['large'])
+            self.assertEqual(report['persisting'][0]['line'], 2)
+            self.assertEqual([item['target'] for item in report['new']], ['other'])
+            self.assertNotIn(token, json.dumps(report))
+
+            with self.assertRaisesRegex(ValueError, 'same files'):
+                compare(before, audit_local(root, ['settings']))
+            without_ruleset = dict(before)
+            del without_ruleset['ruleset']
+            with self.assertRaisesRegex(ValueError, 'same current local auditor'):
+                compare(without_ruleset, after)
+            invalid = json.loads(json.dumps(after))
+            invalid['findings'][0]['evidence_sha256'] = '0' * 64
+            with self.assertRaisesRegex(ValueError, 'matching sample evidence'):
+                compare(before, invalid)
+
+            (root / 'before.json').write_text(json.dumps(before))
+            (root / 'after.json').write_text(json.dumps(after))
+            output = root / 'comparison.json'
+            with self.assertRaises(SystemExit) as gated:
+                main(['compare', '--before', str(root / 'before.json'), '--after', str(root / 'after.json'),
+                      '--output', str(output), '--fail-on-new'])
+            self.assertEqual(gated.exception.code, 2)
+            self.assertEqual(json.loads(output.read_text()), report)
+
     def test_compare_refuses_incomplete_or_different_coverage(self):
         before = {'format':1, 'scope_id':'fixture', 'checks':[{'target':'http://localhost:80/', 'check':'cors', 'status':'completed','evidence':'proof'}], 'evidence':[{'id':'proof','target':'http://localhost:80/','check':'cors'}], 'findings':[]}
         for change in ({'status':'inconclusive'}, {'status':'budget_exhausted'}, {'target':'http://elsewhere:80/'}):
