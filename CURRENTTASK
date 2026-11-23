@@ -1,1 +1,1 @@
-RC50 prepared locally with consistent handling of duplicate task IDs. See RELEASE-RC50.md.
+RC51 preserves custom-named Python virtual environments during build cleanup. See RELEASE-RC51.md.

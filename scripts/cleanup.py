@@ -36,7 +36,12 @@ def artifacts():
             parent = Path(directory)
             for child in sorted(dirs):
                 path = parent / child
-                if not safe_path(path) or child in EXTERNAL_DIRS or child.endswith('.local'):
+                if (
+                    not safe_path(path)
+                    or child in EXTERNAL_DIRS
+                    or child.endswith('.local')
+                    or (path / 'pyvenv.cfg').is_file()
+                ):
                     dirs.remove(child)
                 elif child in CACHES:
                     dirs.remove(child)

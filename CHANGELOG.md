@@ -1,3 +1,7 @@
+## 1.0.0rc51
+
+- Preserve Python virtual environments with custom directory names during build cleanup.
+
 ## 1.0.0rc50
 
 - Use the same task record for scheduling, router demand, status, and controls when task IDs collide.

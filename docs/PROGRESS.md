@@ -4,6 +4,10 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-23 — RC51 build cleanup
+
+- Preserve Python virtual environments with custom names when cleaning source trees.
+
 ### Session 2026-11-23 — RC50 duplicate task IDs
 
 - Shared task selection across the supervisor, router, status, and controls. Added a regression test for conflicting controller settings in configured and inbox records with the same task ID.
