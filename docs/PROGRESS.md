@@ -956,3 +956,7 @@ Adversarial review: launch receipt IDs are namespaced and conflicting payloads
 are rejected; failed launches are retryable, and existing task policy/deletion
 receipts remain unchanged. Correctness9/10, evidence8/10; runtime fixture limits
 are stated in the release notes. Remote publication must be verified separately.
+
+### RC43 — task failure diagnostics
+
+Task operations and CLI attempt history now show readable failure reasons from recorded worker evidence. The review checked shared label mapping, fallback for older records, and browser text rendering. JavaScript syntax and Git whitespace checks passed.

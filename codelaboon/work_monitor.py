@@ -22,6 +22,7 @@ def attempt_rows(root, active=None):
 
 
 def latest_attempts(root, task_id=None, selected_ids=None, active=None):
+    from codelaboon.task_diagnostics import failure_label
     attempts = {}
     for path, row in attempt_rows(root, active):
         identity = row.get('task')
@@ -30,6 +31,8 @@ def latest_attempts(root, task_id=None, selected_ids=None, active=None):
         if not isinstance(row.get('started',0),(int,float)):continue
         if row.get('started',0) >= attempts.get(identity,{}).get('started',0):
             attempts[identity] = {key:row[key] for key in ('status','stage','exit_code','started','finished','harness','verification','failure_detail','needs_attention','recovery','phase') if key in row}
+            if label := failure_label(row):
+                attempts[identity]['failure_label'] = label
             attempts[identity]['logs'] = str(path.parent)
     return attempts
 

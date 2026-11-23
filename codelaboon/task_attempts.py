@@ -9,6 +9,7 @@ from codelaboon.work_queue import controls
 
 
 def history(root,identity):
+    from codelaboon.task_diagnostics import failure_label
     rows=[]
     for path in root.glob('*/result.json'):
         if not path.resolve().is_relative_to(root.resolve()):continue
@@ -19,6 +20,8 @@ def history(root,identity):
             if row.get('task')!=identity or type(row.get('started',0)) not in (int,float):continue
             if type(row.get('started',0)) not in (int,float) or not math.isfinite(row.get('started',0)):continue
             rows.append({'id':path.parent.name,**{k:row[k] for k in ('stage','status','exit_code','started','finished','engine','harness','verification') if k in row}})
+            if label := failure_label(row):
+                rows[-1]['failure_label'] = label
         except (OSError,ValueError,AttributeError):continue
     return sorted(rows,key=lambda row:row.get('started',0),reverse=True)[:50]
 

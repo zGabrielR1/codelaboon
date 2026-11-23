@@ -6,6 +6,25 @@ from codelaboon.task_conversation import tail
 from codelaboon.task_changes import redact
 
 
+def failure_label(row):
+    """Summarize persisted failure evidence without exposing raw log text."""
+    if row.get('status') != 'failed':
+        return None
+    labels = {
+        'provider_unavailable': 'Model provider unavailable',
+        'engine_arguments': 'Engine rejected task arguments',
+        'verification_configuration': 'Verification setup needs attention',
+        'verification_timeout': 'Verification timed out',
+        'verification': 'Project verification failed',
+    }
+    kind = row.get('failure_kind')
+    if isinstance(kind, str) and kind in labels:
+        return labels[kind]
+    if row.get('verification') == 'failed':
+        return labels['verification']
+    return 'Planning failed' if row.get('stage') == 'plan' else 'Task execution failed'
+
+
 def failed_check(attempt,row):
     checks=row.get('checks',[])
     failed=next((check for check in reversed(checks) if check.get('exit_code',0)),None)

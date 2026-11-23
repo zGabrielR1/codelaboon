@@ -1,3 +1,7 @@
+## 1.0.0rc43
+
+- Show why a task failed in the browser and attempt history using recorded provider, engine, planning and verification evidence.
+
 ## 1.0.0rc42
 
 - Compare local security audits to track new, persisting, and no-longer-observed findings.

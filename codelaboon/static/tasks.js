@@ -126,7 +126,7 @@ function renderDetail(){
   $('#detail-title').textContent=task.title;$('#detail-id').textContent=task.id;$('#detail-project').textContent=task.project;
   pill($('#detail-state'),task);$('#detail-cycles').textContent=String(task.cycles_completed||0);
   $('#detail-engine').textContent=task.engine+(task.swarm?.workers>1?' · limit '+task.swarm.workers:'');
-  $('#detail-attempt').textContent=task.last_attempt?task.last_attempt.status+(task.last_attempt.exit_code!==undefined?' · exit '+task.last_attempt.exit_code:''):'Not started';
+  $('#detail-attempt').textContent=task.last_attempt?(task.last_attempt.failure_label||task.last_attempt.status)+(task.last_attempt.exit_code!==undefined?' · exit '+task.last_attempt.exit_code:''):'Not started';
   const finished=['stopped','completed'].includes(taskState(task));
   $('#task-retry').textContent=task.retry_pending?'Retry queued':'Retry failed';
   $('#task-retry').disabled=task.retry_pending||!task.swarm||task.elevation!=='none'||!attention(task)||taskState(task)==='interrupted attempt'||(state.worker.running&&!state.worker.service?.features?.includes('task-retry'));
@@ -332,7 +332,7 @@ async function openAttempts(){
  const identity=selectedId;$('#attempt-dialog').showModal();const list=$('#attempt-list');list.textContent='Loading attempts…';
  try{const data=await api('/api/tasks/attempts?task='+encodeURIComponent(identity));list.replaceChildren();
  const latest=document.createElement('button');latest.textContent='Follow latest attempt';latest.onclick=()=>{if(selectedId!==identity)return;logAttempt='';$('#attempt-dialog').close();loadLogs()};list.append(latest);
- for(const row of data.attempts){const button=document.createElement('button');button.textContent=new Date((row.started||0)*1000).toLocaleString()+' · '+(row.engine||row.harness||'worker')+' · '+row.stage+' · '+row.status+(row.exit_code!==undefined?' · exit '+row.exit_code:'');button.title=row.id;button.onclick=()=>{if(selectedId!==identity)return;logAttempt=row.id;$('#attempt-dialog').close();loadLogs()};list.append(button)}
+ for(const row of data.attempts){const button=document.createElement('button');button.textContent=new Date((row.started||0)*1000).toLocaleString()+' · '+(row.engine||row.harness||'worker')+' · '+row.stage+' · '+(row.failure_label||row.status)+(row.exit_code!==undefined?' · exit '+row.exit_code:'');button.title=row.id;button.onclick=()=>{if(selectedId!==identity)return;logAttempt=row.id;$('#attempt-dialog').close();loadLogs()};list.append(button)}
  if(!data.attempts.length){const empty=document.createElement('p');empty.textContent='No attempts yet.';list.append(empty)}
  }catch(error){list.textContent=error.message}
 }
