@@ -180,7 +180,7 @@ def run():
                         page.evaluate("window.dispatchEvent(new Event('focus'))")
                         expect(page.locator('[data-provider=freebuff] .connection-status')).to_have_text('Not connected')
                         page.goto(base+'/')
-                        expect(page.locator('#welcome h1')).to_contain_text('building today?')
+                        expect(page.get_by_role('heading', name='Start a conversation', exact=True)).to_be_visible()
                         for width in (1440,768,390):
                             page.set_viewport_size({'width':width,'height':900})
                             expect(page.locator('#send')).to_be_in_viewport()
