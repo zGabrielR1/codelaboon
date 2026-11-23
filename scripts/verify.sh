@@ -61,6 +61,7 @@ required_files=(
     "scripts/verify.sh"
     "scripts/test.sh"
     "scripts/cleanup.sh"
+    "scripts/cleanup.py"
     "scripts/install.sh"
     "scripts/install.ps1"
     "tests/test_codelaboon.py"

@@ -14,6 +14,8 @@ for path in artifacts:
         with tarfile.open(path) as archive:
             names = archive.getnames()
     assert any(name.endswith('codelaboon/_vendor/engines.json') for name in names), 'Missing engine manifest'
+    vendor_files = [name for name in names if '/_vendor/' in name]
+    assert all(name.endswith('/_vendor/engines.json') for name in vendor_files), path
     assert not any(name.endswith('.tar.gz') or 'node_modules' in Path(name).parts for name in names), path
     assert path.stat().st_size < 1024*1024, f'Core artifact exceeds 1 MiB: {path}'
     print(f'PASS thin core {path.name}: {path.stat().st_size} bytes')

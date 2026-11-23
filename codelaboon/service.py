@@ -30,10 +30,10 @@ def pending_work(config, runtime, *, project_root=None):
         return False
     try:
         state = json.loads((runtime / 'state.json').read_text()) if (runtime / 'state.json').exists() else {}
-        from codelaboon.work_queue import inbox_tasks, ready
-        tasks = [*config.get('tasks', []), *inbox_tasks(runtime, project_root=project_root)]
+        from codelaboon.work_queue import ready, task_index
+        tasks = task_index(config.get('tasks', []), runtime, project_root=project_root)
         from codelaboon.task_settings import apply as apply_settings
-        tasks=[apply_settings(runtime,task) for task in tasks]
+        tasks = (apply_settings(runtime, task) for task in tasks.values())
         return any(ready(task, state, runtime) and (task.get('swarm', {}).get('controller') != 'worker' or task.get('supervision',{}).get('enabled'))
                    for task in tasks)
     except (OSError, ValueError, KeyError, TypeError):

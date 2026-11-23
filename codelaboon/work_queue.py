@@ -9,18 +9,28 @@ def controls(root, task_id):
     return Path(root) / 'task-controls' / hashlib.sha256(task_id.encode()).hexdigest()
 
 
-def inbox_tasks(root, *, project_root=None, on_invalid=None):
+def task_index(configured, root, *, project_root=None, on_invalid=None):
+    """Choose one record per ID before testing whether its project is runnable."""
+    tasks = {}
+    for task in configured:
+        tasks.setdefault(task['id'], task)
+    claimed = set(tasks)
     for item in sorted((root / 'inbox').glob('*.json')):
         try:
             task = json.loads(item.read_text(encoding='utf-8'))
             validate_inbox_task(task)
+            identity = task['id']
+            if identity in claimed:
+                continue
+            claimed.add(identity)
             if project_root is not None and not (project_root / task['project']).resolve().is_dir():
                 raise ValueError('Project directory unavailable')
         except (OSError, RuntimeError, ValueError) as error:
             if on_invalid is not None:
                 on_invalid(item, error)
             continue
-        yield task
+        tasks[identity] = task
+    return tasks
 
 
 def validate_inbox_task(task):

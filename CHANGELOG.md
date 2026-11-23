@@ -1,3 +1,9 @@
+## 1.0.0rc50
+
+- Use the same task record for scheduling, router demand, status, and controls when task IDs collide.
+- Give configured tasks priority over inbox records with the same ID.
+- Add cross-platform build cleanup with a dry run, and keep vendor checkouts out of source distributions.
+
 ## 1.0.0rc49
 
 - Keep the local router idle when the only queued tasks point to unavailable project directories.

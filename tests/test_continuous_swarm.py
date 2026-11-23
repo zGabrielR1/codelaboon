@@ -94,6 +94,26 @@ class ContinuousSwarmTests(unittest.TestCase):
                 swarm.control('pause', 'unknown-id', config)
             self.assertFalse(pending_work(value, runtime))
 
+    def test_configured_task_wins_over_duplicate_inbox_record(self):
+        from codelaboon.task_api import task_records
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config, task_id, runtime = self.configure(root, controller='local')
+            incoming = json.loads((runtime / 'inbox' / f'{task_id}.json').read_text(encoding='utf-8'))
+            configured = {**incoming, 'prompt': 'Configured objective', 'supervision': {'enabled': False},
+                          'swarm': {**incoming['swarm'], 'controller': 'worker'}}
+            value = json.loads(config.read_text(encoding='utf-8'))
+            value['tasks'] = [configured]
+            config.write_text(json.dumps(value), encoding='utf-8')
+
+            self.assertFalse(pending_work(value, runtime, project_root=root))
+            self.assertEqual(task_records(value, runtime), {task_id: configured})
+            pending = work.status(config)['pending']
+            self.assertEqual([task['id'] for task in pending], [task_id])
+            self.assertEqual(pending[0]['swarm']['controller'], 'worker')
+            self.assertTrue(pending_work({**value, 'tasks': []}, runtime, project_root=root))
+
     def test_missing_queued_project_does_not_request_router(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -101,6 +121,7 @@ class ContinuousSwarmTests(unittest.TestCase):
             task_path = runtime / 'inbox' / f'{task_id}.json'
             task = json.loads(task_path.read_text(encoding='utf-8'))
             task_path.write_text(json.dumps({**task, 'project': 'checkout'}), encoding='utf-8')
+            (task_path.parent / 'z-duplicate.json').write_text(json.dumps(task), encoding='utf-8')
             value = json.loads(config.read_text(encoding='utf-8'))
 
             self.assertFalse(pending_work(value, runtime, project_root=root))

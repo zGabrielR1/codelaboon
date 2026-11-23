@@ -20,13 +20,11 @@ global-exclude __pycache__
 global-exclude *.py[cod]
 
 recursive-include codelaboon/static *.html *.css *.js *.svg
-include codelaboon/_vendor/engines.json
-exclude codelaboon/_vendor/*.tar.gz
 recursive-include codelaboon/prompts *.md
 recursive-include codelaboon/themes *.json KILO-LICENSE
 recursive-include scripts/patches *.patch
-prune codelaboon/_vendor/opencode
-prune codelaboon/_vendor/oh-my-pi
+prune codelaboon/_vendor
+include codelaboon/_vendor/engines.json
 
 recursive-include codelaboon/integrations/vscode *.json *.js *.md
 include codelaboon/integrations/claude-browser/manifest.json

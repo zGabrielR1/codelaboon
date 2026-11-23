@@ -140,10 +140,9 @@ def run_case(path,identity,dry_run=False):
 
 def worker_case(task_id,config=None,ttl=300,timeout=1800):
     from codelaboon.work import configuration
-    from codelaboon.work_queue import controls, inbox_tasks
+    from codelaboon.work_queue import controls, task_index
     path,value,runtime=configuration(config)
-    tasks = [*value.get('tasks', []), *inbox_tasks(runtime)]
-    task=next((t for t in tasks if t['id']==task_id),None)
+    task = task_index(value.get('tasks', []), runtime).get(task_id)
     if not task or task.get('elevation') not in ('root','administrator'):raise ValueError('Queue an explicitly elevated task first')
     state_path=runtime/'state.json'
     state=json.loads(state_path.read_text()) if state_path.exists() else {}

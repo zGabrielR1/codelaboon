@@ -12,10 +12,12 @@ def configuration():
 
 
 def task_records(value, root, include_deleted=False):
-    from codelaboon.work_queue import inbox_tasks
-    tasks = [*value.get('tasks', []), *inbox_tasks(root)]
     from codelaboon.task_lifecycle import deleted
-    return {task['id']:task for task in tasks if isinstance(task,dict) and isinstance(task.get('id'),str) and (include_deleted or not deleted(root,task['id']))}
+    from codelaboon.work_queue import task_index
+    configured = (task for task in value.get('tasks', [])
+                  if isinstance(task, dict) and isinstance(task.get('id'), str))
+    return {identity: task for identity, task in task_index(configured, root).items()
+            if include_deleted or not deleted(root, identity)}
 
 
 def snapshot():

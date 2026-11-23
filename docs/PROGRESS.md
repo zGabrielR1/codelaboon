@@ -4,6 +4,11 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-23 — RC50 duplicate task IDs
+
+- Shared task selection across the supervisor, router, status, and controls. Added a regression test for conflicting controller settings in configured and inbox records with the same task ID.
+- Added a cross-platform build cleanup command with a dry run and narrowed the source archive to exclude vendor checkouts.
+
 ### Session 2026-11-23 — RC49 router demand
 
 - Applied the supervisor's inbox project-directory check to router demand. Tested a missing relative project directory, continued task visibility, and demand returning after the directory is restored.

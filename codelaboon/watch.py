@@ -9,7 +9,7 @@ import signal
 import time
 import uuid
 
-from codelaboon.work_queue import inbox_tasks, ready, swarm_harness
+from codelaboon.work_queue import ready, swarm_harness, task_index
 
 
 def save(path, data):
@@ -173,9 +173,7 @@ def supervise(config, base, root, once):
                 return
             time.sleep(min(idle, 30))
             continue
-        all_tasks = {task['id']: task for task in tasks}
-        for task in inbox_tasks(root, project_root=base, on_invalid=report_invalid_inbox):
-            all_tasks.setdefault(task['id'], task)
+        all_tasks = task_index(tasks, root, project_root=base, on_invalid=report_invalid_inbox)
         from codelaboon.task_attempts import consume
         changed,retry_requests=consume(root,all_tasks,state)
         from codelaboon.task_conversation import pending_turns
