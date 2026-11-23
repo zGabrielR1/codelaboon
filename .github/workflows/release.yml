@@ -43,13 +43,21 @@ jobs:
             --output "${RUNNER_TEMP}/codelaboon-release-security.json"
 
       - name: Verify tag and package source bundles
+        id: release_metadata
         run: |
           python scripts/verify_bundles.py
           python - <<'PY'
           import os, tomllib
+          from pathlib import Path
           from packaging.version import Version
           package = tomllib.load(open('pyproject.toml', 'rb'))
-          assert Version(os.environ['GITHUB_REF_NAME'].removeprefix('v')) == Version(package['project']['version'])
+          version = Version(package['project']['version'])
+          assert Version(os.environ['GITHUB_REF_NAME'].removeprefix('v')) == version
+          if version.pre and version.pre[0] == 'rc':
+              notes = Path(f'RELEASE-RC{version.pre[1]}.md')
+              assert notes.is_file(), f'Missing release notes: {notes}'
+              with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+                  print(f'notes={notes}', file=output)
           PY
 
       - name: Build wheel and source archive
@@ -102,7 +110,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          body_path: RELEASE-RC45.md
+          body_path: ${{ steps.release_metadata.outputs.notes }}
           generate_release_notes: true
           prerelease: true
           fail_on_unmatched_files: true

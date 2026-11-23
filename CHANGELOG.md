@@ -1,3 +1,28 @@
+## 1.0.0rc49
+
+- Keep the local router idle when the only queued tasks point to unavailable project directories.
+- Keep those tasks visible and controllable while waiting for their project directories to return.
+
+## 1.0.0rc48
+
+- Share inbox record validation between the task supervisor, router, and task controls.
+- Ignore malformed task records without interrupting valid tasks, and log rejected records in the supervisor.
+
+## 1.0.0rc47
+
+- Keep swarm controls and privilege-case lookup available when an unrelated inbox file is malformed.
+- Evaluate router demand from readable queue records so a damaged file alone cannot start the router.
+- Select release notes from the candidate version in release CI.
+- Keep terminal task refreshes working while Textual removes task labels.
+
+## 1.0.0rc46
+
+- Start fresh Web Chat sessions on Free (Auto).
+- Keep account and key setup under Connections and terminal and browser controls under Desktop.
+- Trim repeated Chat controls and introductory copy, and make the Tasks toolbar fit narrow screens.
+- Put setup and launch instructions first in the README.
+- Keep worker status and task controls available when an inbox record is malformed.
+
 ## 1.0.0rc45
 
 - Show the latest attempt’s failure reason in the terminal task heading and worker monitor.

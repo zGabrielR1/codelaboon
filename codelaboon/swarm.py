@@ -110,10 +110,9 @@ def enqueue(task, workers=4, timeout=1800, checks=(), model='free', controller='
 
 def control(action, task_id, config=None):
     from codelaboon.work import configuration
-    from codelaboon.work_queue import controls
+    from codelaboon.work_queue import controls, inbox_tasks
     _, value, root = configuration(config)
-    tasks = list(value.get('tasks', []))
-    tasks.extend(json.loads(path.read_text()) for path in (root/'inbox').glob('*.json'))
+    tasks = [*value.get('tasks', []), *inbox_tasks(root)]
     if not any(task['id'] == task_id and task.get('swarm') for task in tasks):
         raise ValueError('Unknown swarm ID: ' + task_id)
     directory = controls(root, task_id)

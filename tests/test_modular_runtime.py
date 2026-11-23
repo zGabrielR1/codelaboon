@@ -43,7 +43,7 @@ class ModularRuntimeTests(unittest.TestCase):
             (root/'state.json').write_text('{"done":["one"]}')
             self.assertFalse(pending_work(config, root))
             (root/'inbox').mkdir()
-            (root/'inbox/new.json').write_text('{"id":"two"}')
+            (root/'inbox/new.json').write_text('{"id":"two","project":".","prompt":"two","verify_argv":[["test"]]}', encoding='utf-8')
             self.assertTrue(pending_work(config, root))
             (root/'PAUSE').touch()
             self.assertFalse(pending_work(config, root))

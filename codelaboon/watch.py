@@ -9,7 +9,7 @@ import signal
 import time
 import uuid
 
-from codelaboon.work_queue import ready, swarm_harness, validate_swarm
+from codelaboon.work_queue import inbox_tasks, ready, swarm_harness
 
 
 def save(path, data):
@@ -164,33 +164,18 @@ def supervise(config, base, root, once):
     state.setdefault('cycles', {})
     state.setdefault('next_run', {})
     idle = max(1, float(config.get('poll_seconds', 15)))
+    def report_invalid_inbox(item, error):
+        print(f'Ignoring invalid inbox file {item.name}: {error}', flush=True)
+
     while not (root / 'STOP').exists():
         if (root / 'PAUSE').exists():
             if once:
                 return
             time.sleep(min(idle, 30))
             continue
-        queued = []
-        for item in sorted((root / 'inbox').glob('*.json')):
-            try:
-                task = json.loads(item.read_text(encoding='utf-8'))
-                if (not isinstance(task.get('id'), str) or not task['id']
-                        or not isinstance(task.get('prompt'), str)
-                        or not (base / task['project']).resolve().is_dir()
-                        or not task.get('verify_argv')
-                        or not all(isinstance(check, list) and check and
-                                   all(isinstance(part, str) for part in check)
-                                   for check in task['verify_argv'])):
-                    raise ValueError('Invalid queued task')
-                if 'swarm' in task:
-                    validate_swarm(task['swarm'])
-                queued.append(task)
-            except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
-                print(f'Ignoring invalid inbox file {item.name}: {error}', flush=True)
-        all_tasks = {t['id']: t for t in tasks}
-        for task in queued:
-            if task['id'] not in all_tasks:
-                all_tasks[task['id']] = task
+        all_tasks = {task['id']: task for task in tasks}
+        for task in inbox_tasks(root, project_root=base, on_invalid=report_invalid_inbox):
+            all_tasks.setdefault(task['id'], task)
         from codelaboon.task_attempts import consume
         changed,retry_requests=consume(root,all_tasks,state)
         from codelaboon.task_conversation import pending_turns

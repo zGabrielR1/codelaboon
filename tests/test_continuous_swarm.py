@@ -76,6 +76,7 @@ class ContinuousSwarmTests(unittest.TestCase):
     def test_per_swarm_controls_and_router_demand(self):
         with tempfile.TemporaryDirectory() as directory:
             config, task_id, runtime = self.configure(Path(directory), controller='local')
+            (runtime / 'inbox' / 'damaged.json').write_text('{', encoding='utf-8')
             value = json.loads(config.read_text())
             self.assertTrue(pending_work(value, runtime))
             swarm.control('pause', task_id, config)
@@ -92,6 +93,24 @@ class ContinuousSwarmTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 swarm.control('pause', 'unknown-id', config)
             self.assertFalse(pending_work(value, runtime))
+
+    def test_missing_queued_project_does_not_request_router(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config, task_id, runtime = self.configure(root, controller='local')
+            task_path = runtime / 'inbox' / f'{task_id}.json'
+            task = json.loads(task_path.read_text(encoding='utf-8'))
+            task_path.write_text(json.dumps({**task, 'project': 'checkout'}), encoding='utf-8')
+            value = json.loads(config.read_text(encoding='utf-8'))
+
+            self.assertFalse(pending_work(value, runtime, project_root=root))
+            with patch('codelaboon.watch.execute') as execute:
+                run(config, once=True)
+            execute.assert_not_called()
+            self.assertEqual([task['id'] for task in work.status(config)['pending']], [task_id])
+
+            (root / 'checkout').mkdir()
+            self.assertTrue(pending_work(value, runtime, project_root=root))
 
     def test_desktop_permission_only_reaches_the_swarm_build(self):
         with tempfile.TemporaryDirectory() as directory:

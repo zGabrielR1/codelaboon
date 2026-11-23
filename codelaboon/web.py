@@ -155,7 +155,7 @@ def create_server(port=8765, cli=None):
             assets = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css"), "/logo.svg": ("logo.svg", "image/svg+xml"),
                       '/tasks':('tasks.html','text/html; charset=utf-8'),'/tasks.js':('tasks.js','text/javascript; charset=utf-8'),'/tasks.css':('tasks.css','text/css')}
             assets.update({'/connections':('connections.html','text/html; charset=utf-8'),'/connections.js':('connections.js','text/javascript; charset=utf-8'),'/connections.css':('connections.css','text/css'),'/task-actions.js':('task-actions.js','text/javascript; charset=utf-8')})
-            assets.update({'/workspace.css':('workspace.css','text/css'),'/dot-field.js':('dot-field.js','text/javascript')})
+            assets.update({'/workspace.css':('workspace.css','text/css')})
             assets.update({
                 "/desktop": ("desktop.html", "text/html; charset=utf-8"),
                 "/desktop.js": ("desktop.js", "text/javascript; charset=utf-8"),

@@ -27,6 +27,34 @@ class WorkTests(unittest.TestCase):
             self.assertIn(task_id, [t['id'] for t in result['pending']])
             self.assertTrue((root / 'runtime/inbox' / (task_id + '.json')).is_file())
 
+    def test_malformed_inbox_entry_does_not_block_status_or_controls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = self.configure(root)
+            task_id = work.add(root, 'new instruction', [[sys.executable, '-c', 'pass']], config)
+            inbox = root / 'runtime/inbox'
+            (inbox / 'damaged.json').write_text('{', encoding='utf-8')
+            valid = json.loads((inbox / f'{task_id}.json').read_text(encoding='utf-8'))
+            for name, changes in {
+                'malformed-swarm': {'swarm': []},
+                'malformed-settings': {'execution_settings': []},
+                'malformed-supervision': {'supervision': None},
+                'malformed-checks': {'verify_argv': {'command': ['test']}},
+                'malformed-id': {'id': '\ud800'},
+            }.items():
+                record = {**valid, 'id': name, **changes}
+                (inbox / f'{name}.json').write_text(json.dumps(record), encoding='utf-8')
+            pending = {task['id']: task for task in work.status(config)['pending']}
+            self.assertEqual(set(pending), {'first', task_id})
+
+            work.control('pause', config, task_id)
+            pending = {task['id']: task for task in work.status(config)['pending']}
+            self.assertTrue(pending[task_id]['paused'])
+            with patch('codelaboon.watch.execute', return_value=0):
+                run(config, once=True)
+            state = json.loads((root / 'runtime/state.json').read_text(encoding='utf-8'))
+            self.assertEqual(state['done'], ['first'])
+
     def test_new_instruction_is_picked_up_without_restart(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -46,7 +46,7 @@ longer accidentally clears the task's full/profile policy between wrappers.
 
 ## HowToFix
 
-Use **Workspace actions → Configure API key → HowToFix** in the browser, or:
+Use **Connections → API connections → HowToFix** in the browser, or:
 
 ```bash
 codelaboon configure howtofix
@@ -78,7 +78,7 @@ codelaboon login copilot
 codelaboon models list copilot
 ```
 
-The browser also offers **Continue with GitHub Copilot**; it displays GitHub's
+In **Connections**, choose **GitHub Copilot → Sign in**. The page displays GitHub's
 device authorization URL and one-time code. The optional Textual provider picker
 supports the same account connection. An explicit `COPILOT_GITHUB_TOKEN` or
 configured provider token can be used instead.

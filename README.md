@@ -3,219 +3,100 @@
 **A local, terminal-first coding agent for multiple AI providers**
 
 codelaboon is a cross-platform CLI harness for calling AI models through their
-provider APIs. It works from source with no installation step, and installs as
+provider APIs. It works from source when its Python dependencies are installed, and installs as
 a `codelaboon` command on your `PATH`.
 
-## Overview
+## Quick start
 
-### What changed in RC28
-
-Open a task in `codelaboon tasks --open` to chat with its orchestrator. Actual
-model replies and partial replies appear in the thread alongside the plan and
-independent-check status; command diagnostics remain under **Raw attempt output**.
-New web tasks default to one verified coding cycle and require an actual project
-check rather than assuming a security script exists. Choose 0 cycles explicitly
-for continuous work. Send a follow-up after completion to continue the same task. While a cycle is
-active, your message joins the next checkpoint. Pauses and provider cooldowns
-remain in force. Explicitly stopped or elevated cases keep their existing policy.
-
-Engine task entry points, such as `codelaboon opencode --tasks TASK_ID` and
-`codelaboon jcode --tasks TASK_ID`, share this conversation and durable history.
-The next attempt receives recent replies and the independent-check failures so
-the orchestrator can direct workers to fix them. Restart the background worker
-at a safe checkpoint after updating to enable the new conversation feature.
-
-OpenCode/Kilo task launchers now place the instruction before their variadic
-attachment option. The previous ordering made the engine treat
-`Execute the attached task specification.` as another filename; the SQLite
-migration message preceding it was not the cause.
-
-Free-provider exhaustion now returns a retryable 503 with `Retry-After`, and
-account-scoped cooldowns survive engine gateway restarts. A Kilo 429 or Freebuff
-admission failure means an upstream availability/account issue when the local
-gateway has already answered. This changes failover, backoff and diagnostics;
-it does not create provider quota or allow paid fallback.
-
-### What changed in RC27
-
-Create background tasks directly in `codelaboon tasks`: choose **New task** or
-press **Ctrl+N**, enter the objective, project, scope and verification commands,
-then queue. The form lists installed engines and defaults to one verified cycle,
-the coding profile, default permissions and no elevation. Errors keep your input;
-a successful queue opens the task conversation. The worker starts automatically.
-If worker startup fails, the task stays queued and the conversation tells you to
-run `codelaboon work start` rather than create a duplicate.
-
-Verification uses JSON argument arrays, for example
-`[["python", "-m", "unittest", "discover", "-s", "tests"]]`.
-Commands run in the selected project without shell expansion. Use **Settings**
-after creation to change models and additive instructions at the next checkpoint.
-
-The new `codelaboon proxy` command runs a stable gateway for desktop apps and
-editors on `http://127.0.0.1:8766`. It shares the existing Messages, Responses,
-Chat Completions and model-discovery backend. Keep its terminal open while clients
-are connected. Its local credential persists across restarts; provider credentials
-remain in Codelaboon. Use `--port` or `--token-file` for a separate instance.
-
-For Claude Desktop on Windows:
-
-1. Start `codelaboon proxy --model free` (or choose `PROVIDER/MODEL`).
-2. In another terminal, run `codelaboon proxy --show-token` to read the local key.
-3. In Claude Desktop, open **Help > Troubleshooting > Enable Developer Mode**.
-   After restart, open **Developer > Configure Third-Party Inference**.
-4. Choose **Gateway**, base URL `http://127.0.0.1:8766` (without `/v1`),
-   **Static API key**, and **Bearer**, then enter the local key.
-5. In **Models**, add the explicit model ID `free` (or the same `PROVIDER/MODEL`
-   selected above) to the model list and disable model discovery. Desktop's
-   auto-discovery shows only recognizable Claude IDs, so a working gateway can
-   otherwise leave the picker empty. `codelaboon proxy --desktop-models --model free`
-   prints the corresponding `modelDiscoveryEnabled` / `inferenceModels` fields
-   without creating credentials or starting a server. Use the exact ID in `name`;
-   do not assign Claude capabilities to a non-Claude route with `behavesAs`.
-6. Start a local conversation. Built-in Claude model names route to the model
-   chosen with `--model`; explicit provider/model IDs retain their own route.
-
-Running `codelaboon proxy` starts the gateway only; it does not launch or configure
-Desktop. Keep it running before opening the app. A connection-refused error means
-the gateway is stopped or the app is using a different address or port.
-
-This follows Anthropic's [Desktop gateway configuration](https://code.claude.com/docs/en/llm-gateway-connect#desktop-app)
-and [third-party inference fields](https://claude.com/docs/third-party/claude-desktop/gateway).
-Desktop ignores `ANTHROPIC_BASE_URL` in shell or Claude Code settings. Organization
-configuration may make the form read-only. Cloud environments and Remote Control
-are unavailable in gateway mode; a loopback URL cannot serve remote SSH hosts.
-Non-Claude routes use Codelaboon's compatibility adapter and may not support every
-Desktop feature or content type. Token counting is a local estimate and translated
-routes do not preserve Anthropic prompt caching. Desktop UI and live inference
-validation remain pending; offline protocol tests cover discovery, authentication,
-Messages streaming and tool translation.
-
-### Claude.ai browser chat
-
-The browser provider uses the default model in your signed-in Firefox session.
-Anthropic's [Consumer Terms, section 3](https://www.anthropic.com/legal/consumer-terms)
-require explicit permission for automated browser access.
+Use Python 3.11 or newer. From the repository root, install the package in an
+active Python virtual environment:
 
 ```bash
-codelaboon claude-browser setup
-codelaboon claude-browser test
-codelaboon chat claude_browser web-default "Explain this function"
+python3 -m pip install -e .
 ```
 
-Setup opens Claude.ai in your system's default browser and prints the path to the
-Firefox add-on manifest. In Firefox, open `about:debugging#/runtime/this-firefox`,
-select **Load Temporary Add-on**, and choose the manifest. Firefox removes
-temporary add-ons when it restarts. Sign in to Claude.ai normally if needed.
-Each CLI request opens a new text conversation and returns its reply over an
-authenticated loopback connection.
+Run `python3 -m codelaboon` for the terminal workspace or
+`python3 -m codelaboon web` for the browser workspace.
 
-In `codelaboon web`, select **Claude.ai (Firefox)** and send a message in the
-workspace chat. Firefox briefly opens a Claude.ai tab, then returns focus to
-your previous tab. The reply appears in the workspace conversation.
+The web workspace opens at `http://127.0.0.1:8765` and starts on **Free (Auto)**.
+Use **Connections** to sign in or add an API key. See [Configuration](#configuration)
+for the provider file and [Commands](#commands) for CLI examples.
 
-In a native engine launched by Codelaboon, select **Claude · Browser default (Firefox)**
-in the model picker. This single entry uses your current Claude.ai session's
-model. The gateway route is `claude_browser/web-default`. Start a new conversation if the previous one has
-tool calls or attachments. The engine displays the reply once Firefox has
-finished receiving it. This route supports text conversation and has no
-engine tool execution.
+## Installation (adds `codelaboon` to PATH)
 
-### Vercel AI Gateway
+From the source checkout:
 
-Run `codelaboon configure vercel` and enter an **AI Gateway API key** from your
-Vercel dashboard. You can also use `AI_GATEWAY_API_KEY`, connect **Vercel** in the
-TUI key dialog, or choose **Vercel AI Gateway** in the web provider connection form.
-A Vercel account token (`VERCEL_TOKEN`) is not an AI Gateway API key.
-
-```powershell
-codelaboon models list vercel
-codelaboon models list vercel_free
-codelaboon chat vercel anthropic/claude-sonnet-4.6 "Explain this repository"
-codelaboon proxy --model vercel/anthropic/claude-sonnet-4.6
+```bash
+python3 -m codelaboon install
 ```
 
-Use an exact model ID returned by the live catalogue; the example model may not
-be available for your account. CLI chat takes Vercel's `vendor/model` ID; task,
-engine and local proxy selections add the provider prefix: `vercel/vendor/model`.
-The default upstream is `https://ai-gateway.vercel.sh/v1`. Both the root URL and
-`/v1` are accepted in `providers.toml`; optional `models` are an offline fallback.
-Saved API keys take precedence over the environment variable, and key changes
-retain the configured endpoint and model fallback list.
+This installs the core package for the current user and
+adds pip's user script directory to your `PATH`:
 
-The proxy forwards native Messages and Responses requests directly to Vercel;
-Messages retain tools, thinking, system blocks and prompt-cache directives.
-Chat uses Vercel's OpenAI-compatible endpoint. Gateway credits/model pricing
-apply to the unrestricted `vercel` lane. Free Auto uses the separate `vercel_free`
-lane, restricted to uniformly zero-priced text models in Vercel's live catalogue.
-No configured ID, monthly credit, or expired/offline price record can admit a paid
-model; variable-price routes are excluded. The lane reuses your Vercel key only
-when both endpoints match, or uses `AI_GATEWAY_API_KEY`. For Claude Desktop, configure the
-local gateway and explicit model list as above using `vercel/vendor/model`.
-See Vercel's [API setup](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions)
-and [Messages support](https://vercel.com/docs/ai-gateway/sdks-and-apis/anthropic-messages-api).
+- **Windows** — updates the user `Path` registry value and broadcasts the
+  change; open a new terminal afterwards.
+- **Linux/macOS** — appends an idempotent `export PATH=…` line to the shell
+  profile(s) that already exist (`~/.bashrc`, `~/.zshrc`, `~/.profile`, fish).
 
-### What changed in RC25
+Then open a new terminal and run:
 
-Task conversations add state filters, timestamps, reload-persistent drafts and
-keyboard shortcuts. Inspect the latest 50 attempts and scoped, redacted logs; retry
-a finished failure at the next checkpoint; start, pause or resume worker scheduling
-from the browser, CLI or terminal. Connect HowToFix with your own API key, GitHub
-Copilot through device OAuth, and optional official Windsurf/Devin native accounts
-and task execution. Credit and subscription sources stay explicit, outside free Auto.
+```bash
+codelaboon --version
+codelaboon
+```
 
-Use `codelaboon tasks TASK_ID --attempts`, `codelaboon tasks TASK_ID --retry`,
-`codelaboon configure howtofix`, `codelaboon login copilot`, or
-`codelaboon accounts devin setup`. See
-[task operations and account setup](docs/task-operations-and-accounts.md).
+`codelaboon install --editable` installs the checkout in editable mode, so code
+changes are picked up without reinstalling. `--no-path` installs without
+touching `PATH`.
 
-### What changed in RC24
+To pull the latest source and refresh the installed command in one step, run:
 
-Task conversations now include **Models & prompts** and **Changes**. Choose independent
-worker and planning models, local or cloud planning, and additive system instructions.
-Settings take effect at an attempt checkpoint with revision tracking. Inspect current
-Git diffs and filenames observed changing during an attempt in the same task view.
+```bash
+python3 -m codelaboon update
+```
 
-Use `codelaboon tasks TASK_ID --settings`, `--worker-model PROVIDER/MODEL`,
-`--orchestrator local --orchestrator-model local/MODEL`, or `--changes`.
-See [RC24 task configuration and examples](docs/rc24-task-models-and-changes.md).
+Use `--no-pull` to reinstall only, or `--no-editable` for a regular user
+install. If changes don't seem to take effect, updating/reinstalling (and
+restarting `codelaboon`) ensures the running command uses the current code.
 
-### What changed in RC23
+Scripted installers are available too:
 
-Tasks now open as dedicated conversations with live worker output, a visible composer,
-checkpoint guidance and delivery receipts. Click a task in the browser to open its
-own URL; reload, Back and mobile navigation preserve the task route.
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/zGabrielR1/codelaboon/main/scripts/install.sh | bash
 
-Running `codelaboon` or a bare engine opens a launcher with **Task conversations**.
-Use `codelaboon tasks` for terminal task chats, `codelaboon tasks --open` for the browser,
-or `codelaboon opencode --tasks TASK_ID` (works with all seven engine aliases).
-Use `codelaboon opencode --direct` to skip the launcher. Terminal chats use the
-optional `tui` extra; the base install opens task chats in the browser if it is absent.
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+```
 
-RC23 also ships the previously unpublished RC22 updater/runtime recovery, diagnostics,
-live monitoring and installed-engine task routing. See [RC23 usage](docs/rc23-task-conversations.md)
-and the [full changelog](CHANGELOG.md).
+Running from the source checkout works without installing at all:
+`python3 -m codelaboon`. The optional `[tui]` extra installs Textual for
+the legacy interface.
 
-### What changed in RC21
+## Local interfaces
 
-RC21 expands the security workflow introduced in RC20:
+Run `codelaboon` (or `python -m codelaboon`) from any directory to open the
+terminal workspace. The directory you start it in becomes the project root,
+like `opencode`, `codex` or `claude` started in a repository. The header,
+sidebar and saved sessions show that project.
 
-- **Web assessments:** inspect advertised HTTP methods, cookie attributes and
-  prefixes, cross-origin access (CORS), CSP, framing and transport-policy settings.
-- **Local IT checks:** audit explicitly named configuration files for private-key
-  markers and supported POSIX permission issues without copying their contents.
-- **Defensive retesting:** compare equivalent completed assessments to see which
-  observations are new, persist, or were not observed again.
-- **Stronger boundaries:** validate scope timing, URLs and pinned addresses;
-  recheck expiry before probes; hash response-header values; harden nmap imports.
-- **Behavior and architecture:** separate response rules, local auditing and
-  report comparison; guide the agent through hypotheses, evidence, fixes and retests.
-- **Windows reliability:** correct storage relocation path handling.
+Run `codelaboon web` to start the optional web workspace and open your browser
+at `http://127.0.0.1:8765`. Use `--port 9000` to choose a port or `--no-open`
+to start without opening a browser. Stop the server with Ctrl+C.
 
-Start with the [RC20-to-RC21 comparison and examples](docs/rc21-security.md#what-changed-from-rc20),
-or read the [full changelog](CHANGELOG.md). The published [RC21 release](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.21)
-contains the wheel, source, VS Code connector and verified engine bundles.
-For the Windows NUL-byte dependency/startup failure and its post-release source
-fix, see [runtime recovery](docs/native-runtime.md#windows-damaged-runtime-dependencies).
+The web workspace includes provider/model discovery, multi-turn conversations,
+browser-local history, JSON export, code blocks, copy buttons, and light/dark themes.
+Provider credentials stay on the Python server. Messages go to the provider you select.
+Conversations are saved in this browser’s local storage; exporting creates a portable JSON copy.
+Web Chat starts on Free (Auto) for a new browser session.
+The server binds only to loopback and requires a session token for chat requests.
+
+The terminal workspace supports Ctrl+P for providers, Ctrl+O for models,
+Ctrl+N/Ctrl+L for a new chat, Ctrl+S for saved sessions, Ctrl+B to toggle the
+sidebar and Ctrl+K to replace an account key. The default interface uses OpenCode; Textual is available through the optional
+`tui` extra for the legacy interface.
+
+## Overview
 
 ### Harness principles
 
@@ -274,13 +155,12 @@ includes. Use throwaway prompts on lanes that may log them.
 
 ## ChatGPT sign-in and current models
 
-Run `codelaboon login chatgpt`, or click **Continue with ChatGPT** in the web
-workspace. Finish authorization in the browser, then refresh the model picker.
-This uses OpenAI?s public Sign in with ChatGPT flow with PKCE and verified ID
+Run `codelaboon login chatgpt`, or choose **ChatGPT → Sign in** in **Connections**. Finish authorization in the browser, then refresh the model picker.
+This uses OpenAI’s public Sign in with ChatGPT flow with PKCE and verified ID
 tokens. Credentials are stored in `chatgpt-session.json` inside your config
 directory and refresh automatically. Do not share this file.
 
-The picker requests the selected account?s live catalogue, respects visibility,
+The picker requests the selected account’s live catalogue, respects visibility,
 and shows its display names. GPT-6 Luna appears when returned for your account;
 plan eligibility and usage limits apply. Subscription inference uses Responses
 with storage disabled. Interrupted or failed streams are reported as failures.
@@ -295,7 +175,7 @@ and [models and inference](https://developers.openai.com/siwc/token-sharing-open
 
 ## Claude and Gemini account sign-in
 
-`codelaboon login claude` (or **Continue with Claude** in the web workspace)
+`codelaboon login claude` (or **Claude → Sign in** in **Connections**)
 uses Anthropic's public Claude Code OAuth flow with PKCE. Pro, Max, Ultra, Team
 and Enterprise claude.ai accounts receive inference through their plan. A free
 claude.ai account can complete the same sign-in, but Anthropic does not
@@ -303,7 +183,7 @@ currently include Claude Code or API inference with the free plan; when the
 account has no allowance the provider reports Anthropic's own plan error. An
 explicit `ANTHROPIC_API_KEY` or configured key takes precedence.
 
-`codelaboon login gemini` (or **Continue with Gemini**) signs in with a normal
+`codelaboon login gemini` (or **Google Gemini → Sign in** in **Connections**) signs in with a normal
 Google account, then onboards the account to Google's free Code Assist tier. It
 needs no billing account and no API key. This is the project's free-as-in-beer
 account lane. Google's terms for the free tier apply: prompts may be processed,
@@ -324,9 +204,39 @@ with owner-only permissions and refresh automatically. Do not share these
 files. Sign-in tokens are only ever sent to the provider's official endpoint;
 a custom `base_url` is refused for account sessions.
 
+### Claude.ai browser chat
+
+The browser provider uses the default model in your signed-in Firefox session.
+Anthropic's [Consumer Terms, section 3](https://www.anthropic.com/legal/consumer-terms)
+require explicit permission for automated browser access.
+
+```bash
+codelaboon claude-browser setup
+codelaboon claude-browser test
+codelaboon chat claude_browser web-default "Explain this function"
+```
+
+Setup opens Claude.ai in your system's default browser and prints the path to the
+Firefox add-on manifest. In Firefox, open `about:debugging#/runtime/this-firefox`,
+select **Load Temporary Add-on**, and choose the manifest. Firefox removes
+temporary add-ons when it restarts. Sign in to Claude.ai normally if needed.
+Each CLI request opens a new text conversation and returns its reply over an
+authenticated loopback connection.
+
+In `codelaboon web`, select **Claude.ai (Firefox)** and send a message in the
+workspace chat. Firefox briefly opens a Claude.ai tab, then returns focus to
+your previous tab. The reply appears in the workspace conversation.
+
+In a native engine launched by Codelaboon, select **Claude · Browser default (Firefox)**
+in the model picker. This single entry uses your current Claude.ai session's
+model. The gateway route is `claude_browser/web-default`. Start a new conversation if the previous one has
+tool calls or attachments. The engine displays the reply once Firefox has
+finished receiving it. This route supports text conversation and has no
+engine tool execution.
+
 ## Freebuff (ad-funded free tier)
 
-`codelaboon login freebuff` (or **Continue with Freebuff** in the web workspace)
+`codelaboon login freebuff` (or **Freebuff → Sign in** in **Connections**)
 uses the same device-code login the Freebuff CLI uses: the command prints a URL,
 you finish sign-in in the browser, and the CLI polls for the account's token.
 Freebuff is funded by ads instead of a subscription, so signed-in accounts get
@@ -354,7 +264,7 @@ codelaboon chat freebuff mimo/mimo-v2.5 "Hello"
 
 ## Qoder (free plan)
 
-`codelaboon login qoder` (or **Continue with Qoder** in the web workspace) uses
+`codelaboon login qoder` (or **Qoder → Sign in** in **Connections**) uses
 the same browser device flow the official Qoder CLI uses: the command prints a
 URL, you finish sign-in in the browser, and the CLI polls for the account's
 device token, which then refreshes automatically. Qoder accounts include a
@@ -377,121 +287,6 @@ codelaboon login qoder
 codelaboon models list qoder
 codelaboon chat qoder auto "Hello"
 ```
-
-## Local interfaces
-
-Run `codelaboon` (or `python -m codelaboon`) from any directory to open the
-terminal workspace. The directory you start it in becomes the project root,
-like `opencode`, `codex` or `claude` started in a repository. The header,
-sidebar and saved sessions show that project.
-
-Run `codelaboon web` to start the optional web workspace and open your browser
-at `http://127.0.0.1:8765`. Use `--port 9000` to choose a port or `--no-open`
-to start without opening a browser. Stop the server with Ctrl+C.
-
-The web workspace includes provider/model discovery, multi-turn conversations,
-browser-local history, JSON export, code blocks, copy buttons, and light/dark themes.
-Provider credentials stay on the Python server. Messages go to the provider you select.
-Conversations are saved in this browser?s local storage; exporting creates a portable JSON copy.
-The server binds only to loopback and requires a session token for chat requests.
-
-The terminal workspace supports Ctrl+P for providers, Ctrl+O for models,
-Ctrl+N/Ctrl+L for a new chat, Ctrl+S for saved sessions, Ctrl+B to toggle the
-sidebar and Ctrl+K to replace an account key. The default interface uses OpenCode; Textual is available through the optional
-`tui` extra for the legacy interface.
-
-## Quick start
-
-```bash
-cd projects/codelaboon
-python3 -m codelaboon --help
-```
-
-On first run a configuration file is created automatically with restrictive
-permissions:
-
-```text
-~/.config/codelaboon/providers.toml   (directory 0700, file 0600)
-```
-
-Edit that file to add your API keys:
-
-```toml
-[chatgpt]
-api_key = "sk-..."
-models = ["gpt-3.5-turbo"]
-
-[openrouter]
-api_key = "sk-or-..."
-models = ["openai/gpt-3.5-turbo"]
-
-[ourfree]
-api_key = "ofm-..."
-base_url = "http://127.0.0.1:18899/v1"
-```
-
-A safe template is available in [`config/providers.toml.example`](config/providers.toml.example).
-**Never commit real API keys** — the real `config/providers.toml` is gitignored.
-
-Then:
-
-```bash
-python3 -m codelaboon providers list
-python3 -m codelaboon models list chatgpt
-python3 -m codelaboon chat openrouter openai/gpt-3.5-turbo "Hello"
-python3 -m codelaboon chat ourfree deepseek-v4.1-flash-free "Hello"
-```
-
-## Installation (adds `codelaboon` to PATH)
-
-From the source checkout:
-
-```bash
-python3 -m codelaboon install
-```
-
-This installs the core package for the current user and
-adds pip's user script directory to your `PATH`:
-
-- **Windows** — updates the user `Path` registry value and broadcasts the
-  change; open a new terminal afterwards.
-- **Linux/macOS** — appends an idempotent `export PATH=…` line to the shell
-  profile(s) that already exist (`~/.bashrc`, `~/.zshrc`, `~/.profile`, fish).
-
-Then open a new terminal and run:
-
-```bash
-codelaboon --version
-codelaboon
-```
-
-`codelaboon install --editable` installs the checkout in editable mode, so code
-changes are picked up without reinstalling. `--no-path` installs without
-touching `PATH`.
-
-To pull the latest source and refresh the installed command in one step, run:
-
-```bash
-python3 -m codelaboon update
-```
-
-Use `--no-pull` to reinstall only, or `--no-editable` for a regular user
-install. If changes don't seem to take effect, updating/reinstalling (and
-restarting `codelaboon`) ensures the running command uses the current code.
-
-Scripted installers are available too:
-
-```bash
-# Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/zGabrielR1/codelaboon/main/scripts/install.sh | bash
-
-# Windows PowerShell
-powershell -ExecutionPolicy Bypass -File scripts/install.ps1
-```
-
-Running from the source checkout works without installing at all:
-`python3 -m codelaboon`. The TUI is now a normal dependency; the `[tui]` extra
-is retained for compatibility.
 
 ## Commands
 
@@ -629,6 +424,40 @@ Each provider implements the shared contract in [`providers/base.py`](providers/
 API keys, base URLs, default models and request payloads are provider-specific;
 check the provider module you are using.
 
+### Vercel AI Gateway
+
+Run `codelaboon configure vercel` and enter an **AI Gateway API key** from your
+Vercel dashboard. You can also use `AI_GATEWAY_API_KEY`, connect **Vercel** in the
+TUI key dialog, or choose **Vercel AI Gateway** under **API connections** in **Connections**.
+A Vercel account token (`VERCEL_TOKEN`) is not an AI Gateway API key.
+
+```powershell
+codelaboon models list vercel
+codelaboon models list vercel_free
+codelaboon chat vercel anthropic/claude-sonnet-4.6 "Explain this repository"
+codelaboon proxy --model vercel/anthropic/claude-sonnet-4.6
+```
+
+Use an exact model ID returned by the live catalogue; the example model may not
+be available for your account. CLI chat takes Vercel's `vendor/model` ID; task,
+engine and local proxy selections add the provider prefix: `vercel/vendor/model`.
+The default upstream is `https://ai-gateway.vercel.sh/v1`. Both the root URL and
+`/v1` are accepted in `providers.toml`; optional `models` are an offline fallback.
+Saved API keys take precedence over the environment variable, and key changes
+retain the configured endpoint and model fallback list.
+
+The proxy forwards native Messages and Responses requests directly to Vercel;
+Messages retain tools, thinking, system blocks and prompt-cache directives.
+Chat uses Vercel's OpenAI-compatible endpoint. Gateway credits/model pricing
+apply to the unrestricted `vercel` lane. Free Auto uses the separate `vercel_free`
+lane, restricted to uniformly zero-priced text models in Vercel's live catalogue.
+No configured ID, monthly credit, or expired/offline price record can admit a paid
+model; variable-price routes are excluded. The lane reuses your Vercel key only
+when both endpoints match, or uses `AI_GATEWAY_API_KEY`. For Claude Desktop, configure the
+local gateway and explicit model list as above using `vercel/vendor/model`.
+See Vercel's [API setup](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions)
+and [Messages support](https://vercel.com/docs/ai-gateway/sdks-and-apis/anthropic-messages-api).
+
 ### Our Free Model (free lane)
 
 The `ourfree` provider turns the dsh-our-free-model local gateway into an input
@@ -757,7 +586,7 @@ base_url = "http://127.0.0.1:18899/v1"
 models = ["deepseek-v4.1-flash-free"]
 ```
 
-Permissions are set to owner-only automatically.
+Permissions are set to owner-only automatically. See the [configuration template](config/providers.toml.example) for examples.
 
 ## Verification
 
@@ -835,6 +664,153 @@ Personal use only — see [LICENSE](LICENSE). codelaboon is a personal
 project; no redistribution or commercial use without the owner's
 permission, and each provider's own terms continue to apply.
 
+
+## Earlier releases and workflows
+
+### What changed in RC28
+
+Open a task in `codelaboon tasks --open` to chat with its orchestrator. Actual
+model replies and partial replies appear in the thread alongside the plan and
+independent-check status; command diagnostics remain under **Raw attempt output**.
+New web tasks default to one verified coding cycle and require an actual project
+check rather than assuming a security script exists. Choose 0 cycles explicitly
+for continuous work. Send a follow-up after completion to continue the same task. While a cycle is
+active, your message joins the next checkpoint. Pauses and provider cooldowns
+remain in force. Explicitly stopped or elevated cases keep their existing policy.
+
+Engine task entry points, such as `codelaboon opencode --tasks TASK_ID` and
+`codelaboon jcode --tasks TASK_ID`, share this conversation and durable history.
+The next attempt receives recent replies and the independent-check failures so
+the orchestrator can direct workers to fix them. Restart the background worker
+at a safe checkpoint after updating to enable the new conversation feature.
+
+OpenCode/Kilo task launchers now place the instruction before their variadic
+attachment option. The previous ordering made the engine treat
+`Execute the attached task specification.` as another filename; the SQLite
+migration message preceding it was not the cause.
+
+Free-provider exhaustion now returns a retryable 503 with `Retry-After`, and
+account-scoped cooldowns survive engine gateway restarts. A Kilo 429 or Freebuff
+admission failure means an upstream availability/account issue when the local
+gateway has already answered. This changes failover, backoff and diagnostics;
+it does not create provider quota or allow paid fallback.
+
+### What changed in RC27
+
+Create background tasks directly in `codelaboon tasks`: choose **New task** or
+press **Ctrl+N**, enter the objective, project, scope and verification commands,
+then queue. The form lists installed engines and defaults to one verified cycle,
+the coding profile, default permissions and no elevation. Errors keep your input;
+a successful queue opens the task conversation. The worker starts automatically.
+If worker startup fails, the task stays queued and the conversation tells you to
+run `codelaboon work start` rather than create a duplicate.
+
+Verification uses JSON argument arrays, for example
+`[["python", "-m", "unittest", "discover", "-s", "tests"]]`.
+Commands run in the selected project without shell expansion. Use **Settings**
+after creation to change models and additive instructions at the next checkpoint.
+
+The new `codelaboon proxy` command runs a stable gateway for desktop apps and
+editors on `http://127.0.0.1:8766`. It shares the existing Messages, Responses,
+Chat Completions and model-discovery backend. Keep its terminal open while clients
+are connected. Its local credential persists across restarts; provider credentials
+remain in Codelaboon. Use `--port` or `--token-file` for a separate instance.
+
+For Claude Desktop on Windows:
+
+1. Start `codelaboon proxy --model free` (or choose `PROVIDER/MODEL`).
+2. In another terminal, run `codelaboon proxy --show-token` to read the local key.
+3. In Claude Desktop, open **Help > Troubleshooting > Enable Developer Mode**.
+   After restart, open **Developer > Configure Third-Party Inference**.
+4. Choose **Gateway**, base URL `http://127.0.0.1:8766` (without `/v1`),
+   **Static API key**, and **Bearer**, then enter the local key.
+5. In **Models**, add the explicit model ID `free` (or the same `PROVIDER/MODEL`
+   selected above) to the model list and disable model discovery. Desktop's
+   auto-discovery shows only recognizable Claude IDs, so a working gateway can
+   otherwise leave the picker empty. `codelaboon proxy --desktop-models --model free`
+   prints the corresponding `modelDiscoveryEnabled` / `inferenceModels` fields
+   without creating credentials or starting a server. Use the exact ID in `name`;
+   do not assign Claude capabilities to a non-Claude route with `behavesAs`.
+6. Start a local conversation. Built-in Claude model names route to the model
+   chosen with `--model`; explicit provider/model IDs retain their own route.
+
+Running `codelaboon proxy` starts the gateway only; it does not launch or configure
+Desktop. Keep it running before opening the app. A connection-refused error means
+the gateway is stopped or the app is using a different address or port.
+
+This follows Anthropic's [Desktop gateway configuration](https://code.claude.com/docs/en/llm-gateway-connect#desktop-app)
+and [third-party inference fields](https://claude.com/docs/third-party/claude-desktop/gateway).
+Desktop ignores `ANTHROPIC_BASE_URL` in shell or Claude Code settings. Organization
+configuration may make the form read-only. Cloud environments and Remote Control
+are unavailable in gateway mode; a loopback URL cannot serve remote SSH hosts.
+Non-Claude routes use Codelaboon's compatibility adapter and may not support every
+Desktop feature or content type. Token counting is a local estimate and translated
+routes do not preserve Anthropic prompt caching. Desktop UI and live inference
+validation remain pending; offline protocol tests cover discovery, authentication,
+Messages streaming and tool translation.
+
+### What changed in RC25
+
+Task conversations add state filters, timestamps, reload-persistent drafts and
+keyboard shortcuts. Inspect the latest 50 attempts and scoped, redacted logs; retry
+a finished failure at the next checkpoint; start, pause or resume worker scheduling
+from the browser, CLI or terminal. Connect HowToFix with your own API key, GitHub
+Copilot through device OAuth, and optional official Windsurf/Devin native accounts
+and task execution. Credit and subscription sources stay explicit, outside free Auto.
+
+Use `codelaboon tasks TASK_ID --attempts`, `codelaboon tasks TASK_ID --retry`,
+`codelaboon configure howtofix`, `codelaboon login copilot`, or
+`codelaboon accounts devin setup`. See
+[task operations and account setup](docs/task-operations-and-accounts.md).
+
+### What changed in RC24
+
+Task conversations now include **Models & prompts** and **Changes**. Choose independent
+worker and planning models, local or cloud planning, and additive system instructions.
+Settings take effect at an attempt checkpoint with revision tracking. Inspect current
+Git diffs and filenames observed changing during an attempt in the same task view.
+
+Use `codelaboon tasks TASK_ID --settings`, `--worker-model PROVIDER/MODEL`,
+`--orchestrator local --orchestrator-model local/MODEL`, or `--changes`.
+See [RC24 task configuration and examples](docs/rc24-task-models-and-changes.md).
+
+### What changed in RC23
+
+Tasks now open as dedicated conversations with live worker output, a visible composer,
+checkpoint guidance and delivery receipts. Click a task in the browser to open its
+own URL; reload, Back and mobile navigation preserve the task route.
+
+Running `codelaboon` or a bare engine opens a launcher with **Task conversations**.
+Use `codelaboon tasks` for terminal task chats, `codelaboon tasks --open` for the browser,
+or `codelaboon opencode --tasks TASK_ID` (works with all seven engine aliases).
+Use `codelaboon opencode --direct` to skip the launcher. Terminal chats use the
+optional `tui` extra; the base install opens task chats in the browser if it is absent.
+
+RC23 also ships the previously unpublished RC22 updater/runtime recovery, diagnostics,
+live monitoring and installed-engine task routing. See [RC23 usage](docs/rc23-task-conversations.md)
+and the [full changelog](CHANGELOG.md).
+
+### What changed in RC21
+
+RC21 expands the security workflow introduced in RC20:
+
+- **Web assessments:** inspect advertised HTTP methods, cookie attributes and
+  prefixes, cross-origin access (CORS), CSP, framing and transport-policy settings.
+- **Local IT checks:** audit explicitly named configuration files for private-key
+  markers and supported POSIX permission issues without copying their contents.
+- **Defensive retesting:** compare equivalent completed assessments to see which
+  observations are new, persist, or were not observed again.
+- **Stronger boundaries:** validate scope timing, URLs and pinned addresses;
+  recheck expiry before probes; hash response-header values; harden nmap imports.
+- **Behavior and architecture:** separate response rules, local auditing and
+  report comparison; guide the agent through hypotheses, evidence, fixes and retests.
+- **Windows reliability:** correct storage relocation path handling.
+
+Start with the [RC20-to-RC21 comparison and examples](docs/rc21-security.md#what-changed-from-rc20),
+or read the [full changelog](CHANGELOG.md). The published [RC21 release](https://github.com/zGabrielR1/codelaboon/releases/tag/v1.0.0-rc.21)
+contains the wheel, source, VS Code connector and verified engine bundles.
+For the Windows NUL-byte dependency/startup failure and its post-release source
+fix, see [runtime recovery](docs/native-runtime.md#windows-damaged-runtime-dependencies).
 
 ### Native workspace flow
 

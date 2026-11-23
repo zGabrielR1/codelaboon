@@ -4,6 +4,32 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-23 — RC49 router demand
+
+- Applied the supervisor's inbox project-directory check to router demand. Tested a missing relative project directory, continued task visibility, and demand returning after the directory is restored.
+
+### Session 2026-11-23 — RC48 inbox validation
+
+- Shared inbox schema validation across the supervisor, router, and task operations while retaining supervisor diagnostics and project availability checks.
+- Extended the worker regression test with malformed IDs, checks, swarm options, and settings. Verified that the worker still completes the valid configured task.
+
+### Session 2026-11-23 — RC47 task operations
+
+- Reused the inbox reader for swarm controls, privilege-case lookup, and router demand. Covered router demand and pause, resume, and stop with a damaged inbox record.
+- Fixed a terminal refresh failure when Textual removes a task row's label.
+- Made release CI derive the notes filename from the release candidate version. Built and verified the five RC47 release assets locally.
+
+### Session 2026-11-23 — RC46 release verification
+
+- Updated GitHub release CI to use the RC46 notes.
+- Ran 461 offline tests with 4 skips. Structural checks and engine source provenance checks passed.
+- Verified all five existing release asset checksums and compared the wheel's changed package files with the checkout. Release CI will rebuild the assets from the tagged source.
+
+### Session 2026-11-22 — RC46 workspace review
+
+- Captured all four web pages in Chrome at desktop and mobile widths.
+- Simplified Chat, moved shared controls to Connections and Desktop, and put setup first in the README.
+
 ### Session 2026-11-03 — initial release
 
 - **Objective**: Create codelaboon CLI harness for AI model access

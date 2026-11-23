@@ -24,17 +24,16 @@ def router_ready():
         return False
 
 
-def pending_work(config, runtime):
+def pending_work(config, runtime, *, project_root=None):
     """Keep the router model unloaded while the durable worker has no runnable tasks."""
     if (runtime / 'PAUSE').exists() or (runtime / 'STOP').exists():
         return False
     try:
         state = json.loads((runtime / 'state.json').read_text()) if (runtime / 'state.json').exists() else {}
-        tasks = list(config.get('tasks', []))
-        tasks.extend(json.loads(path.read_text()) for path in (runtime / 'inbox').glob('*.json'))
+        from codelaboon.work_queue import inbox_tasks, ready
+        tasks = [*config.get('tasks', []), *inbox_tasks(runtime, project_root=project_root)]
         from codelaboon.task_settings import apply as apply_settings
         tasks=[apply_settings(runtime,task) for task in tasks]
-        from codelaboon.work_queue import ready
         return any(ready(task, state, runtime) and (task.get('swarm', {}).get('controller') != 'worker' or task.get('supervision',{}).get('enabled'))
                    for task in tasks)
     except (OSError, ValueError, KeyError, TypeError):
@@ -43,9 +42,10 @@ def pending_work(config, runtime):
 
 def serve(config_path):
     config_path = Path(config_path).resolve()
+    project_root = config_path.parent
     source = Path(__file__).resolve().parent.parent
     config = json.loads(config_path.read_text(encoding='utf-8'))
-    runtime = (config_path.parent / config['runtime']).resolve()
+    runtime = (project_root / config['runtime']).resolve()
     runtime.mkdir(parents=True, exist_ok=True)
     local = config_dir() / 'runtime/local'
     local.mkdir(parents=True, exist_ok=True)
@@ -54,7 +54,7 @@ def serve(config_path):
     executable = Path(config.get('local_executable') or shutil.which(name) or
                       (linux if os.name != 'nt' and linux.is_file() else local / 'llama' / name))
     model = Path(config.get('local_model') or local / 'router.gguf')
-    if pending_work(config, runtime) and not router_ready() and (not executable.is_file() or not model.is_file()):
+    if pending_work(config, runtime, project_root=project_root) and not router_ready() and (not executable.is_file() or not model.is_file()):
         raise FileNotFoundError('Install a native llama-server and the optional local router model, '
                                 'or start an external local-router server on port 18765. '
                                 'Windows: python scripts/setup_orchestrator.py')
@@ -86,7 +86,7 @@ def serve(config_path):
             while not (runtime / 'STOP').exists():
                 if server is not None and server.poll() is not None:
                     server = None
-                demand = pending_work(config, runtime)
+                demand = pending_work(config, runtime, project_root=project_root)
                 if server is not None and not demand:
                     terminate(server)
                     server = None

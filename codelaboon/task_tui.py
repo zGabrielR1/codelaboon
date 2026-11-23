@@ -194,8 +194,10 @@ class TaskApp(App):
                     await listing.append(item)
                 self.list_ids=ids
             else:
-                for item,task in zip(listing.children,self.records.values()):
-                    item.query_one(Label).update(Text(task['title']+'\n'+task['engine']+' / '+task['state']))
+                for item in listing.query(ListItem):
+                    task = self.records[item.task_identity]
+                    for label in item.query(Label):
+                        label.update(Text(task['title']+'\n'+task['engine']+' / '+task['state']))
             if self.identity in self.records:
                 self.show_conversation(state)
             elif self.identity:

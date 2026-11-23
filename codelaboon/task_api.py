@@ -12,10 +12,8 @@ def configuration():
 
 
 def task_records(value, root, include_deleted=False):
-    tasks=list(value.get('tasks',[]))
-    for path in (root/'inbox').glob('*.json'):
-        try:tasks.append(json.loads(path.read_text(encoding='utf-8')))
-        except (OSError,ValueError):continue
+    from codelaboon.work_queue import inbox_tasks
+    tasks = [*value.get('tasks', []), *inbox_tasks(root)]
     from codelaboon.task_lifecycle import deleted
     return {task['id']:task for task in tasks if isinstance(task,dict) and isinstance(task.get('id'),str) and (include_deleted or not deleted(root,task['id']))}
 

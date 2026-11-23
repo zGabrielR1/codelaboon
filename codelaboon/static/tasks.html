@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tasks | codelaboon</title><link rel="icon" href="/logo.svg"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/tasks.css"><script src="/task-actions.js" defer></script><script src="/tasks.js" defer></script><script src="/desktop.js" defer></script><link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/workspace.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tasks | codelaboon</title><link rel="icon" href="/logo.svg"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/tasks.css"><script src="/task-actions.js" defer></script><script src="/tasks.js" defer></script><link rel="stylesheet" href="/workspace.css"></head>
 <body class="tasks-body">
 <div class="ops-shell">
-  <nav class="ops-rail" aria-label="Workspace"><a href="/" title="Conversations" aria-label="Conversations"><img src="/logo.svg" width="30" height="30" alt="codelaboon"></a><a href="/" title="Conversations" aria-label="Conversations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16v12H9l-5 4z"/></svg><span>Chat</span></a><a href="/tasks" aria-current="page" title="Task operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5h12M9 12h12M9 19h12M2 5l2 2 3-4M2 12l2 2 3-4M2 19l2 2 3-4"/></svg><span>Tasks</span></a><a href="/connections" title="Connections" aria-label="Connections"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 15l6-6M8 11l-3 3a4 4 0 005 5l3-3M11 8l3-3a4 4 0 015 5l-3 3"/></svg><span>Connections</span></a><button id="ops-theme" title="Switch theme" aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="7"/><path d="M12 5v14"/></svg><span>Theme</span></button></nav>
+  <nav class="ops-rail" aria-label="Workspace"><a href="/" title="Conversations" aria-label="Conversations"><img src="/logo.svg" width="30" height="30" alt="codelaboon"></a><a href="/" title="Conversations" aria-label="Conversations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16v12H9l-5 4z"/></svg><span>Chat</span></a><a href="/tasks" aria-current="page" title="Task operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5h12M9 12h12M9 19h12M2 5l2 2 3-4M2 12l2 2 3-4M2 19l2 2 3-4"/></svg><span>Tasks</span></a><a href="/connections" title="Connections" aria-label="Connections"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 15l6-6M8 11l-3 3a4 4 0 005 5l3-3M11 8l3-3a4 4 0 015 5l-3 3"/></svg><span>Connections</span></a><a href="/desktop" aria-label="Desktop" title="Desktop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h18v12H3zM8 21h8m-4-5v5"/></svg><span>Desktop</span></a><button id="ops-theme" title="Switch theme" aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="7"/><path d="M12 5v14"/></svg><span>Theme</span></button></nav>
   <main class="ops-main">
     <header class="ops-header"><div><a class="ops-brand" href="/">codelaboon</a><h1>Tasks</h1><p id="worker-summary">Reading worker status…</p></div><div class="ops-header-actions"><button id="worker-action" disabled>Worker controls</button><button id="ops-refresh">Refresh</button><button id="new-task" class="primary">Queue task</button></div></header>
     <div class="ops-freshness"><label><input id="live-refresh" type="checkbox" checked> Auto-refresh</label><span id="ops-updated">Not refreshed yet</span></div>
@@ -19,51 +19,7 @@
       <p>Run <code>codelaboon update</code> in your terminal, then restart Codelaboon and any running task worker.</p>
       <button id="runtime-refresh" type="button">Refresh runtime status</button>
     </details>
-    <details id="desktop-tools" class="task-desktop">
-      <summary>Desktop controls</summary>
-      <p id="desktop-workspace" role="status"></p>
-      <section aria-labelledby="desktop-agents-heading">
-        <h2 id="desktop-agents-heading">Desktop agents</h2>
-        <div id="desktop-agents"></div>
-      </section>
-      <div class="desktop-grid">
-      <section aria-labelledby="terminal-heading">
-        <h2 id="terminal-heading">Terminal</h2>
-        <button id="open-terminal" type="button" disabled>Open workspace terminal</button>
-        <form id="command-form">
-          <label for="command">Executable and arguments (JSON array)</label>
-          <input id="command" placeholder='["git", "status", "--short"]' required maxlength="16000">
-          <button id="run-command" disabled>Run command</button>
-        </form>
-        <p id="terminal-status" role="status"></p>
-        <pre id="command-output" aria-label="Command output" hidden></pre>
-      </section>
-      <section aria-labelledby="browser-heading">
-        <h2 id="browser-heading">Browser</h2>
-        <p>Control a separate Chromium window on this computer.</p>
-        <form id="navigate-form">
-          <label for="browser-url">Page URL</label>
-          <input id="browser-url" type="url" placeholder="https://example.com" required maxlength="4096">
-          <button data-browser="navigate" disabled>Open page</button>
-        </form>
-        <form id="browser-controls">
-          <label for="browser-selector">Element selector</label>
-          <input id="browser-selector" placeholder='button or text=Continue' maxlength="1000">
-          <label for="browser-text">Input text</label>
-          <input id="browser-text" autocomplete="off" maxlength="16000">
-          <div class="desktop-actions">
-            <button type="button" data-browser="click" disabled>Click</button>
-            <button type="button" data-browser="fill" disabled>Fill</button>
-            <button type="button" data-browser="snapshot" disabled>Refresh page outline</button>
-            <button type="button" data-browser="close" disabled>Close browser</button>
-          </div>
-        </form>
-        <p id="browser-status" role="status"></p>
-        <pre id="browser-output" aria-label="Browser page outline" hidden></pre>
-      </section>
-    </div>
-    </details>
-    <footer class="ops-footer"><span id="ops-version"></span><a href="/desktop">Desktop tools</a><a href="/">Back to conversations</a></footer>
+    <footer class="ops-footer"><span id="ops-version"></span></footer>
   </main>
 </div>
 <dialog id="task-dialog" aria-labelledby="task-dialog-title"><form id="task-form"><div class="dialog-heading"><h2 id="task-dialog-title">Start a task conversation</h2><button id="close-task" type="button" aria-label="Close task form">Close</button></div>

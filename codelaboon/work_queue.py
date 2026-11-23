@@ -1,11 +1,46 @@
 """Shared durable scheduling rules for the service, supervisor and status UI."""
 import hashlib
+import json
 from pathlib import Path
 import time
 
 
 def controls(root, task_id):
     return Path(root) / 'task-controls' / hashlib.sha256(task_id.encode()).hexdigest()
+
+
+def inbox_tasks(root, *, project_root=None, on_invalid=None):
+    for item in sorted((root / 'inbox').glob('*.json')):
+        try:
+            task = json.loads(item.read_text(encoding='utf-8'))
+            validate_inbox_task(task)
+            if project_root is not None and not (project_root / task['project']).resolve().is_dir():
+                raise ValueError('Project directory unavailable')
+        except (OSError, RuntimeError, ValueError) as error:
+            if on_invalid is not None:
+                on_invalid(item, error)
+            continue
+        yield task
+
+
+def validate_inbox_task(task):
+    if not isinstance(task, dict):
+        raise ValueError('Expected a task object')
+    for field in ('id', 'project', 'prompt'):
+        value = task.get(field)
+        if not isinstance(value, str) or (field != 'prompt' and not value):
+            raise ValueError(f'Invalid task {field}')
+        value.encode('utf-8')
+    checks = task.get('verify_argv')
+    if not isinstance(checks, list) or not checks or not all(
+            isinstance(check, list) and check and all(isinstance(part, str) for part in check)
+            for check in checks):
+        raise ValueError('verify_argv must contain nonempty lists of string arguments')
+    for field in ('execution_settings', 'supervision'):
+        if field in task and not isinstance(task[field], dict):
+            raise ValueError(f'Expected a task {field} object')
+    if 'swarm' in task:
+        validate_swarm(task['swarm'])
 
 
 def ready(task, state, root, now=None):

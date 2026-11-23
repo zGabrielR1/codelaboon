@@ -13,8 +13,7 @@
 #desktop-workspace,#browser-status{overflow-wrap:anywhere}
 @media(max-width:680px){.desktop-grid{grid-template-columns:minmax(0,1fr);gap:0}}
 
-.task-desktop { margin-block: 24px; }
-.task-desktop #desktop-agents > div {
+.desktop-main #desktop-agents > div {
   display: flex;
   align-items: center;
   justify-content: space-between;

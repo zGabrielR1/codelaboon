@@ -68,9 +68,8 @@ def status(path=None, *, include_active=True):
     path, config, root = configuration(path)
     state_path = root / 'state.json'
     state = json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else {}
-    tasks = list(config.get('tasks', []))
-    for item in sorted((root / 'inbox').glob('*.json')):
-        tasks.append(json.loads(item.read_text(encoding='utf-8')))
+    from codelaboon.work_queue import inbox_tasks
+    tasks = [*config.get('tasks', []), *inbox_tasks(root)]
     done = set(state.get('done', []))
     active = []
     if include_active:
@@ -115,7 +114,8 @@ def start(path=None):
 def control(action, path=None, task_id=None):
     _, config, root = configuration(path)
     if task_id:
-        tasks=list(config.get('tasks',[]))+[json.loads(p.read_text()) for p in (root/'inbox').glob('*.json')]
+        from codelaboon.work_queue import inbox_tasks
+        tasks = [*config.get('tasks', []), *inbox_tasks(root)]
         if not any(task['id']==task_id for task in tasks):raise ValueError('Unknown task ID')
         from codelaboon.work_queue import controls
         directory=controls(root,task_id);directory.mkdir(parents=True,exist_ok=True)
