@@ -77,7 +77,8 @@ def render(state, watching=False):
         if row['cooldown_seconds']: print(f"  Retry cooldown: {row['cooldown_seconds']} seconds")
         latest = row['last_attempt']
         if latest:
-            print(f"  Last attempt: {latest.get('status','unknown')} | exit: {latest.get('exit_code','-')}")
+            outcome = latest.get('failure_label') or latest.get('status', 'unknown')
+            print(f"  Last attempt: {outcome} | exit: {latest.get('exit_code', '-')}")
             print('  Logs: '+latest['logs'])
         else:
             print('  No attempts recorded yet')

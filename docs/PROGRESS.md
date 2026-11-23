@@ -960,3 +960,7 @@ are stated in the release notes. Remote publication must be verified separately.
 ### RC43 — task failure diagnostics
 
 Task operations and CLI attempt history now show readable failure reasons from recorded worker evidence. The review checked shared label mapping, fallback for older records, and browser text rendering. JavaScript syntax and Git whitespace checks passed.
+
+### RC44 preparation
+
+Terminal task conversations and the worker monitor display RC43’s recorded failure labels. The task heading can expand for wrapped labels in narrow terminals. Package version and release notes are staged in source for RC44.

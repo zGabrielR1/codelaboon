@@ -1,3 +1,7 @@
+## 1.0.0rc45
+
+- Show the latest attempt’s failure reason in the terminal task heading and worker monitor.
+
 ## 1.0.0rc43
 
 - Show why a task failed in the browser and attempt history using recorded provider, engine, planning and verification evidence.

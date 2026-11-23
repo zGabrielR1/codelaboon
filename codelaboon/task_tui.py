@@ -132,7 +132,7 @@ class TaskApp(App):
     #heading {height: 5; padding: 1 2; color: #73daca;}
     #heading Button {margin-right: 2;} #heading Static {width: 1fr;}
     #body {height: 1fr;} #tasks {width: 30%; min-width: 20; border-right: solid #45454b;}
-    #chat {width: 1fr; padding: 0 1;} #task-title {height: auto; max-height: 4; padding: 1 0;}
+    #chat {width: 1fr; padding: 0 1;} #task-title {height: auto; padding: 1 0;}
     #feed {height: 1fr; border-top: solid #45454b;}
     #hint {height: auto; max-height: 3; color: #a3a3ac;}
     #actions {height: 3;} #actions Button {min-width: 8; margin-right: 1;}
@@ -207,7 +207,14 @@ class TaskApp(App):
 
     def show_conversation(self,state):
         task=self.records[self.identity]
-        self.query_one('#task-title',Static).update(task['title']+'\n'+task['engine']+' / '+task['state']+' / '+str(task.get('cycles_completed',0))+' verified cycles')
+        heading = f"{task['title']}\n{task['engine']} / {task['state']} / {task.get('cycles_completed', 0)} verified cycles"
+        attempt = task.get('last_attempt') or {}
+        failure = attempt.get('failure_label')
+        if failure:
+            heading += f"\nLast attempt: {failure}"
+            if attempt.get('exit_code') is not None:
+                heading += f" (exit {attempt['exit_code']})"
+        self.query_one('#task-title', Static).update(heading)
         compatible=not state['worker']['running'] or 'operator-interventions' in state['worker'].get('service',{}).get('features',[])
         continuation=bool(task.get('swarm')) and (not state['worker']['running'] or 'task-conversations' in state['worker'].get('service',{}).get('features',[]))
         notes_only=not compatible or task['elevation']!='none' or task['state']=='stopped' or (task['state']=='completed' and not continuation)
