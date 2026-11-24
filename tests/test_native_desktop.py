@@ -5,8 +5,46 @@ import unittest
 from unittest.mock import Mock, patch
 
 from codelaboon import desktop_mcp
+from codelaboon.desktop import Browser
 from codelaboon.native_desktop import DesktopSession
 from codelaboon.work_queue import swarm_harness, validate_swarm
+
+
+class DesktopBrowserTests(unittest.TestCase):
+    def test_failed_snapshot_reports_successful_click_without_retrying_it(self):
+        browser = Browser(headless=True)
+        self.addCleanup(browser.close)
+        browser.browser = Mock()
+        browser.browser.is_connected.return_value = True
+        browser.page = Mock(url="http://127.0.0.1/next")
+        browser.page.is_closed.return_value = False
+        browser.page.locator.return_value.aria_snapshot.side_effect = RuntimeError("snapshot timed out")
+
+        result = browser.call("click", selector="a")
+
+        self.assertIn("action completed", result["message"])
+        self.assertEqual(result["url"], "http://127.0.0.1/next")
+        browser.page.locator.return_value.click.assert_called_once_with()
+        with self.assertRaisesRegex(ValueError, "Could not read the page snapshot"):
+            browser.call("snapshot")
+
+    def test_navigate_recovers_from_disconnected_chromium(self):
+        browser = Browser(headless=True)
+        self.addCleanup(browser.close)
+        old_runtime = browser.runtime = Mock()
+        browser.browser = Mock()
+        browser.browser.is_connected.return_value = False
+        browser.page = Mock()
+        browser.page.is_closed.return_value = False
+        playwright = Mock()
+        runtime = playwright.sync_playwright.return_value.start.return_value
+        page = runtime.chromium.launch.return_value.new_page.return_value
+        page.url = "http://127.0.0.1/"
+        page.locator.return_value.aria_snapshot.return_value = "Recovered page"
+        with patch.dict("sys.modules", {"playwright.sync_api": playwright}):
+            self.assertEqual(browser.call("navigate", url=page.url)["snapshot"], "Recovered page")
+        old_runtime.stop.assert_called_once_with()
+        page.goto.assert_called_once_with(page.url, wait_until="domcontentloaded")
 
 
 class NativeDesktopTests(unittest.TestCase):

@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -9,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import zipfile
 
 from codelaboon.crush_engine import configuration, launch
-from codelaboon.external_engines import setup, target, CRUSH_VERSION
+from codelaboon.external_engines import managed_executable, setup, target, CRUSH_VERSION
 
 
 class CrushTests(unittest.TestCase):
@@ -84,6 +85,42 @@ class CrushTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'checksum mismatch'):
                 setup('crush')
             self.assertFalse(list(Path(directory).rglob('current.json')))
+
+    def test_reinstall_activates_verified_copy_and_failed_repair_preserves_it(self):
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr('crush.exe' if os.name == 'nt' else 'crush', b'verified binary')
+        payload = buffer.getvalue()
+        with tempfile.TemporaryDirectory() as directory, patch(
+                'codelaboon.external_engines.config_dir', return_value=Path(directory)), patch(
+                'codelaboon.external_engines.target', return_value='windows-x64'), patch(
+                'codelaboon.external_engines.requests.get',
+                side_effect=self.download_responses(payload) * 3), patch(
+                'codelaboon.external_engines.subprocess.run') as probe:
+            original = setup('crush')
+            original.write_bytes(b'damaged')
+            repaired = setup('crush')
+            self.assertNotEqual(repaired, original)
+            self.assertEqual(repaired.read_bytes(), b'verified binary')
+            self.assertEqual(managed_executable('crush'), repaired.resolve())
+            probe.side_effect = OSError('startup probe failed')
+            with self.assertRaisesRegex(OSError, 'startup probe failed'):
+                setup('crush')
+            self.assertEqual(managed_executable('crush'), repaired.resolve())
+
+    def test_managed_install_lookup_ignores_corrupt_and_outside_paths(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+                'codelaboon.external_engines.config_dir', return_value=Path(directory)):
+            root = Path(directory)
+            outside = root / 'outside'
+            outside.touch()
+            marker = root / 'runtime/native-clis/crush/current.json'
+            marker.parent.mkdir(parents=True)
+            for value in ([], {'executable': None},
+                          {'executable': str(marker.parent / '../../..' / outside.name)}):
+                with self.subTest(value=value):
+                    marker.write_text(json.dumps(value), encoding='utf-8')
+                    self.assertIsNone(managed_executable('crush'))
 
     def test_go_binary_does_not_require_a_musl_specific_archive(self):
         with patch('codelaboon.external_engines.platform.system', return_value='Linux'), patch(

@@ -1,3 +1,14 @@
+## 1.0.0rc53
+
+- Activate a fresh verified copy when reinstalling a managed native engine, even when its version is already installed.
+- Continue runtime maintenance after an engine fails and record each engine's outcome.
+- Keep Desktop agent controls available when a session record is malformed or disappears.
+- Restart disconnected Chromium on navigation, and distinguish a completed browser action from a failed page snapshot.
+
+## 1.0.0rc52
+
+- Preserve Python virtual environments whose directory names match top-level build artifacts, caches, or source directories during cleanup.
+
 ## 1.0.0rc51
 
 - Preserve Python virtual environments with custom directory names during build cleanup.

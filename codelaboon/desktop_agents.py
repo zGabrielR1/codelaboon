@@ -1,4 +1,5 @@
 """Local desktop-agent presence and cooperative controls."""
+import errno
 import json
 import os
 from pathlib import Path
@@ -38,11 +39,17 @@ class Agent:
         self.directory = root() / self.id
         self.directory.mkdir(parents=True, mode=0o700)
         self.lock = (self.directory / "live.lock").open("a+b")
-        acquire(self.lock)
-        (self.directory / "agent.json").write_text(
-            json.dumps({"id": self.id, "task": task, "project": str(Path.cwd()),
-                        "task_control": str(task_control) if task_control else None}), encoding="utf-8"
-        )
+        pending = self.directory / "agent.tmp"
+        try:
+            acquire(self.lock)
+            pending.write_text(
+                json.dumps({"id": self.id, "task": task, "project": str(Path.cwd()),
+                            "task_control": str(task_control) if task_control else None}), encoding="utf-8"
+            )
+            pending.replace(self.directory / "agent.json")
+        except OSError:
+            self.close()
+            raise
 
     def check(self):
         state = task_state(self.task_control)
@@ -52,9 +59,11 @@ class Agent:
             raise ValueError("This desktop agent is paused. Resume it from Tasks or another agent.")
 
     def close(self):
-        (self.directory / "agent.json").unlink(missing_ok=True)
-        self.lock.close()
-        for name in ("live.lock", "PAUSE"):
+        try:
+            (self.directory / "agent.json").unlink(missing_ok=True)
+        finally:
+            self.lock.close()
+        for name in ("live.lock", "PAUSE", "agent.tmp"):
             (self.directory / name).unlink(missing_ok=True)
         try:
             self.directory.rmdir()
@@ -70,12 +79,20 @@ def list_agents():
             with (path.parent / "live.lock").open("r+b") as lock:
                 try:
                     acquire(lock)
-                except OSError:
-                    row = json.loads(path.read_text(encoding="utf-8"))
-                    directory = row.pop("task_control", None)
-                    agents.append({**row, "paused": (path.parent / "PAUSE").exists(),
-                                   "task_state": task_state(Path(directory)) if directory else None})
-        except (FileNotFoundError, ValueError):
+                except OSError as error:
+                    if error.errno not in (errno.EACCES, errno.EAGAIN):
+                        continue
+                else:
+                    continue
+                row = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(row, dict) or row.get("id") != path.parent.name:
+                    continue
+                directory = row.pop("task_control", None)
+                if directory is not None and not isinstance(directory, str):
+                    continue
+                agents.append({**row, "paused": (path.parent / "PAUSE").exists(),
+                               "task_state": task_state(Path(directory)) if directory else None})
+        except (OSError, ValueError):
             continue
     return {"agents": agents}
 
@@ -87,8 +104,14 @@ def control_agent(agent, action):
     if not any(row["id"] == agent for row in list_agents()["agents"]):
         raise ValueError("Desktop agent is no longer active.")
     marker = root() / agent / "PAUSE"
-    if action == "pause":
-        marker.touch()
-    else:
+    try:
+        if action == "pause":
+            marker.touch()
+        else:
+            marker.unlink(missing_ok=True)
+    except FileNotFoundError:
+        raise ValueError("Desktop agent is no longer active.") from None
+    if not (marker.parent / "agent.json").exists():
         marker.unlink(missing_ok=True)
+        raise ValueError("Desktop agent is no longer active.")
     return {"agent": agent, "action": action}

@@ -47,10 +47,25 @@ class QualityOfLife(unittest.TestCase):
     def test_failed_maintenance_records_failure_without_claiming_ready(self):
         root, manifest = self.prepared()
         manifest.write_bytes(b'\0')
-        with patch.object(runtime,'location',side_effect=lambda engine:self.root/engine), patch.object(native_tui,'setup',side_effect=RuntimeError('fixture failure')):
-            with self.assertRaises(RuntimeError): runtime.maintain()
+        _, omp_manifest = self.prepared('omp')
+        omp_manifest.write_bytes(b'\0')
+
+        def repair(engine):
+            if engine == 'opencode':
+                raise RuntimeError('fixture failure')
+            self.prepared(engine)
+
+        with patch.object(runtime,'location',side_effect=lambda engine:self.root/engine), patch.object(native_tui,'setup',side_effect=repair):
+            with self.assertRaisesRegex(RuntimeError, 'opencode'):
+                runtime.maintain()
             self.assertEqual(runtime.inspect('opencode')['state'], 'damaged')
-        self.assertFalse(runtime.read_receipt()['success'])
+            self.assertEqual(runtime.inspect('omp')['state'], 'ready')
+        receipt = runtime.read_receipt()
+        self.assertFalse(receipt['success'])
+        self.assertEqual(receipt['runtimes'], [
+            {'engine': 'opencode', 'state': 'repair_failed'},
+            {'engine': 'omp', 'state': 'ready', 'action': 'repaired'},
+        ])
 
     def test_source_update_runs_fresh_repair_process_and_reports_failure(self):
         source=self.root/'source'

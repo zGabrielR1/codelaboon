@@ -20,17 +20,21 @@ def safe_path(path):
     return not attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT
 
 
+def is_virtual_environment(path):
+    return (path / 'pyvenv.cfg').is_file()
+
+
 def artifacts():
     root_dirs = [ROOT / name for name in ('build', 'dist', *sorted(CACHES))]
     root_dirs.extend(sorted(ROOT.glob('*.egg-info')))
     for path in root_dirs:
-        if path.is_dir() and safe_path(path):
+        if path.is_dir() and safe_path(path) and not is_virtual_environment(path):
             yield path
     yield from bytecode(ROOT)
 
     for name in SOURCE_DIRS:
         source = ROOT / name
-        if not source.is_dir() or not safe_path(source):
+        if not source.is_dir() or not safe_path(source) or is_virtual_environment(source):
             continue
         for directory, dirs, files in os.walk(source):
             parent = Path(directory)
@@ -40,7 +44,7 @@ def artifacts():
                     not safe_path(path)
                     or child in EXTERNAL_DIRS
                     or child.endswith('.local')
-                    or (path / 'pyvenv.cfg').is_file()
+                    or is_virtual_environment(path)
                 ):
                     dirs.remove(child)
                 elif child in CACHES:

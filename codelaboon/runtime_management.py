@@ -77,6 +77,7 @@ def maintain(prepare=None):
     """Repair existing source runtimes; prepare absent engines only if requested."""
     from codelaboon.native_tui import setup
     rows = []
+    failures = []
     engines = list(ENGINES)
     if prepare and prepare not in engines:
         engines.append(prepare)
@@ -95,13 +96,17 @@ def maintain(prepare=None):
                     raise RuntimeError('Runtime verification did not produce a valid ready receipt')
                 row['action'] = 'repaired'
                 print(f'  [ok] {engine}: startup verified')
-            except Exception:
+            except Exception as error:
                 rows.append({'engine':engine, 'state':'repair_failed'})
-                save_receipt(False, rows)
-                print(f'Runtime repair failed. Retry: codelaboon runtime repair --engine {engine}', file=sys.stderr)
-                raise
+                failures.append((engine, error))
+                print(f'{engine} runtime repair failed: {error}', file=sys.stderr)
+                print(f'Retry: {row.get("repair_command", f"codelaboon tui --engine {engine} --setup")}', file=sys.stderr)
+                continue
         rows.append({key:row[key] for key in ('engine','state','action') if key in row})
-    save_receipt(True, rows)
+    save_receipt(not failures, rows)
+    if failures:
+        failed_engines = ', '.join(engine for engine, _ in failures)
+        raise RuntimeError(f'Runtime repair failed for {failed_engines}') from failures[0][1]
 
 
 def show_status(engines=ENGINES, overview=False):

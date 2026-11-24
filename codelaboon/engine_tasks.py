@@ -10,7 +10,7 @@ ENGINES = ('jcode','opencode','omp','kilo','claude','codex','crush','devin')
 
 
 def catalog():
-    from codelaboon.paths import config_dir
+    from codelaboon.external_engines import managed_executable
     from codelaboon.runtime_management import inspect
     rows=[]
     for engine in ENGINES:
@@ -23,12 +23,7 @@ def catalog():
             installed=state['state'] not in ('not_installed','unavailable')
         else:
             installed=bool(shutil.which(engine)) if engine!='jcode' else bool(os.environ.get('CODELABOON_JCODE_BIN') and Path(os.environ['CODELABOON_JCODE_BIN']).is_file())
-            marker=config_dir()/'runtime/native-clis'/engine/'current.json'
-            try:
-                value=json.loads(marker.read_text(encoding='utf-8'))
-                executable=Path(value['executable'])
-                installed=installed or (executable.is_relative_to(marker.parent) and executable.is_file())
-            except (OSError,ValueError,KeyError,TypeError):pass
+            installed=installed or managed_executable(engine) is not None
         rows.append({'id':engine,'installed':installed,'native_swarm':engine=='jcode',
             'worker_limit':1000 if engine=='jcode' else 1,
             'coordination':'native swarm' if engine=='jcode' else 'portable coordinator',

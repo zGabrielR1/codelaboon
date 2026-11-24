@@ -1,1 +1,1 @@
-RC51 preserves custom-named Python virtual environments during build cleanup. See RELEASE-RC51.md.
+RC53 improves engine reinstall and maintenance reliability and Desktop recovery. See RELEASE-RC53.md.

@@ -4,6 +4,19 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-24 — RC53 engine and Desktop recovery
+
+- Managed engine setup now activates the freshly verified installation on same-version repairs. Launchers and the task catalog share managed executable lookup.
+- Runtime maintenance records every engine outcome and continues after an individual repair fails.
+- Desktop isolates malformed or disappearing agent records, rebuilds disconnected Chromium sessions on navigation, and reports snapshot failures separately from completed actions.
+- Ran 469 offline tests on Windows with 4 skips. Structural checks, engine source verification, CLI version, and Desktop HTTP agent controls passed. Chromium recovery was exercised with test doubles.
+
+### Session 2026-11-24 — RC52 build cleanup
+
+- Verified the published RC51 prerelease and its GitHub Actions runs. Extended cleanup protection to virtual environments at the project root and at source directory entry points.
+- Verified that dry runs and normal cleanup preserve those environments and still recognize ordinary build output, packaging metadata, and Python caches.
+- Ran 464 offline tests on Windows with 4 skips. Structural checks and engine source verification passed. The CLI reports version `1.0.0rc52`.
+
 ### Session 2026-11-23 — RC51 build cleanup
 
 - Preserve Python virtual environments with custom names when cleaning source trees.

@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import uuid
 import zipfile
 
 import requests
@@ -121,7 +122,9 @@ def setup(engine):
         algorithm, digest = release["integrity"].split("-", 1)
         if algorithm != "sha512":
             raise RuntimeError(f"{engine} package does not provide the expected SHA-512 integrity")
-    destination = directory / f"{version}-{system}"
+    # Give each verified install its own directory so repairs can activate
+    # while a previous copy is running or another installation is in flight.
+    destination = directory / f"{version}-{system}-{uuid.uuid4().hex[:12]}"
     binary_name = engine + (".exe" if os.name == "nt" else "")
     print(f"Downloading verified {engine} {version} ({system})...", file=sys.stderr, flush=True)
     with tempfile.TemporaryDirectory(prefix=".install-", dir=directory) as temporary:
@@ -161,14 +164,25 @@ def setup(engine):
         relative = candidates[0].relative_to(content)
         candidates[0].chmod(0o755)
         subprocess.run([str(candidates[0]), "--version"], check=True, capture_output=True, timeout=30)
-        if not destination.exists():
-            content.rename(destination)
+        content.rename(destination)
         record = {"engine": engine, "version": version, "platform": system, "url": url,
                   "integrity": algorithm + ":" + digest, "executable": str(destination / relative)}
         marker = staging / "current.json"
         marker.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         marker.replace(directory / "current.json")
     return destination / relative
+
+
+def managed_executable(engine):
+    marker = config_dir() / "runtime/native-clis" / engine / "current.json"
+    try:
+        data = json.loads(marker.read_text(encoding="utf-8"))
+        path = Path(data["executable"]).resolve()
+        if path.is_relative_to(marker.parent.resolve()) and path.is_file():
+            return path
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError):
+        pass
+    return None
 
 
 def executable(engine):
@@ -186,14 +200,9 @@ def executable(engine):
             existing = None
     if existing:
         return existing
-    marker = config_dir() / "runtime/native-clis" / engine / "current.json"
-    try:
-        data = json.loads(marker.read_text(encoding="utf-8"))
-        path = Path(data["executable"])
-        if path.is_relative_to(marker.parent) and path.is_file():
-            return str(path)
-    except (OSError, ValueError, KeyError):
-        pass
+    managed = managed_executable(engine)
+    if managed:
+        return str(managed)
     print(f"Installing optional {engine} native CLI...", file=sys.stderr, flush=True)
     return str(setup(engine))
 

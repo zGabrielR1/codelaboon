@@ -70,8 +70,10 @@ class Browser:
         return self.executor.submit(self._call, action, arguments).result()
 
     def close(self):
-        self.executor.submit(self._close).result()
-        self.executor.shutdown()
+        try:
+            self.call("close")
+        finally:
+            self.executor.shutdown()
 
     def _close(self):
         try:
@@ -91,16 +93,16 @@ class Browser:
             target = urlsplit(url)
             if target.scheme not in ("http", "https") or not target.hostname or target.username is not None:
                 raise ValueError("Enter an HTTP or HTTPS URL without credentials.")
-        if self.page is None or self.page.is_closed():
+        if self.page is None or self.page.is_closed() or not self.browser.is_connected():
             if action != "navigate":
                 raise ValueError("Open a page first.")
             try:
                 from playwright.sync_api import sync_playwright
             except ImportError:
                 raise ValueError("Install codelaboon[desktop] to enable browser control.") from None
-            self._close()
-            self.runtime = sync_playwright().start()
             try:
+                self._close()
+                self.runtime = sync_playwright().start()
                 self.browser = self.runtime.chromium.launch(headless=self.headless)
                 self.page = self.browser.new_page()
                 self.page.set_default_timeout(8000)
@@ -124,9 +126,15 @@ class Browser:
                     locator.fill(value)
             elif action != "snapshot":
                 raise ValueError("Unknown browser action.")
-            return {"url": self.page.url, "title": self.page.title(),
-                    "snapshot": self.page.locator("body").aria_snapshot(timeout=8000)[:16000]}
         except ValueError:
             raise
         except Exception:
             raise ValueError("The browser action could not finish. Check the page and locator, then retry.") from None
+        try:
+            return {"url": self.page.url, "title": self.page.title(),
+                    "snapshot": self.page.locator("body").aria_snapshot(timeout=8000)[:16000]}
+        except Exception:
+            if action == "snapshot":
+                raise ValueError("Could not read the page snapshot. Refresh the snapshot or open a page.") from None
+            return {"url": self.page.url, "title": "", "snapshot": "",
+                    "message": "Browser action completed. Refresh the snapshot to view the page."}

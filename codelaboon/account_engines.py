@@ -1,6 +1,5 @@
 """Official Windsurf/Devin CLI accounts, models and bounded task execution."""
 import argparse
-import json
 import os
 from pathlib import Path
 import shutil
@@ -14,12 +13,8 @@ INSTALL='https://docs.devin.ai/cli/'
 def executable(install=False):
     path=os.environ.get('CODELABOON_DEVIN_BIN') or shutil.which('devin')
     if not path or not Path(path).is_file():
-        from codelaboon.paths import config_dir
-        marker=config_dir()/'runtime/native-clis/devin/current.json'
-        try:
-            candidate=Path(json.loads(marker.read_text(encoding='utf-8'))['executable'])
-            if candidate.is_file() and candidate.resolve().is_relative_to(marker.parent.resolve()):path=str(candidate)
-        except (OSError,ValueError,KeyError,TypeError):pass
+        from codelaboon.external_engines import managed_executable
+        path=managed_executable('devin')
     if not path or not Path(path).is_file():
         if install:
             from codelaboon.external_engines import setup

@@ -1,3 +1,5 @@
+from contextlib import ExitStack
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -7,6 +9,23 @@ from codelaboon import desktop_agents, task_api
 
 
 class DesktopAgentTests(unittest.TestCase):
+    def test_bad_live_record_does_not_hide_other_sessions(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            desktop_agents, "root", return_value=Path(directory)
+        ), ExitStack() as cleanup:
+            broken = desktop_agents.Agent()
+            cleanup.callback(broken.close)
+            healthy = desktop_agents.Agent()
+            cleanup.callback(healthy.close)
+            record = broken.directory / "agent.json"
+            for value in ([], {"id": healthy.id}, {"id": broken.id, "task_control": []}):
+                with self.subTest(value=value):
+                    record.write_text(json.dumps(value), encoding="utf-8")
+                    self.assertEqual([row["id"] for row in desktop_agents.list_agents()["agents"]], [healthy.id])
+            desktop_agents.control_agent(healthy.id, "pause")
+            with self.assertRaisesRegex(ValueError, "paused"):
+                healthy.check()
+
     def test_agent_controls_another_session_and_removes_presence_on_close(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(desktop_agents, "root", return_value=Path(directory)):
             agent = desktop_agents.Agent("task-1")
