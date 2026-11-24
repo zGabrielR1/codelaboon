@@ -1,6 +1,6 @@
 """Foreground screen observation and input for the local MCP session."""
 
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 import hashlib
 import io
 import os
@@ -77,22 +77,28 @@ class DesktopSession:
                 self.lease = None
 
     def observe(self):
-        with self.driver() as driver:
-            screenshot = driver.screenshot()
-            width, height = driver.size()
-            if screenshot.size != (width, height):
-                screenshot = screenshot.resize((width, height))
-            with io.BytesIO() as output:
-                screenshot.save(output, format="PNG")
-                image = output.getvalue()
-            frame_id = uuid.uuid4().hex
-            self.frame = (frame_id, width, height)
-            return frame_id, width, height, image
+        self.frame = None
+        try:
+            with self.driver() as driver:
+                screenshot = driver.screenshot()
+                width, height = driver.size()
+                if screenshot.size != (width, height):
+                    screenshot = screenshot.resize((width, height))
+                with io.BytesIO() as output:
+                    screenshot.save(output, format="PNG")
+                    image = output.getvalue()
+        except Exception:
+            with suppress(Exception):
+                self.close()
+            raise
+        frame_id = uuid.uuid4().hex
+        self.frame = (frame_id, width, height)
+        return frame_id, width, height, image
 
     def act(self, frame_id, action, x=None, y=None, keys=None, text=None, ticks=None):
+        if self.frame is None or frame_id != self.frame[0]:
+            raise ValueError("Observe the desktop before each input action.")
         with self.driver() as driver:
-            if self.frame is None or frame_id != self.frame[0]:
-                raise ValueError("Observe the desktop before each input action.")
             _, width, height = self.frame
             if tuple(driver.size()) != (width, height):
                 self.frame = None

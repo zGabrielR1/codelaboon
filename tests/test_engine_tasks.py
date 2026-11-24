@@ -43,6 +43,21 @@ class EngineTasks(unittest.TestCase):
             'codex':'{"type":"turn.failed"}\n','jcode':'{"text":""}','crush':''}
         for engine,payload in values.items():
             with self.subTest(engine=engine),self.assertRaises(RuntimeError):self.run_engine(engine,payload)
+
+    def test_malformed_protocol_fields_report_the_engine_and_field(self):
+        cases = [
+            ('claude', 'not JSON', 'final response'),
+            ('jcode', '[]', 'final response'),
+            ('opencode', '{"type":"text","part":null}\n', 'text event part'),
+            ('kilo', '{"type":"step_finish","part":[]}\n', 'step_finish event part'),
+            ('codex', '{"type":"item.completed","item":null}\n', 'completed item'),
+            ('omp', '{"type":"message_end","message":{"role":"assistant","content":null}}\n', 'assistant content'),
+            ('omp', '{"type":"message_end","message":{"role":"assistant","content":[null]}}\n', 'assistant content entry'),
+        ]
+        for engine, payload, field in cases:
+            with self.subTest(engine=engine, field=field), self.assertRaisesRegex(RuntimeError, f'{engine}.*{field}'):
+                self.run_engine(engine, payload)
+
     def test_portable_coordination_and_native_swarm_are_distinct(self):
         base=dict(controller='worker',workers=1,timeout=30,interval=60,cycles=0,model='free')
         for engine in tasks.ENGINES:

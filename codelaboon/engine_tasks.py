@@ -51,6 +51,12 @@ def command(engine, model, prompt_file):
     return ['--model',wire_model,'run','--json',prompt]
 
 
+def protocol_object(value, engine, field):
+    if not isinstance(value, dict):
+        raise RuntimeError(f'{engine} returned an invalid {field}: expected a JSON object')
+    return value
+
+
 def run(engine, model, prompt_file, runtime):
     """Require a complete native response; acceptance checks remain independent."""
     if engine=='devin':
@@ -67,8 +73,11 @@ def run(engine, model, prompt_file, runtime):
             if process.returncode:raise RuntimeError(f'{engine} task failed (exit={process.returncode})')
             if engine=='crush':text=output
             else:
-                result=json.loads(output)
-                if not isinstance(result,dict):raise RuntimeError('Invalid native result')
+                try:
+                    result = json.loads(output)
+                except ValueError as error:
+                    raise RuntimeError(f'{engine} returned invalid JSON in its final response') from error
+                result = protocol_object(result, engine, 'final response')
                 if engine=='claude' and (result.get('is_error') or result.get('subtype')!='success'):
                     raise RuntimeError('Claude task did not report success')
                 text=result.get('result' if engine=='claude' else 'text','')
@@ -83,16 +92,24 @@ def run(engine, model, prompt_file, runtime):
             kind=event.get('type')
             if kind in ('error','turn.failed'):failure=True
             if engine in ('opencode','kilo'):
-                if kind=='text':texts.append(event.get('part',{}).get('text',''))
-                if kind=='step_finish' and event.get('part',{}).get('reason')=='stop':complete=True
+                if kind in ('text','step_finish'):
+                    part = protocol_object(event.get('part'), engine, f'{kind} event part')
+                    if kind=='text':texts.append(part.get('text',''))
+                    elif part.get('reason')=='stop':complete=True
             elif engine=='codex':
-                item=event.get('item',{})
-                if kind=='item.completed' and item.get('type')=='agent_message':texts.append(item.get('text',''))
+                if kind=='item.completed':
+                    item = protocol_object(event.get('item'), engine, 'completed item')
+                    if item.get('type')=='agent_message':texts.append(item.get('text',''))
                 if kind=='turn.completed':complete=True
             elif engine=='omp' and kind=='message_end':
-                message=event.get('message',{})
+                message = protocol_object(event.get('message'), engine, 'message_end event message')
                 if message.get('role')=='assistant':
-                    texts.extend(part.get('text','') for part in message.get('content',[]) if part.get('type')=='text')
+                    content = message.get('content', [])
+                    if not isinstance(content, list):
+                        raise RuntimeError(f'{engine} returned invalid assistant content: expected a JSON array')
+                    for value in content:
+                        part = protocol_object(value, engine, 'assistant content entry')
+                        if part.get('type')=='text':texts.append(part.get('text',''))
                     if message.get('stopReason')=='stop':complete=True
                     if message.get('stopReason') in ('error','aborted'):failure=True
             if texts:
@@ -108,3 +125,5 @@ def run(engine, model, prompt_file, runtime):
         from codelaboon.watch import terminate
         if process.poll() is None:terminate(process)
         raise
+    finally:
+        process.stdout.close()

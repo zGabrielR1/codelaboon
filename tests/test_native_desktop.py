@@ -48,6 +48,30 @@ class DesktopBrowserTests(unittest.TestCase):
 
 
 class NativeDesktopTests(unittest.TestCase):
+    def test_failed_capture_revokes_the_old_frame_and_releases_the_desktop(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "codelaboon.native_desktop.data_dir", return_value=Path(directory)
+        ), patch("codelaboon.native_desktop.sys.platform", "test"):
+            driver = Mock()
+            driver.size.return_value = (640, 480)
+            screenshot = Mock(size=(640, 480))
+            driver.screenshot.side_effect = [screenshot, OSError("capture failed"), screenshot]
+            first, second = DesktopSession(), DesktopSession()
+            with patch.dict("sys.modules", {"pyautogui": driver}):
+                try:
+                    frame, _, _, _ = first.observe()
+                    with self.assertRaisesRegex(OSError, "capture failed"):
+                        first.observe()
+                    self.assertIsNone(first.lease)
+                    with self.assertRaisesRegex(ValueError, "Observe"):
+                        first.act(frame, "click", x=10, y=10)
+                    self.assertIsNone(first.lease)
+                    second.observe()
+                    driver.click.assert_not_called()
+                finally:
+                    first.close()
+                    second.close()
+
     def test_session_lease_and_single_use_observation(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(
             os.environ, {"DISPLAY": ":99", "WAYLAND_DISPLAY": "", "XDG_SESSION_TYPE": "x11"}

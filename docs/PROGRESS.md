@@ -4,6 +4,12 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-24 — RC54 native task and Desktop recovery
+
+- Native task adapters report malformed final JSON and event fields with engine-specific errors. The child output pipe is closed on success and failure.
+- Foreground Desktop capture errors invalidate old observations and release the lease. Rejecting stale input does not acquire a new lease.
+- Ran 471 offline tests on Windows with 4 skips. Structural checks, engine source verification, and CLI version checks passed.
+
 ### Session 2026-11-24 — RC53 engine and Desktop recovery
 
 - Managed engine setup now activates the freshly verified installation on same-version repairs. Launchers and the task catalog share managed executable lookup.

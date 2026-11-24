@@ -1,3 +1,8 @@
+## 1.0.0rc54
+
+- Report the engine and field when a native task returns malformed final JSON or event data.
+- Invalidate stale screen observations and release the foreground desktop after a failed capture.
+
 ## 1.0.0rc53
 
 - Activate a fresh verified copy when reinstalling a managed native engine, even when its version is already installed.
