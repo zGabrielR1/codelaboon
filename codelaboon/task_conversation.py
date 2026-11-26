@@ -150,6 +150,7 @@ def iter_attempt_events(root, identity):
                 if kind=='provider_unavailable':text='The local gateway is reachable, but free providers are rate limited or unavailable. No paid model was used. The orchestrator will retry after the cooldown; you can choose another model in Models & prompts.'
                 elif kind=='engine_arguments':text='The engine treated the task instruction as a filename. Update Codelaboon to use the corrected OpenCode/Kilo launcher, then retry this conversation.'
                 elif kind=='interrupted':text='The worker stopped during this attempt. The task is still queued and can run when the worker restarts.'
+                elif kind=='supervision_receipt':text='The worker reported a supervision intervention, but its record was unavailable or invalid. Open Attempts to review the failed run.'
                 elif row.get('verification')=='failed':
                     from codelaboon.task_diagnostics import failed_check
                     detail=row.get('failure_detail') or failed_check(attempt,row)

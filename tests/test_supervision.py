@@ -67,6 +67,42 @@ class SupervisionTests(unittest.TestCase):
     def test_remote_controller_and_unsafe_allowlist_are_rejected(self):
         with self.assertRaises(ValueError):supervision.review({'url':'https://example.com','model':'x'},{'prompt':'x'},{})
         with self.assertRaises(ValueError):supervision.validate({'enabled':True,'allowed_paths':['../*']})
+
+    def test_invalid_intervention_is_a_failed_attempt_and_other_tasks_can_run(self):
+        from codelaboon.task_attempts import history
+        from codelaboon.task_conversation import attempt_events
+
+        for receipt in (None, '{', '[]', '{"action":"redirect"}'):
+            with self.subTest(receipt=receipt), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                config = work.initialize(root / 'work.json')
+                checks = [[sys.executable, '-c', 'pass']]
+                task = work.add(root, 'Fix README typo', checks, config, supervise=True)
+                runtime = root / 'work-runtime'
+
+                def worker(argv, cwd, output, timeout, **options):
+                    output.write_text('Fixture output', encoding='utf-8')
+                    if options.get('monitor') is None:
+                        return 0
+                    if receipt is not None:
+                        (output.parent / 'supervision.json').write_text(receipt, encoding='utf-8')
+                    return supervision.REDIRECT
+
+                with patch('codelaboon.local_router.choose', return_value=0), patch(
+                    'codelaboon.watch.execute', side_effect=worker
+                ):
+                    run(config, once=True)
+                    run(config, once=True)
+                    attempt = history(runtime, task)[0]
+                    self.assertEqual(attempt['status'], 'failed')
+                    self.assertEqual(attempt['failure_label'], 'Task supervision record unavailable or invalid')
+                    self.assertTrue(any(row.get('failure_kind') == 'supervision_receipt'
+                                        for row in attempt_events(runtime, task)))
+                    options = {'controller': 'worker', 'workers': 1, 'timeout': 60,
+                               'interval': 1, 'cycles': 1, 'model': 'free'}
+                    other = work.add(root, 'Update the fixture', checks, config, swarm=options, supervise=False)
+                    run(config, once=True)
+                    self.assertEqual(history(runtime, other)[0]['status'], 'succeeded')
     def test_default_opencode_policy_and_explicit_full_mode(self):
         from codelaboon.native_tui import opencode_config
         with patch.dict(os.environ,CODELABOON_WORK_PERMISSIONS='default'):

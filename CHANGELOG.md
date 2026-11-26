@@ -1,3 +1,7 @@
+## 1.0.0rc58
+
+- Keep the task queue running when a supervision interruption record is missing or damaged. Show the failure in task history and conversation.
+
 ## 1.0.0rc57
 
 - Regenerate missing, unreadable, or blank saved task plans before dispatching build workers.

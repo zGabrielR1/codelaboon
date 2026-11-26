@@ -531,8 +531,21 @@ def supervise(config, base, root, once):
             if diagnostic is None or diagnostic['kind']=='verification':
                 from codelaboon.routing_metrics import feedback
                 feedback(attempt/'routing.jsonl',code==0)
-        decision=json.loads((attempt/'supervision.json').read_text()) if (attempt/'supervision.json').exists() else {}
-        if task.get('supervision',{}).get('enabled') and decision.get('action')=={75:'redirect',76:'pause'}.get(code,'never'):
+        decision = None
+        expected_action = {75: 'redirect', 76: 'pause'}.get(code)
+        if expected_action and not checks_run and stage != 'plan' and task.get('supervision', {}).get('enabled'):
+            try:
+                receipt = json.loads((attempt / 'supervision.json').read_text(encoding='utf-8'))
+                if not isinstance(receipt, dict) or receipt.get('action') != expected_action:
+                    raise ValueError('Unexpected supervision action')
+                if expected_action == 'redirect' and (
+                    not isinstance(receipt.get('correction'), str) or not receipt['correction'].strip()
+                ):
+                    raise ValueError('Missing supervision correction')
+                decision = receipt
+            except (OSError, ValueError):
+                record['failure_kind'] = 'supervision_receipt'
+        if decision is not None:
             if code==75:
                 state.setdefault('corrections',{})[task['id']]=decision['correction']
                 state['plans'].pop(task['id'],None)
@@ -549,7 +562,7 @@ def supervise(config, base, root, once):
         record.update(status='succeeded' if code == 0 else 'failed',
                       exit_code=code, finished=time.time())
         record['verification']='passed' if checks_run and code==0 else 'failed' if checks_run else 'not_run'
-        if code:
+        if code and 'failure_kind' not in record:
             from codelaboon.task_conversation import failure_kind,tail
             record['failure_kind']=failure_kind(tail(attempt/'output.log')+'\n'+tail(attempt/'orchestrator.log'))
         from codelaboon.task_diagnostics import record_failure

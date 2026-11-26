@@ -1,1 +1,1 @@
-RC57 recovers tasks whose saved plans are unavailable. See RELEASE-RC57.md.
+RC58 keeps the worker running after damaged supervision records. See RELEASE-RC58.md.

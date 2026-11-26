@@ -14,6 +14,7 @@ def failure_label(row):
         'provider_unavailable': 'Model provider unavailable',
         'engine_arguments': 'Engine rejected task arguments',
         'interrupted': 'Worker stopped during this attempt',
+        'supervision_receipt': 'Task supervision record unavailable or invalid',
         'verification_configuration': 'Verification setup needs attention',
         'verification_timeout': 'Verification timed out',
         'verification': 'Project verification failed',

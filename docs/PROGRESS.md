@@ -4,6 +4,11 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-26 — RC58 supervision record recovery
+
+- Record missing or invalid supervision interventions as failed attempts and keep the scheduler available to other tasks.
+- Keep supervision handling tied to worker exit codes and preserve independent verification results.
+
 ### Session 2026-11-26 — RC57 saved plan recovery
 
 - Replan when a saved task plan is missing, blank, or unreadable. Handle a plan disappearing during routing before an attempt starts.
