@@ -120,6 +120,34 @@ class VerifiedReleaseUpdates(unittest.TestCase):
         wheel='codelaboon-1.0.0rc22-py3-none-any.whl'
         return {'tag_name':tag,'draft':False,'assets':[{'name':name,'browser_download_url':release_update.DOWNLOAD+tag+'/'+name} for name in (wheel,'SHA256SUMS')]},wheel
 
+    def test_wheel_name_uses_normalized_version(self):
+        release, name = self.release()
+        tag = 'v1.0.0rc.022'
+        release['tag_name'] = tag
+        for asset in release['assets']:
+            asset['browser_download_url'] = release_update.DOWNLOAD + tag + '/' + asset['name']
+        raw = b'test-wheel-bytes'
+        manifest = f'{hashlib.sha256(raw).hexdigest()}  {name}\n'.encode()
+        with patch('codelaboon.__version__', '1.0.0rc21'), patch.object(
+            release_update, 'download', side_effect=[json.dumps([release]).encode(), manifest, raw]
+        ) as download, patch('codelaboon.install.install_package', return_value=(0, '')) as install:
+            self.assertTrue(release_update.install_latest()[0])
+            self.assertEqual(download.call_args.args[0], release_update.DOWNLOAD + tag + '/' + name)
+            self.assertEqual(install.call_args.kwargs['artifact'].name, name)
+
+    def test_malformed_asset_metadata_stops_update(self):
+        release, _ = self.release()
+        for assets in (None, {'name': 'SHA256SUMS'}, [None]):
+            with self.subTest(assets=assets):
+                release['assets'] = assets
+                with patch('codelaboon.__version__', '1.0.0rc21'), patch.object(
+                    release_update, 'download', return_value=json.dumps([release]).encode()
+                ) as download, patch('codelaboon.install.install_package') as install:
+                    with self.assertRaisesRegex(ValueError, 'invalid asset metadata'):
+                        release_update.install_latest()
+                    self.assertEqual(download.call_count, 1)
+                    install.assert_not_called()
+
     def test_checksum_required_before_wheel_is_passed_to_pip(self):
         release,name=self.release()
         raw=b'test-wheel-bytes'

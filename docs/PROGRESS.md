@@ -4,6 +4,12 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-26 — RC55 release updater
+
+- Derive the wheel filename from the parsed version and keep the original release tag in download URLs.
+- Reject malformed release asset metadata before downloading the manifest or wheel. Regression tests cover normalized wheel names and malformed asset records.
+- Structural checks, bundled engine provenance checks, and the release configuration audit passed on Windows.
+
 ### Session 2026-11-24 — RC54 native task and Desktop recovery
 
 - Native task adapters report malformed final JSON and event fields with engine-specific errors. The child output pipe is closed on success and failure.

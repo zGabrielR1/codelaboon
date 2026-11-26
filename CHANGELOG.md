@@ -1,3 +1,8 @@
+## 1.0.0rc55
+
+- Resolve updater wheel filenames from the normalized version, including alternate release candidate tag spellings.
+- Report malformed release asset metadata before attempting any asset download.
+
 ## 1.0.0rc54
 
 - Report the engine and field when a native task returns malformed final JSON or event data.

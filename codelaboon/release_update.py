@@ -37,6 +37,7 @@ def install_latest():
     releases = json.loads(download('https://api.github.com/repos/'+REPOSITORY+'/releases?per_page=20', 2*1024*1024))
     if not isinstance(releases, list):
         raise ValueError('Invalid GitHub release listing')
+    installed = version(__version__)
     candidates = []
     for release in releases:
         if not isinstance(release, dict) or release.get('draft'):
@@ -45,14 +46,18 @@ def install_latest():
             key = version(release['tag_name'])
         except (ValueError, KeyError, TypeError):
             continue
-        if key > version(__version__):
+        if key > installed:
             candidates.append((key, release))
     if not candidates:
         return True, 'Already at or above the newest published release'
-    _, release = max(candidates, key=lambda row: row[0])
+    (major, minor, patch, stable, rc), release = max(candidates, key=lambda row: row[0])
     tag = release['tag_name']
     assets = release.get('assets', [])
-    wheel_version = tag.removeprefix('v').replace('-rc.', 'rc').replace('-rc', 'rc')
+    if not isinstance(assets, list) or any(not isinstance(asset, dict) for asset in assets):
+        raise ValueError('The selected release has invalid asset metadata')
+    wheel_version = f'{major}.{minor}.{patch}'
+    if not stable:
+        wheel_version += f'rc{rc}'
     name = f'codelaboon-{wheel_version}-py3-none-any.whl'
     expected = {name, 'SHA256SUMS'}
     for asset in assets:
