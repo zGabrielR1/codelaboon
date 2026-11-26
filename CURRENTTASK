@@ -1,1 +1,1 @@
-RC55 improves release updater compatibility and metadata diagnostics. See RELEASE-RC55.md.
+RC56 records interrupted worker attempts and preserves task eligibility after restart. See RELEASE-RC56.md.

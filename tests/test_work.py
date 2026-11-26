@@ -85,6 +85,44 @@ class WorkTests(unittest.TestCase):
             work.control('resume', config)
             self.assertFalse(work.status(config)['paused'])
 
+    def test_interrupted_attempt_finishes_and_remains_eligible_on_restart(self):
+        from codelaboon.task_attempts import history
+        from codelaboon.task_conversation import attempt_events
+
+        for interrupted_log, verification in (('output.log', 'not_run'), ('check-0.log', 'interrupted')):
+            with self.subTest(interrupted_log=interrupted_log), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                config = self.configure(root)
+                setup = json.loads(config.read_text(encoding='utf-8'))
+                setup['tasks'][0]['verify_argv'] = [[sys.executable, '-c', 'pass']]
+                config.write_text(json.dumps(setup), encoding='utf-8')
+                runtime = root / 'runtime'
+
+                def execute(argv, cwd, output, timeout, **options):
+                    if output.name == interrupted_log:
+                        raise KeyboardInterrupt
+                    return 0
+
+                with patch('codelaboon.watch.execute', side_effect=execute):
+                    with self.assertRaises(KeyboardInterrupt):
+                        run(config, once=True)
+                attempts = history(runtime, 'first')
+                self.assertEqual(len(attempts), 1)
+                self.assertEqual(attempts[0]['status'], 'failed')
+                self.assertEqual(attempts[0]['verification'], verification)
+                self.assertEqual(attempts[0]['failure_label'], 'Worker stopped during this attempt')
+                state = json.loads((runtime / 'state.json').read_text(encoding='utf-8'))
+                self.assertEqual(Path(state['last_attempts']['first']).name, attempts[0]['id'])
+                self.assertEqual(state['done'], [])
+                self.assertEqual(state['cooldowns'], {})
+                self.assertTrue(any(event.get('failure_kind') == 'interrupted'
+                                    for event in attempt_events(runtime, 'first')))
+
+                with patch('codelaboon.watch.execute', return_value=0) as execute:
+                    run(config, once=True)
+                self.assertEqual(execute.call_count, 2)
+                self.assertEqual(history(runtime, 'first')[0]['status'], 'succeeded')
+
     def test_add_rejects_missing_acceptance(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

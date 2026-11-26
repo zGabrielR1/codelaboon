@@ -4,6 +4,12 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-26 — RC56 interrupted task attempts
+
+- Persist interrupted execution and verification attempts on graceful worker shutdown and show the reason in task history and conversation.
+- Leave interrupted tasks queued for restart without applying a harness cooldown or counting a completed cycle.
+- Preserve prior worker output in continuous-task prompts when an attempt receipt is malformed.
+
 ### Session 2026-11-26 — RC55 release updater
 
 - Derive the wheel filename from the parsed version and keep the original release tag in download URLs.

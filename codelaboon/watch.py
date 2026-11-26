@@ -54,7 +54,7 @@ def progress_tail(directory, limit=12000):
     try:
         result=json.loads((directory/'result.json').read_text(encoding='utf-8'))
         status='Previous attempt: '+result.get('status','unknown')+'; verification: '+result.get('verification','unknown')+'; exit: '+str(result.get('exit_code','unknown'))
-    except (OSError,ValueError,TypeError):status='Previous attempt status unavailable'
+    except (OSError,ValueError,TypeError,AttributeError):status='Previous attempt status unavailable'
     checks='\n'.join(path.name+':\n'+tail(path,2000) for path in sorted(directory.glob('check-*.log'))[-3:])
     return (status+'\nWorker reply:\n'+reply+('\nIndependent check feedback:\n'+checks if checks else ''))[-limit:]
 
@@ -357,6 +357,15 @@ def supervise(config, base, root, once):
                   'engine':task.get('swarm',{}).get('engine','configured harness'),
                   'supervision':task.get('supervision',{'enabled':False}),'phase':'working'}
         save(attempt / 'result.json', record)
+
+        def save_interruption():
+            verification = 'interrupted' if record['phase'] == 'verifying' else 'not_run'
+            record.update(status='failed', finished=time.time(), exit_code=130,
+                          verification=verification, failure_kind='interrupted')
+            save(attempt / 'result.json', record)
+            state['last_attempts'][task['id']] = str(attempt)
+            save(state_path, state)
+
         settings=task.get('execution_settings')
         if settings:
             record['execution_settings']=settings
@@ -443,6 +452,9 @@ def supervise(config, base, root, once):
                 code=execute(argv,project,attempt/'output.log',remaining,**execution) if remaining>0 else 124
             elif not (attempt/'output.log').exists():
                 (attempt/'output.log').write_text('Planning failed; workers were not dispatched. Inspect orchestrator.log.',encoding='utf-8')
+        except KeyboardInterrupt:
+            save_interruption()
+            raise
         except OSError as error:
             (attempt / 'output.log').write_text(str(error), encoding='utf-8')
             code = 127
@@ -473,6 +485,9 @@ def supervise(config, base, root, once):
                                            attempt / f'check-{number}.log', remaining)
                         else:
                             code = execute(check, project, attempt / f'check-{number}.log', remaining)
+                except KeyboardInterrupt:
+                    save_interruption()
+                    raise
                 except OSError as error:
                     (attempt / f'check-{number}.log').write_text(str(error), encoding='utf-8')
                     code = 127

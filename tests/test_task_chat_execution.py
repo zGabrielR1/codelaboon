@@ -13,6 +13,15 @@ from codelaboon.native_gateway import Gateway,serve,retry_delay
 
 
 class TaskChatExecution(unittest.TestCase):
+    def test_previous_attempt_summary_keeps_output_when_receipt_is_not_an_object(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'result.json').write_text('[]', encoding='utf-8')
+            (root / 'output.log').write_text('Last worker output', encoding='utf-8')
+            feedback = watch.progress_tail(root)
+            self.assertIn('Previous attempt status unavailable', feedback)
+            self.assertIn('Last worker output', feedback)
+
     def test_automatic_next_attempt_receives_independent_check_failure_not_just_worker_claims(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

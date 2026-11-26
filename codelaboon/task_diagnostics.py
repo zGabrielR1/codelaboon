@@ -13,6 +13,7 @@ def failure_label(row):
     labels = {
         'provider_unavailable': 'Model provider unavailable',
         'engine_arguments': 'Engine rejected task arguments',
+        'interrupted': 'Worker stopped during this attempt',
         'verification_configuration': 'Verification setup needs attention',
         'verification_timeout': 'Verification timed out',
         'verification': 'Project verification failed',

@@ -1,3 +1,9 @@
+## 1.0.0rc56
+
+- Mark attempts interrupted during worker execution or verification as finished and show the reason in task history and conversation.
+- Keep interrupted tasks eligible after restart without applying a harness cooldown or counting a completed cycle.
+- Keep continuous task prompts usable when the prior attempt receipt contains an unexpected JSON value.
+
 ## 1.0.0rc55
 
 - Resolve updater wheel filenames from the normalized version, including alternate release candidate tag spellings.
