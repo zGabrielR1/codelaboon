@@ -1,3 +1,7 @@
+## 1.0.0rc57
+
+- Regenerate missing, unreadable, or blank saved task plans before dispatching build workers.
+
 ## 1.0.0rc56
 
 - Mark attempts interrupted during worker execution or verification as finished and show the reason in task history and conversation.

@@ -4,6 +4,11 @@ Done / in progress / blocked tracking; objective continuity across sessions.
 
 ## Session History
 
+### Session 2026-11-26 — RC57 saved plan recovery
+
+- Replan when a saved task plan is missing, blank, or unreadable. Handle a plan disappearing during routing before an attempt starts.
+- Verify that affected tasks run a fresh planning pass and complete a verified build on the next pass.
+
 ### Session 2026-11-26 — RC56 interrupted task attempts
 
 - Persist interrupted execution and verification attempts on graceful worker shutdown and show the reason in task history and conversation.

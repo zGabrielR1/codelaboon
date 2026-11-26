@@ -233,18 +233,33 @@ def supervise(config, base, root, once):
         if eligible:
             eligible = eligible[state['harness_cursor'] % len(eligible):] + eligible[:state['harness_cursor'] % len(eligible)]
         jobs = []
+        plans = state['plans']
+        plans_changed = False
         for candidate in pending:
+            identity = candidate['id']
+            if identity in plans:
+                path = plans[identity]
+                try:
+                    plan_exists = isinstance(path, str) and Path(path).is_file()
+                except (OSError, ValueError):
+                    plan_exists = False
+                if not plan_exists:
+                    del plans[identity]
+                    plans_changed = True
+                    print(f'Replanning {identity}: saved plan unavailable', flush=True)
             swarm = candidate.get('swarm')
-            if swarm and (swarm['controller'] == 'worker' or candidate['id'] in state['plans']):
+            if swarm and (swarm['controller'] == 'worker' or identity in plans):
                 custom = swarm_harness(candidate)
                 if state['cooldowns'].get(custom['id'], 0) <= time.time():
                     jobs.append((candidate, custom, 'build'))
             else:
-                stage = ('build' if candidate['id'] in state['plans'] else 'plan') if orchestrator else 'task'
+                stage = ('build' if identity in plans else 'plan') if orchestrator else 'task'
                 if swarm and not orchestrator:
                     raise ValueError('Local-controlled swarms require a local orchestrator configuration')
                 jobs.extend((candidate, h, stage) for h in eligible
                             if not orchestrator or stage in h.get('stages', []))
+        if plans_changed:
+            save(state_path, state)
         if not jobs:
             if once:
                 return
@@ -272,6 +287,17 @@ def supervise(config, base, root, once):
                 time.sleep(min(idle, 30))
                 continue
             task, harness, stage = jobs[selection]
+        plan_text = None
+        if stage == 'build' and task['id'] in plans:
+            try:
+                plan_text = Path(plans[task['id']]).read_text(encoding='utf-8')
+                if not plan_text.strip():
+                    raise ValueError('Saved plan is empty')
+            except (OSError, ValueError):
+                del plans[task['id']]
+                save(state_path, state)
+                print(f"Replanning {task['id']}: saved plan unavailable", flush=True)
+                continue
         from codelaboon.work_queue import controls
         reset_checks=controls(root,task['id'])/'RESET_CHECK_FAILURES'
         if reset_checks.exists():
@@ -317,9 +343,8 @@ def supervise(config, base, root, once):
                 content += ('Produce a concrete implementation plan and acceptance checks. '
                             'Do not implement or edit files. Output only the plan.\n')
             else:
-                if task['id'] in state['plans']:
-                    plan = Path(state['plans'][task['id']])
-                    content += '\nCloud-authored plan:\n' + plan.read_text(encoding='utf-8')
+                if plan_text is not None:
+                    content += '\nCloud-authored plan:\n' + plan_text
                 content += '\nImplement the plan and run these checks:\n' + json.dumps(task['verify_argv'])
             previous = state['last_attempts'].get(task['id'])
             if previous:
@@ -460,7 +485,11 @@ def supervise(config, base, root, once):
             code = 127
         if code == 0 and stage in ('plan', 'build'):
             output = attempt / 'output.log'
-            if not output.exists() or not output.read_text(encoding='utf-8', errors='replace').strip():
+            try:
+                output_text = output.read_text(encoding='utf-8', errors='strict' if stage == 'plan' else 'replace')
+            except (OSError, UnicodeError):
+                output_text = ''
+            if not output_text.strip():
                 code = 125
         checks_run=False
         if code == 0 and stage != 'plan':

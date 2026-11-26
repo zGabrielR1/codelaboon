@@ -73,6 +73,43 @@ class ContinuousSwarmTests(unittest.TestCase):
                 run(config, once=True)
                 execute.assert_not_called()
 
+    def test_unusable_saved_plan_is_replaced_before_build(self):
+        for damage in ('missing', 'removed during routing', 'invalid UTF-8', 'blank'):
+            with self.subTest(damage=damage), tempfile.TemporaryDirectory() as directory:
+                config, task_id, runtime = self.configure(Path(directory), controller='local')
+                state_path = runtime / 'state.json'
+                stages = []
+
+                def route(settings, jobs):
+                    stages.append(jobs[0]['stage'])
+                    if damage == 'removed during routing' and stages == ['plan', 'build']:
+                        original.unlink()
+                    return 0
+
+                with patch('codelaboon.local_router.choose', side_effect=route), patch(
+                    'codelaboon.watch.execute', side_effect=self.execute
+                ) as execute:
+                    run(config, once=True)
+                    original = Path(json.loads(state_path.read_text())['plans'][task_id])
+                    if damage == 'missing':
+                        original.unlink()
+                    elif damage == 'invalid UTF-8':
+                        original.write_bytes(b'\xff')
+                    elif damage == 'blank':
+                        original.write_text('  ')
+
+                    run(config, once=True)
+                    state = json.loads(state_path.read_text())
+                    self.assertNotEqual(Path(state['plans'][task_id]), original)
+                    self.assertNotIn(task_id, state['cycles'])
+                    self.assertEqual(stages[-1], 'plan')
+                    self.assertEqual(execute.call_count, 2)
+
+                    run(config, once=True)
+                    self.assertEqual(stages[-1], 'build')
+                    self.assertEqual(execute.call_count, 4)
+                    self.assertEqual(json.loads(state_path.read_text())['cycles'][task_id], 1)
+
     def test_per_swarm_controls_and_router_demand(self):
         with tempfile.TemporaryDirectory() as directory:
             config, task_id, runtime = self.configure(Path(directory), controller='local')

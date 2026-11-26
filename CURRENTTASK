@@ -1,1 +1,1 @@
-RC56 records interrupted worker attempts and preserves task eligibility after restart. See RELEASE-RC56.md.
+RC57 recovers tasks whose saved plans are unavailable. See RELEASE-RC57.md.
